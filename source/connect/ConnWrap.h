@@ -1,5 +1,5 @@
-#ifndef _TiBANK_CONN_WRAP_H_
-#define _TiBANK_CONN_WRAP_H_
+#ifndef _TZ_CONN_WRAP_H_
+#define _TZ_CONN_WRAP_H_
 
 #include "General.h"
 #include <utils/Log.h>
@@ -50,4 +50,4 @@ private:
 };
 
 
-#endif // _TiBANK_CONN_WRAP_H_
+#endif // _TZ_CONN_WRAP_H_

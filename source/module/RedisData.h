@@ -1,5 +1,5 @@
-#ifndef __TiBANK_REDIS_DATA_H__
-#define __TiBANK_REDIS_DATA_H__
+#ifndef __TZ_REDIS_DATA_H__
+#define __TZ_REDIS_DATA_H__
 
 #include <string>
 
@@ -51,5 +51,5 @@ private:
     ~RedisData(){}
 };
 
-#endif // __PBI_REDIS_DATA_H__
 
+#endif // __TZ_REDIS_DATA_H__

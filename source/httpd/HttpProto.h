@@ -1,5 +1,5 @@
-#ifndef _TiBANK_HTTP_PROTO_H_
-#define _TiBANK_HTTP_PROTO_H_
+#ifndef _TZ_HTTP_PROTO_H_
+#define _TZ_HTTP_PROTO_H_
 
 #include "General.h"
 
@@ -215,4 +215,4 @@ namespace http_proto {
 
 }  // http_proto
 
-#endif //_TiBANK_HTTP_PROTO_H_
+#endif //_TZ_HTTP_PROTO_H_

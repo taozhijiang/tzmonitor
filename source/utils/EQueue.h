@@ -1,5 +1,5 @@
-#ifndef _TiBANK_EQUEUE_HPP_
-#define _TiBANK_EQUEUE_HPP_
+#ifndef _TZ_EQUEUE_HPP_
+#define _TZ_EQUEUE_HPP_
 
 #include <deque>
 
@@ -84,5 +84,5 @@ private:
 };
 
 
-#endif // _TiBANK_EQUEUE_HPP_
+#endif // _TZ_EQUEUE_HPP_
 

@@ -25,7 +25,7 @@ string http_response_generate(const string& content, const string& stat_str) {
 
     // reply fixed header
     headers[0].name = "Server";
-    headers[0].value = "TiBank Server/" + TZ_VERSION;
+    headers[0].value = "TZMonitor Server/" + TZ_VERSION;
     headers[1].name = "Date";
     headers[1].value = to_simple_string(second_clock::universal_time());
     headers[2].name = "Content-Length";
@@ -60,7 +60,7 @@ string http_response_generate(const char* data, size_t len, const string& stat_s
 
     // reply fixed header
     headers[0].name = "Server";
-    headers[0].value = "TiBank Server/" + TZ_VERSION;
+    headers[0].value = "TZMonitor Server/" + TZ_VERSION;
     headers[1].name = "Date";
     headers[1].value = to_simple_string(second_clock::universal_time());
     headers[2].name = "Content-Length";

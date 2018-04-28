@@ -1,5 +1,5 @@
-#ifndef _TiBANK_TCP_CONN_ASYNC_H_
-#define _TiBANK_TCP_CONN_ASYNC_H_
+#ifndef _TZ_TCP_CONN_ASYNC_H_
+#define _TZ_TCP_CONN_ASYNC_H_
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 using namespace boost::posix_time;
@@ -115,4 +115,4 @@ private:
 };
 
 
-#endif //_TiBANK_TCP_CONN_ASYNC_H_
+#endif //_TZ_TCP_CONN_ASYNC_H_

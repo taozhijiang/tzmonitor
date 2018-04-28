@@ -1,5 +1,5 @@
-#ifndef __TiBANK_SERVICE_MANAGER_H__
-#define __TiBANK_SERVICE_MANAGER_H__
+#ifndef __TZ_MANAGER_H__
+#define __TZ_MANAGER_H__
 
 #include <string>
 #include <map>
@@ -17,6 +17,19 @@ class SqlConnPoolHelper;
 
 class RedisConn;
 class RedisConnPoolHelper;
+
+template <typename ServiceHandler, typename ServiceProcessor>
+class TThreadedHelper;
+
+template <typename ServiceHandler, typename ServiceProcessor>
+class TThreadPoolHelper;
+
+template <typename ServiceHandler, typename ServiceProcessor>
+class TNonblockingHelper;
+
+
+template < template <typename, typename> class ServerHelperType>
+class TzMonitorService;
 
 
 class Manager {
@@ -40,7 +53,9 @@ public:
     std::shared_ptr<HttpServer> http_server_ptr_;
     std::shared_ptr<ConnPool<SqlConn, SqlConnPoolHelper>> sql_pool_ptr_;
     std::shared_ptr<ConnPool<RedisConn, RedisConnPoolHelper>> redis_pool_ptr_;
+
+    std::shared_ptr<TzMonitorService<TNonblockingHelper>> monitor_service_ptr_;
 };
 
 
-#endif //__TiBANK_SERVICE_MANAGER_H__
+#endif //__TZ_MANAGER_H__

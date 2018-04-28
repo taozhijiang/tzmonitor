@@ -1,5 +1,5 @@
-#ifndef _TiBANK_HTTP_HANDLER_H_
-#define _TiBANK_HTTP_HANDLER_H_
+#ifndef _TZ_HTTP_HANDLER_H_
+#define _TZ_HTTP_HANDLER_H_
 
 // 所有的http uri 路由
 
@@ -20,4 +20,4 @@ int post_test_handler(const HttpParser& http_parser, const std::string& post_dat
 } // end namespace
 
 
-#endif //_TiBANK_HTTP_HANDLER_H_
+#endif //_TZ_HTTP_HANDLER_H_

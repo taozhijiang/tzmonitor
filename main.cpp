@@ -21,7 +21,7 @@ static void interrupted_callback(int signal){
 
     switch(signal) {
 
-	case SIGQUIT:
+    case SIGQUIT:
             log_info("Graceful stop tibank service ... ");
             Manager::instance().service_graceful();
             log_info("Graceful stop tibank done!"); // main join all
@@ -29,7 +29,7 @@ static void interrupted_callback(int signal){
             ::exit(0);
             break;
 
-        case SIGTERM:
+    case SIGTERM:
             log_info("Immediately shutdown tibank service ... ");
             Manager::instance().service_terminate();
             log_info("Immediately shutdown tibank service done! ");
@@ -37,7 +37,7 @@ static void interrupted_callback(int signal){
             ::exit(0);
             break;
 
-        default:
+    default:
             log_err("Unhandled signal: %d", signal);
             break;
     }
@@ -57,7 +57,7 @@ static void show_vcs_info () {
 
     std::cout << " THIS RELEASE OF TZMonitor " << std::endl;
 
-    TZ_VERSION = boost::str( boost::format("v%d.%d.%d") %tz_VERSION_MAJOR %tz_VERSION_MINOR %tz_VERSION_PATCH);
+    TZ_VERSION = boost::str( boost::format("v%d.%d.%d") %TZ_VERSION_MAJOR %TZ_VERSION_MINOR %TZ_VERSION_PATCH);
     std::cout << "      VERSION: "  << TZ_VERSION << std::endl;
 
     extern const char *build_commit_version;
@@ -99,19 +99,19 @@ static int create_process_pid() {
 
 int main(int argc, char* argv[]) {
 
-	show_vcs_info();
+    show_vcs_info();
 
     std::string config_file = "tzmonitor.conf";
-	if (!sys_config_init(config_file)) {
-		std::cout << "Handle system configure failed!" << std::endl;
-		return -1;
-	}
+    if (!sys_config_init(config_file)) {
+        std::cout << "Handle system configure failed!" << std::endl;
+        return -1;
+    }
 
     int log_level = 0;
     if (!get_config_value("log_level", log_level)) {
-		log_level = LOG_INFO;
-		log_info("Using default log_level LOG_INFO");
-	}
+        log_level = LOG_INFO;
+        log_info("Using default log_level LOG_INFO");
+    }
 
     if (!Log::instance().init(log_level)) {
         std::cerr << "Init syslog failed!" << std::endl;

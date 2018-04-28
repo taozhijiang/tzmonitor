@@ -1,5 +1,5 @@
-#ifndef _TiBANK_CONN_POOL_H_
-#define _TiBANK_CONN_POOL_H_
+#ifndef _TZ_CONN_POOL_H_
+#define _TZ_CONN_POOL_H_
 
 #include "General.h"
 
@@ -291,4 +291,4 @@ private:
 };
 
 
-#endif  // _TiBANK_CONN_POOL_H_
+#endif  // _TZ_CONN_POOL_H_

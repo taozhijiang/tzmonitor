@@ -1,5 +1,5 @@
-#ifndef _TiBANK_KEY_VALUE_VEC_H__
-#define _TiBANK_KEY_VALUE_VEC_H__
+#ifndef _TZ_KEY_VALUE_VEC_H__
+#define _TZ_KEY_VALUE_VEC_H__
 
 // 不同于map的key value，使用vector保持推入的顺序
 
@@ -89,5 +89,5 @@ private:
 
 
 
-#endif // _TiBANK_KEY_VALUE_VEC_H__
+#endif // _TZ_KEY_VALUE_VEC_H__
 

@@ -1,5 +1,5 @@
-#ifndef _TiBANK_CRYPTO_UTIL_HPP_
-#define _TiBANK_CRYPTO_UTIL_HPP_
+#ifndef _TZ_CRYPTO_UTIL_HPP_
+#define _TZ_CRYPTO_UTIL_HPP_
 
 #include <cmath>
 #include <iomanip>
@@ -144,4 +144,4 @@ static std::string sha512(const std::string &input, std::size_t iterations = 1) 
 }
 };
 
-#endif /* _TiBANK_CRYPTO_UTIL_HPP_ */
+#endif /* _TZ_CRYPTO_UTIL_HPP_ */

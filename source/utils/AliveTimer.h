@@ -1,5 +1,5 @@
-#ifndef _TiBANK_ALIVE_TIMER_H__
-#define _TiBANK_ALIVE_TIMER_H__
+#ifndef _TZ_ALIVE_TIMER_H__
+#define _TZ_ALIVE_TIMER_H__
 
 #include <set>
 
@@ -351,5 +351,5 @@ private:
 };
 
 
-#endif // _TiBANK_ALIVE_TIMER_H__
+#endif // _TZ_ALIVE_TIMER_H__
 

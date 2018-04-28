@@ -1,5 +1,5 @@
-#ifndef _TiBANK_HTTP_PARSER_H_
-#define _TiBANK_HTTP_PARSER_H_
+#ifndef _TZ_HTTP_PARSER_H_
+#define _TZ_HTTP_PARSER_H_
 
 #include "General.h"
 
@@ -325,4 +325,4 @@ private:
 };
 
 
-#endif // _TiBANK_HTTP_PARSER_H_
+#endif // _TZ_HTTP_PARSER_H_

@@ -1,5 +1,5 @@
-#ifndef __TiBANK_TIMER_SERVICE__
-#define __TiBANK_TIMER_SERVICE__
+#ifndef __TZ_TIMER_SERVICE__
+#define __TZ_TIMER_SERVICE__
 
 #include <event.h>
 
@@ -91,4 +91,4 @@ private:
 
 };
 
-#endif // __TiBANK_TIMER_SERVICE__
+#endif // __TZ_TIMER_SERVICE__

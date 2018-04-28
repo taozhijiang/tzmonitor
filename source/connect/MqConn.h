@@ -1,5 +1,5 @@
-#ifndef _TiBANK_MQ_CONN_H_
-#define _TiBANK_MQ_CONN_H_
+#ifndef _TZ_MQ_CONN_H_
+#define _TZ_MQ_CONN_H_
 
 #include <boost/optional.hpp>
 
@@ -89,4 +89,4 @@ public:
 
 
 
-#endif  // _TiBANK_MQ_CONN_H_
+#endif  // _TZ_MQ_CONN_H_

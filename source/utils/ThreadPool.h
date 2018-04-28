@@ -1,5 +1,5 @@
-#ifndef __TiBANK_THREAD_POOL_H__
-#define __TiBANK_THREAD_POOL_H__
+#ifndef __TZ_THREAD_POOL_H__
+#define __TZ_THREAD_POOL_H__
 
 #include <memory>
 #include "Log.h"
@@ -51,4 +51,4 @@ public:
 };
 
 
-#endif // __TiBANK_THREAD_POOL_H__
+#endif // __TZ_THREAD_POOL_H__

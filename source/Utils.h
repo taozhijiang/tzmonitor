@@ -1,5 +1,5 @@
-#ifndef _TiBANK_UTILS_H_
-#define _TiBANK_UTILS_H_
+#ifndef _TZ_UTILS_H_
+#define _TZ_UTILS_H_
 
 #include <sys/time.h>
 
@@ -116,4 +116,4 @@ private:
 
 
 
-#endif // _TiBANK_UTILS_H_
+#endif // _TZ_UTILS_H_

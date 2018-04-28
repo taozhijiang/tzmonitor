@@ -1,5 +1,5 @@
-#ifndef _TiBANK_LOG_H_
-#define _TiBANK_LOG_H_
+#ifndef _TZ_LOG_H_
+#define _TZ_LOG_H_
 
 // man 3 syslog
 #include <syslog.h>
@@ -42,4 +42,4 @@ public:
 #define log_info(...)  Log::instance().log_api( LOG_INFO, __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
 #define log_debug(...)  Log::instance().log_api( LOG_DEBUG, __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
 
-#endif // _TiBANK_LOG_H_
+#endif // _TZ_LOG_H_

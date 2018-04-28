@@ -11,6 +11,12 @@
 #include <module/TimerService.h>
 #include <module/RedisData.h>
 
+#include <thrifting/helper/TThreadedHelper.h>
+#include <thrifting/helper/TThreadPoolHelper.h>
+#include <thrifting/helper/TNonblockingHelper.h>
+
+#include <thrifting/biz/TzMonitorService.h>
+
 #include "Utils.h"
 #include "Manager.h"
 
@@ -34,12 +40,14 @@ bool Manager::init() {
 
     (void)RedisData::instance();
 
+    // Timer
     timer_service_ptr_.reset(new TimerService());
     if (!timer_service_ptr_ || !timer_service_ptr_->init()) {
         log_err("Init TimerService failed!");
         return false;
     }
 
+    // MySQL
     std::string mysql_hostname;
     int mysql_port;
     std::string mysql_username;
@@ -66,6 +74,7 @@ bool Manager::init() {
         return false;
     }
 
+    // Redis
     std::string redis_hostname;
     int redis_port;
     std::string redis_passwd;
@@ -89,6 +98,7 @@ bool Manager::init() {
 
     RedisData::instance().init();
 
+    // Web
     std::string listen_addr;
     int listen_port = 0;
     if (!get_config_value("http.listen_addr", listen_addr) || !get_config_value("http.listen_port", listen_port) ){
@@ -108,12 +118,27 @@ bool Manager::init() {
         return false;
     }
 
+    // Thrift
+    int thrift_port, thrift_thread_size, thrift_io_thread_size;
+    if (!get_config_value("thrift.listen_port", thrift_port) ||
+        !get_config_value("thrift.thread_size", thrift_thread_size) ||
+        !get_config_value("thrift.io_thread_size", thrift_io_thread_size) ){
+        log_err("Error, get value error");
+        return false;
+    }
+    monitor_service_ptr_.reset(new TzMonitorService<TNonblockingHelper>(thrift_port, thrift_thread_size, thrift_io_thread_size));
+    if (!monitor_service_ptr_ || !monitor_service_ptr_->init()) {
+        log_err("Init MonitorService failed!");
+        return false;
+    }
+
     // start work
     timer_service_ptr_->start_timer();
     http_server_ptr_->io_service_threads_.start_threads();
 
     // do real service
     http_server_ptr_->service();
+    monitor_service_ptr_->start_service();
 
     log_info("Manager all initialized...");
     initialized_ = true;

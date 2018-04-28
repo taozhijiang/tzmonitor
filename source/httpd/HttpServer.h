@@ -1,5 +1,5 @@
-#ifndef _TiBANK_HTTP_SERVER_H_
-#define _TiBANK_HTTP_SERVER_H_
+#ifndef _TZ_HTTP_SERVER_H_
+#define _TZ_HTTP_SERVER_H_
 
 #include "General.h"
 
@@ -149,4 +149,4 @@ public:
     int io_service_join();
 };
 
-#endif //_TiBANK_HTTP_SERVER_H_
+#endif //_TZ_HTTP_SERVER_H_

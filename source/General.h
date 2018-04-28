@@ -1,5 +1,5 @@
-#ifndef _TiBANK_GENERAL_HPP_
-#define _TiBANK_GENERAL_HPP_
+#ifndef _TZ_GENERAL_HPP_
+#define _TZ_GENERAL_HPP_
 
 // General GNU
 #ifdef __GNUC__
@@ -60,4 +60,4 @@ T * get_pointer(std::shared_ptr<T> const& p) {
     return p.get();
 }
 
-#endif // _TiBANK_GENERAL_HPP_
+#endif // _TZ_GENERAL_HPP_

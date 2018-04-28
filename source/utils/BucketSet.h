@@ -1,5 +1,5 @@
-#ifndef _TiBANK_BUCKET_SET_H__
-#define _TiBANK_BUCKET_SET_H__
+#ifndef _TZ_BUCKET_SET_H__
+#define _TZ_BUCKET_SET_H__
 
 // 用Bucket存放多个set，降低空间浪费和lock contention
 
@@ -132,5 +132,5 @@ private:
 
 
 
-#endif // _TiBANK_BUCKET_SET_H__
+#endif // _TZ_BUCKET_SET_H__
 

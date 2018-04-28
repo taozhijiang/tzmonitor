@@ -1,5 +1,5 @@
-#ifndef _TiBANK_CONN_IF_HPP_
-#define _TiBANK_CONN_IF_HPP_
+#ifndef _TZ_CONN_IF_HPP_
+#define _TZ_CONN_IF_HPP_
 
 #include <utils/Log.h>
 
@@ -94,4 +94,4 @@ protected:
 typedef std::shared_ptr<ConnIf> ConnIfPtr;
 typedef std::weak_ptr<ConnIf>   ConnIfWeakPtr;
 
-#endif //_TiBANK_CONN_IF_HPP_
+#endif //_TZ_CONN_IF_HPP_

@@ -1,5 +1,5 @@
-#ifndef _TiBANK_SQL_CONN_H_
-#define _TiBANK_SQL_CONN_H_
+#ifndef _TZ_SQL_CONN_H_
+#define _TZ_SQL_CONN_H_
 
 #include "General.h"
 
@@ -248,4 +248,4 @@ bool SqlConn::sqlconn_execute_query_multi(const string& sql, std::vector<T>& vec
 }
 
 
-#endif  // _TiBANK_SQL_CONN_H_
+#endif  // _TZ_SQL_CONN_H_

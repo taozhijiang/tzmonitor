@@ -1,5 +1,5 @@
-#ifndef _TiBANK_REDIS_CONN_H
-#define _TiBANK_REDIS_CONN_H
+#ifndef _TZ_REDIS_CONN_H
+#define _TZ_REDIS_CONN_H
 
 
 #include <hiredis/hiredis.h>
@@ -54,5 +54,5 @@ private:
 };
 
 
-#endif // _TiBANK_REDIS_CONN_H
+#endif // _TZ_REDIS_CONN_H
 
