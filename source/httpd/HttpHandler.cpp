@@ -11,8 +11,7 @@
 #include "HttpHandler.h"
 #include "HttpServer.h"
 
-#include "Utils.h"
-
+#include "Helper.h"
 #include <utils/Log.h>
 
 namespace http_handler {

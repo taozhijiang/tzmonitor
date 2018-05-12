@@ -5,9 +5,10 @@
 #include <boost/thread.hpp>
 
 #include "HttpHandler.h"
-#include "Utils.h"
 #include "HttpServer.h"
 
+#include "Helper.h"
+#include <utils/Utils.h>
 #include <utils/Log.h>
 
 static const size_t bucket_size_ = 0xFF;

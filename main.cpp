@@ -6,9 +6,10 @@ void backtrace_init();
 #include "config.h"
 
 #include "General.h"
-#include "Utils.h"
 #include "Manager.h"
+#include "Helper.h"
 
+#include <utils/Utils.h>
 #include <utils/Log.h>
 #include <utils/SslSetup.h>
 #include <utils/HttpUtil.h>

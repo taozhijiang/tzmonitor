@@ -1,6 +1,5 @@
 #include <string>
 
-#include "Utils.h"
 #include "RedisData.h"
 
 static const std::string kRedisPrefix = "bankpay";

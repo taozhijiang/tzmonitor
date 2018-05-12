@@ -15,8 +15,9 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition_variable.hpp>
 
-#include "Utils.h"
 #include <utils/Log.h>
+
+#include "Helper.h"
 
 template <typename T>
 struct conn_ptr_compare {

@@ -55,6 +55,18 @@ set (EXTRA_LIBS ${EXTRA_LIBS} libthriftnb.a libthriftz.a libthrift.a )
 
 target_link_libraries( tzmonitor ${EXTRA_LIBS} )
 
+
+# unit_test part
+enable_testing()
+add_definitions(-DBOOST_TEST_DYN_LINK)
+include(BoostTestHelper.cmake)
+file(GLOB UNIT_TEST_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} test/*.cpp)
+
+foreach(test_source_file ${UNIT_TEST_SRCS})
+    add_boost_test( ${test_source_file} ${EXTRA_LIBS} )
+endforeach(test_source_file)
+
+
 # /usr/local/bin/
 install (TARGETS tzmonitor DESTINATION bin )
 # /usr/local/include/

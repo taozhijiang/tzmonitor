@@ -37,44 +37,9 @@ bool get_config_value(const std::string& key, T& t) {
     return get_config_object().lookupValue(key, t);
 }
 
-//////////
 
-// SQL connection pool
-class SqlConn;
-typedef std::shared_ptr<SqlConn> sql_conn_ptr;
-
-// Redis connection pool
-class RedisConn;
-typedef std::shared_ptr<RedisConn> redis_conn_ptr;
-
-// Timer Task helper
-typedef boost::function<void ()> TimerEventCallable;
-class TimerService;
-
-
-
-//
-// free functions, in helper namespace
-
-namespace helper {
-
-
-bool request_scoped_sql_conn(sql_conn_ptr& conn);
-sql_conn_ptr request_sql_conn();
-sql_conn_ptr try_request_sql_conn(size_t msec);
-void free_sql_conn(sql_conn_ptr conn);
-
-
-bool request_scoped_redis_conn(redis_conn_ptr& conn);
-
-
-std::shared_ptr<TimerService> request_timer_service();
-int64_t register_timer_task(TimerEventCallable func, int64_t msec, bool persist = true, bool fast = true);
-int64_t revoke_timer_task(int64_t index);
-
-const std::string& request_http_docu_root();
-const std::vector<std::string>& request_http_docu_index();
-
+#include <boost/assert.hpp>
+#include <boost/format.hpp>
 
 struct COUNT_FUNC_PERF: public boost::noncopyable {
 
@@ -102,18 +67,12 @@ private:
 };
 
 
-} // namespace
-
-
-#include <boost/assert.hpp>
-#include <boost/format.hpp>
 #ifdef NP_DEBUG
 #define PUT_COUNT_FUNC_PERF(T)  helper::COUNT_FUNC_PERF PERF_CHECKER_##T( boost::str(boost::format("%s(%ld):%s") % __FILE__%__LINE__%BOOST_CURRENT_FUNCTION), #T ); \
                 (void) PERF_CHECKER_##T
 #else
 #define PUT_COUNT_FUNC_PERF(T) ((void)0)
 #endif
-
 
 
 #endif // _TZ_UTILS_H_
