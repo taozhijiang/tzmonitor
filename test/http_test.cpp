@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(httpget)
     }
 
     std::string rdata = client.GetData();
-    std::cerr << rdata << std::endl;
+    std::cerr  << "Response:" << rdata << std::endl;
 
     BOOST_CHECK(true);
 }

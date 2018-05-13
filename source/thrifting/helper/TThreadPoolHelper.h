@@ -1,15 +1,7 @@
 
-#ifndef __TTHREAD_POOL_HELPER__
-#define __TTHREAD_POOL_HELPER__
+#ifndef __TTHREAD_POOL_HELPER_H__
+#define __TTHREAD_POOL_HELPER_H_ _
 
-#include <thrift/protocol/TBinaryProtocol.h>
-#include <thrift/transport/TServerSocket.h>
-#include <thrift/transport/TBufferTransports.h>
-#include <thrift/server/TThreadPoolServer.h>
-#include <thrift/concurrency/PosixThreadFactory.h>
+#include "TThriftTypes.h"
 
-
-using namespace ::apache::thrift;
-
-
-#endif // __TTHREAD_POOL_HELPER__
+#endif // __TTHREAD_POOL_HELPER_H__

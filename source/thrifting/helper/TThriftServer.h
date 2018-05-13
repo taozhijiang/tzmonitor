@@ -1,5 +1,5 @@
-#ifndef __TTHRIFT_SERVER__
-#define __TTHRIFT_SERVER__
+#ifndef __TTHRIFT_SERVER_H__
+#define __TTHRIFT_SERVER_H__
 
 #include <memory>
 #include <sstream>
@@ -99,8 +99,8 @@ private:
 
 private:
     std::unique_ptr<ServerHelperType<ServiceHandler, ServiceProcessor>> server_impl_;
-    boost::shared_ptr<boost::thread> thread_ptr_;
+    std::shared_ptr<boost::thread> thread_ptr_;
     bool running_;
 };
 
-#endif // __TTHRIFT_SERVER__
+#endif // __TTHRIFT_SERVER_H__

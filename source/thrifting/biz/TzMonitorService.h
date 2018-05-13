@@ -20,6 +20,7 @@ public:
 
 
 typedef tz_thrift::monitor_serviceProcessor TzMonitorProcessor;
+typedef tz_thrift::monitor_serviceClient    TzMonitorClient;
 
 template < template <typename, typename> class ServerHelperType>
 class TzMonitorService: public TThriftServer<TzMonitorHandler, TzMonitorProcessor, ServerHelperType> {

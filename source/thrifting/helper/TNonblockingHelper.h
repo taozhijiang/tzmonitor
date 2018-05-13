@@ -1,19 +1,13 @@
-#ifndef __TNONBLOCKING_HELPER__
-#define __TNONBLOCKING_HELPER__
+#ifndef __TNONBLOCKING_HELPER_H__
+#define __TNONBLOCKING_HELPER_H__
 
 #include "General.h"
 #include <boost/make_shared.hpp>
 
 #include <utils/Log.h>
 
-#include <thrift/protocol/TBinaryProtocol.h>
-#include <thrift/transport/TServerSocket.h>
-#include <thrift/transport/TBufferTransports.h>
-#include <thrift/server/TNonblockingServer.h>
-#include <thrift/concurrency/PosixThreadFactory.h>
+#include "TThriftTypes.h"
 
-
-using namespace ::apache::thrift;
 
 template <typename ServiceHandler, typename ServiceProcessor>
 class TNonblockingHelper {
@@ -76,20 +70,22 @@ private:
 
         try {
 
+            // use auto later
+
             // 协议层，使用Thrift私有的压缩数据格式
-            boost::shared_ptr<protocol::TProtocolFactory> protocolFactory = boost::make_shared<protocol::TBinaryProtocolFactory>();
+            boost::shared_ptr<ProtocolFactory> protocolFactory = boost::make_shared<ProtocolTypeFactory>();
 
             // 工作线程组
             threads_ = concurrency::ThreadManager::newSimpleThreadManager(thread_sz_);
-            boost::shared_ptr<concurrency::PosixThreadFactory> threadFactory = boost::make_shared<concurrency::PosixThreadFactory>();
+            boost::shared_ptr<ThreadTypeFactory> threadFactory = boost::make_shared<ThreadTypeFactory>();
             threads_->threadFactory(threadFactory);
 
             // 业务处理接口
-            boost::shared_ptr<ServiceHandler> handler(new ServiceHandler());
-            boost::shared_ptr<TProcessor> processor(new ServiceProcessor(handler));
+            boost::shared_ptr<ServiceHandler> handler = boost::make_shared<ServiceHandler>();
+            boost::shared_ptr<TProcessor> processor = boost::make_shared<ServiceProcessor>(handler);
 
             // Server层次
-            boost::shared_ptr<server::TNonblockingServer> serverPtr(new server::TNonblockingServer(processor,  protocolFactory, port_, threads_));
+            boost::shared_ptr<server::TNonblockingServer> serverPtr = boost::make_shared<server::TNonblockingServer>(processor,  protocolFactory, port_, threads_);
             serverPtr->setNumIOThreads(io_thread_sz_);
             server_ = serverPtr;
 
@@ -110,4 +106,4 @@ private:
     boost::shared_ptr<concurrency::ThreadManager> threads_;
 };
 
-#endif // __TNONBLOCKING_HELPER__
+#endif // __TNONBLOCKING_HELPER_H__

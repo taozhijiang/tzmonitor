@@ -1,14 +1,7 @@
 
-#ifndef __TTHREADED_HELPER__
-#define __TTHREADED_HELPER__
+#ifndef __TTHREADED_HELPER_H__
+#define __TTHREADED_HELPER_H__
 
-#include <thrift/protocol/TBinaryProtocol.h>
-#include <thrift/transport/TServerSocket.h>
-#include <thrift/transport/TBufferTransports.h>
-#include <thrift/server/TThreadedServer.h>
-#include <thrift/concurrency/PosixThreadFactory.h>
+#include "TThriftTypes.h"
 
-
-using namespace ::apache::thrift;
-
-#endif //  __TTHREADED_HELPER__
+#endif //  __TTHREADED_HELPER_H__

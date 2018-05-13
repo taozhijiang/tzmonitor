@@ -17,7 +17,9 @@
 
 #include <utils/Log.h>
 
+#ifndef BOOST_TEST_MODULE
 #include "Helper.h"
+#endif // BOOST_TEST_MODULE
 
 template <typename T>
 struct conn_ptr_compare {
@@ -56,6 +58,8 @@ public:
     }
 
     bool init() {
+
+#ifndef BOOST_TEST_MODULE
         conn_pool_stats_timer_id_ = helper::register_timer_task(
                 boost::bind(&ConnPool::show_conn_pool_stats, this->shared_from_this()), 60 * 1000/* 60s */, true, true);
         if (conn_pool_stats_timer_id_ == 0) {
@@ -73,6 +77,8 @@ public:
                 return false;
             }
         }
+
+#endif // BOOST_TEST_MODULE
 
         return true;
     }
@@ -150,9 +156,9 @@ public:
     size_t get_conn_capacity() const { return capacity_; }
 
     ~ConnPool() {
-
+#ifndef BOOST_TEST_MODULE
         helper::revoke_timer_task(conn_pool_stats_timer_id_);
-
+#endif // BOOSt_TEST_MODULE
     }
 
 private:
