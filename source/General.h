@@ -1,5 +1,7 @@
-#ifndef _TZ_GENERAL_HPP_
-#define _TZ_GENERAL_HPP_
+#ifndef _TZ_GENERAL_H_
+#define _TZ_GENERAL_H_
+
+#include "ErrorDef.h"
 
 // General GNU
 #ifdef __GNUC__
@@ -60,4 +62,4 @@ T * get_pointer(std::shared_ptr<T> const& p) {
     return p.get();
 }
 
-#endif // _TZ_GENERAL_HPP_
+#endif // _TZ_GENERAL_H_

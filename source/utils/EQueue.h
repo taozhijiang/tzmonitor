@@ -1,5 +1,5 @@
-#ifndef _TZ_EQUEUE_HPP_
-#define _TZ_EQUEUE_HPP_
+#ifndef _TZ_EQUEUE_H_
+#define _TZ_EQUEUE_H_
 
 #include <deque>
 
@@ -84,5 +84,5 @@ private:
 };
 
 
-#endif // _TZ_EQUEUE_HPP_
+#endif // _TZ_EQUEUE_H_
 

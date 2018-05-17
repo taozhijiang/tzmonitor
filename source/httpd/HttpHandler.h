@@ -13,6 +13,8 @@ namespace http_handler {
 
 int default_http_get_handler(const HttpParser& http_parser, std::string& response, string& status_line);
 
+int event_submit_handler(const HttpParser& http_parser, const std::string& post_data, std::string& response, string& status_line);
+
 // 预留测试接口
 int get_test_handler(const HttpParser& http_parser, std::string& response, string& status_line);
 int post_test_handler(const HttpParser& http_parser, const std::string& post_data, std::string& response, string& status_line);

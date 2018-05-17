@@ -17,8 +17,13 @@
 
 #include <thrifting/biz/TzMonitorService.h>
 
-#include "Helper.h"
+#include <core/EventRepos.h>
+
 #include <utils/Utils.h>
+
+#include <core/EventRepos.h>
+
+#include "Helper.h"
 #include "Manager.h"
 
 // 在主线程中最先初始化，所以不考虑竞争条件问题
@@ -40,6 +45,7 @@ bool Manager::init() {
     }
 
     (void)RedisData::instance();
+    (void)EventRepos::instance();
 
     // Timer
     timer_service_ptr_.reset(new TimerService());
@@ -132,6 +138,13 @@ bool Manager::init() {
         log_err("Init MonitorService failed!");
         return false;
     }
+
+    // Core Biz
+    if (!EventRepos::instance().init()) {
+        log_err("Init EventRepos failed!");
+        return false;
+    }
+
 
     // start work
     timer_service_ptr_->start_timer();

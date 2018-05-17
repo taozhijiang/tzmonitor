@@ -46,7 +46,7 @@ public:
 private:
     struct timeval start_; // 每次请求的时候更新
     int64_t        count_;
-    int64_t          conn_uuid_;   // reinterpret_cast
+    int64_t        conn_uuid_;   // reinterpret_cast
 };
 
 

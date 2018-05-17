@@ -100,6 +100,8 @@ bool HttpServer::init() {
 
     // customize route uri handler
 
+    register_http_post_handler("/event_submit", http_handler::event_submit_handler);
+
     register_http_get_handler("/test", http_handler::get_test_handler);
     register_http_post_handler("/test", http_handler::post_test_handler);
 

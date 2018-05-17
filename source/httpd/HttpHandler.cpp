@@ -7,12 +7,15 @@
 
 #include <json/json.h>
 
+#include "ErrorDef.h"
 #include "HttpProto.h"
 #include "HttpHandler.h"
 #include "HttpServer.h"
 
 #include "Helper.h"
 #include <utils/Log.h>
+
+#include <core/EventRepos.h>
 
 namespace http_handler {
 
@@ -107,7 +110,68 @@ int default_http_get_handler(const HttpParser& http_parser, std::string& respons
     return 0;
 }
 
+int event_submit_handler(const HttpParser& http_parser, const std::string& post_data, std::string& response, string& status_line) {
 
+    Json::Value root;
+    Json::Reader reader;
+
+    do {
+
+        if (!reader.parse(post_data, root) || root.isNull()) {
+            log_err("parse error for: %s", post_data.c_str());
+            break;
+        }
+
+        if (!root["version"].isString() || !root["time"].isString() ||
+            !root["host"].isString() || !root["service"].isString() ||
+            !root["entity_idx"].isString() || !root["data"].isString()) {
+            log_err("param check error: %s", post_data.c_str());
+            break;
+        }
+
+        Json::Value eventList;
+        if (!reader.parse(root["data"].asString(), eventList) || !eventList.isArray()) {
+            log_err("parse error for eventlist: %s", root["data"].asString().c_str());
+            break;
+        }
+
+
+        event_report_t events {};
+        events.version = root["version"].asString();
+        events.time = ::atol(root["time"].asString().c_str());
+        events.host = root["host"].asString();
+        events.service = root["service"].asString();
+        events.entity_idx = root["entity_idx"].asString();
+        events.data.clear();
+
+        for (size_t i = 0; i < eventList.size(); i++) {
+            if (!eventList[i]["event"].isString() || !eventList[i]["msgid"].isString() ||
+                !eventList[i]["value"].isString() || !eventList[i]["flag"].isString()) {
+                log_err("event data error!");
+                continue;
+            }
+
+            event_data_t dat{};
+            dat.event = eventList[i]["event"].asString();
+            dat.msgid = eventList[i]["msgid"].asString();
+            dat.value = ::atoll(eventList[i]["value"].asString().c_str());
+            dat.flag = eventList[i]["flag"].asString();
+
+            events.data.push_back(dat);
+        }
+
+        if (EventRepos::instance().add_event(events) == ErrorDef::OK) {
+            response = http_proto::content_ok;
+            status_line = generate_response_status_line(http_parser.get_version(), StatusCode::success_ok);
+            return ErrorDef::OK;
+        }
+
+    } while (0);
+
+    response = http_proto::content_error;
+    status_line = generate_response_status_line(http_parser.get_version(), StatusCode::server_error_internal_server_error);
+    return ErrorDef::Error;
+}
 
 int get_test_handler(const HttpParser& http_parser, std::string& response, string& status_line) {
 

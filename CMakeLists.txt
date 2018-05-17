@@ -31,6 +31,7 @@ add_subdirectory( source/connect )
 add_subdirectory( source/httpd )
 add_subdirectory( source/module )
 add_subdirectory( source/thrifting )
+add_subdirectory( source/core)
 
 
 link_directories( /usr/lib64/mysql/
@@ -46,11 +47,12 @@ exec_program( "export BUILD_VAR=`date` && echo 'const char *build_time = \"Build
 add_executable( tzmonitor main.cpp build_version.cpp ${DIR_SRCS} )
 
 # ld iconv ?
-set (EXTRA_LIBS ${EXTRA_LIBS} ssl event config++)
+
+set (EXTRA_LIBS ${EXTRA_LIBS} core httpd utils connect module thrifting json)
+set (EXTRA_LIBS ${EXTRA_LIBS} rabbitmq ssl curl event config++)
 set (EXTRA_LIBS ${EXTRA_LIBS} pthread hiredis)
 set (EXTRA_LIBS ${EXTRA_LIBS} boost_system boost_thread-mt boost_date_time boost_regex)
 set (EXTRA_LIBS ${EXTRA_LIBS} mysqlcppconn)
-set (EXTRA_LIBS ${EXTRA_LIBS} curl rabbitmq json utils connect httpd module thrifting)
 set (EXTRA_LIBS ${EXTRA_LIBS} libthriftnb.a libthriftz.a libthrift.a )
 
 target_link_libraries( tzmonitor ${EXTRA_LIBS} )
