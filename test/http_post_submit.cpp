@@ -31,14 +31,14 @@ BOOST_AUTO_TEST_CASE(http_post_event_submit)
     }
 
     std::stringstream ss;
-    ss << "http://127.0.0.1:" << listen_port << "/event_submit";
+    ss << "http://127.0.0.1:" << listen_port << "/ev_submit";
 
     std::string sUrl = ss.str();
 
     std::map<std::string, std::string> map_param;
     map_param["version"] = "1.0.0";
     map_param["host"] = "centos";
-    map_param["service"] = "tstsrv";
+    map_param["serv"] = "tstsrv";
     map_param["entity_idx"] = "1";
     map_param["time"] = convert_to_string(::time(NULL));
 
@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE(http_post_event_submit)
 
     // for
     Json::Value ordersjson;
-    ordersjson["event"] = "callsrvtime";
+    ordersjson["name"] = "callsrvtime";
     ordersjson["msgid"] = "123";
     ordersjson["value"] = "22";
     ordersjson["flag"] = "f";

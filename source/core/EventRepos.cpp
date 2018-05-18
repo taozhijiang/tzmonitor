@@ -84,11 +84,11 @@ int EventHandler::do_add_event(const std::string& identity, time_t ev_time, cons
     std::shared_ptr<events_t> time_slot_ptr = time_iter->second;
 
     for (auto iter = data.begin(); iter != data.end(); ++iter) {
-        auto event_iter = time_slot_ptr->find(iter->event);
+        auto event_iter = time_slot_ptr->find(iter->name);
         if (event_iter == time_slot_ptr->end()) {
-            log_debug("create event slot: %s", iter->event.c_str());
-            (*time_slot_ptr)[iter->event] = std::vector<event_data_t>();
-            event_iter = time_slot_ptr->find(iter->event);
+            log_debug("create event slot: %s", iter->name.c_str());
+            (*time_slot_ptr)[iter->name] = std::vector<event_data_t>();
+            event_iter = time_slot_ptr->find(iter->name);
         }
 
         event_iter->second.push_back(*iter);
@@ -180,11 +180,12 @@ int EventRepos::destory_handlers() {
 // forward request to specified handlers
 int EventRepos::add_event(const event_report_t& evs) {
 
-    if (evs.host.empty() || evs.service.empty() || evs.entity_idx.empty() || evs.data.empty()) {
+    if (evs.host.empty() || evs.serv.empty() || evs.entity_idx.empty() || evs.data.empty()) {
+        log_err("evs param check error!");
         return ErrorDef::ParamErr;
     }
 
-    std::string identity = construct_identity(evs.host, evs.service, evs.entity_idx);
+    std::string identity = construct_identity(evs.host, evs.serv, evs.entity_idx);
     std::shared_ptr<EventHandler> handler;
 
     if (find_or_create_event_handler(identity, handler) != 0) {

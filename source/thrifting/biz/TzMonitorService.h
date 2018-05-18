@@ -16,6 +16,7 @@ class TzMonitorHandler: public tz_thrift::monitor_serviceIf{
 public:
     // override your business
     virtual void ping_test(tz_thrift::result_t& _return, const tz_thrift::ping_t& req) override;
+    virtual void ev_submit(tz_thrift::result_t& result, const tz_thrift::ev_report_t& req) override;
 };
 
 

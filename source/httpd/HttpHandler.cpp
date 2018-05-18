@@ -110,7 +110,7 @@ int default_http_get_handler(const HttpParser& http_parser, std::string& respons
     return 0;
 }
 
-int event_submit_handler(const HttpParser& http_parser, const std::string& post_data, std::string& response, string& status_line) {
+int ev_submit_handler(const HttpParser& http_parser, const std::string& post_data, std::string& response, string& status_line) {
 
     Json::Value root;
     Json::Reader reader;
@@ -123,7 +123,7 @@ int event_submit_handler(const HttpParser& http_parser, const std::string& post_
         }
 
         if (!root["version"].isString() || !root["time"].isString() ||
-            !root["host"].isString() || !root["service"].isString() ||
+            !root["host"].isString() || !root["serv"].isString() ||
             !root["entity_idx"].isString() || !root["data"].isString()) {
             log_err("param check error: %s", post_data.c_str());
             break;
@@ -138,21 +138,21 @@ int event_submit_handler(const HttpParser& http_parser, const std::string& post_
 
         event_report_t events {};
         events.version = root["version"].asString();
-        events.time = ::atol(root["time"].asString().c_str());
+        events.time = ::atoll(root["time"].asString().c_str());
         events.host = root["host"].asString();
-        events.service = root["service"].asString();
+        events.serv = root["serv"].asString();
         events.entity_idx = root["entity_idx"].asString();
         events.data.clear();
 
         for (size_t i = 0; i < eventList.size(); i++) {
-            if (!eventList[i]["event"].isString() || !eventList[i]["msgid"].isString() ||
+            if (!eventList[i]["name"].isString() || !eventList[i]["msgid"].isString() ||
                 !eventList[i]["value"].isString() || !eventList[i]["flag"].isString()) {
                 log_err("event data error!");
                 continue;
             }
 
             event_data_t dat{};
-            dat.event = eventList[i]["event"].asString();
+            dat.name = eventList[i]["name"].asString();
             dat.msgid = eventList[i]["msgid"].asString();
             dat.value = ::atoll(eventList[i]["value"].asString().c_str());
             dat.flag = eventList[i]["flag"].asString();
