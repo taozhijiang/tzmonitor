@@ -26,8 +26,21 @@ struct ev_report_t {
     10:required list<ev_data_t> data;  // 事件不必相同，但是必须同一个time
 }
 
+struct ev_query_request_t {
+    1:required string version;    // 1.0.0
+}
+
+struct ev_query_resp_t {
+    100:required result_t result;
+
+    1:required string version;    // 1.0.0
+
+}
+
 service monitor_service {
 
     result_t ping_test(1: ping_t req);
     result_t ev_submit(1: ev_report_t req);
+
+
 }

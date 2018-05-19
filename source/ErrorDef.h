@@ -18,6 +18,13 @@ const int OffServiceErr = -10008;
 const int DenialOfServiceErr = -10009;
 
 
+const int DatabasePoolErr = -20001;
+const int DatabaseExecErr = -20002;
+
+const int RedisPoolErr = -30001;
+
+const int MQPoolErr = -40001;
+
 // DatabaseErr
 
 // ThriftErr

@@ -110,7 +110,13 @@ int default_http_get_handler(const HttpParser& http_parser, std::string& respons
     return 0;
 }
 
-int ev_submit_handler(const HttpParser& http_parser, const std::string& post_data, std::string& response, string& status_line) {
+
+int get_ev_query_handler(const HttpParser& http_parser, std::string& response, string& status_line) {
+
+    return ErrorDef::NotImplmented;
+}
+
+int post_ev_submit_handler(const HttpParser& http_parser, const std::string& post_data, std::string& response, string& status_line) {
 
     Json::Value root;
     Json::Reader reader;

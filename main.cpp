@@ -145,7 +145,7 @@ int main(int argc, char* argv[]) {
         ::exit(1);
     }
 
-    log_debug( "TiBank system initialized ok!");
+    log_debug( "TZMonitor service initialized ok!");
     Manager::instance().service_joinall();
 
     Ssl_thread_clean();
