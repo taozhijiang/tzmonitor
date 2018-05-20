@@ -5,7 +5,7 @@
 
 struct event_data_t {
     std::string name;
-    std::string msgid;      // 消息ID，只需要在time_identity_event 域下唯一即可
+    int64_t     msgid;      // 消息ID，只需要在time_identity_event 域下唯一即可
     int64_t     value;
     std::string flag;       // 标识区分，比如成功、失败、结果类别等
 };

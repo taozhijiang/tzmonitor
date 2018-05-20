@@ -37,17 +37,17 @@ BOOST_AUTO_TEST_CASE(thrift_event_submit)
     std::vector<tz_thrift::ev_data_t> data {};
     tz_thrift::ev_data_t item {};
     item.name = "callt";
-    item.msgid = "101";
+    item.msgid = 1;
     item.value = 100;
     item.flag = "T";
     data.push_back(item);
 
-    item.msgid = "102";
+    item.msgid = 2;
     item.value = 150;
     item.flag = "T";
     data.push_back(item);
 
-    item.msgid = "103";
+    item.msgid = 3;
     item.value = 80;
     item.flag = "F";
     data.push_back(item);

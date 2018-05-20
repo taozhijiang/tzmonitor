@@ -13,8 +13,10 @@
 #include "HttpServer.h"
 
 #include "Helper.h"
+#include <utils/Utils.h>
 #include <utils/Log.h>
 
+#include <core/EventSql.h>
 #include <core/EventRepos.h>
 
 namespace http_handler {
@@ -113,8 +115,79 @@ int default_http_get_handler(const HttpParser& http_parser, std::string& respons
 
 int get_ev_query_handler(const HttpParser& http_parser, std::string& response, string& status_line) {
 
-    return ErrorDef::NotImplmented;
+    do {
+
+        EventSql::ev_cond_t cond {};
+        std::string value;
+
+        // required
+        if (http_parser.get_request_uri_param("version", value)) {
+            cond.version = value;
+        }
+
+        if (http_parser.get_request_uri_param("name", value)) {
+            cond.name = value;
+        }
+
+        if (http_parser.get_request_uri_param("interval_sec", value)) {
+            cond.interval_sec = ::atoll(value.c_str());
+        }
+
+        if (cond.version.empty() || cond.name.empty() || cond.interval_sec <= 0) {
+            log_err("required param missing...");
+            break;
+        }
+
+        // optional
+        if (http_parser.get_request_uri_param("start", value)) {
+            cond.start = ::atoll(value.c_str());
+        }
+
+        if (http_parser.get_request_uri_param("host", value)) {
+            cond.host = value;
+        }
+
+        if (http_parser.get_request_uri_param("serv", value)) {
+            cond.serv = value;
+        }
+
+        if (http_parser.get_request_uri_param("entity_idx", value)) {
+            cond.entity_idx = value;
+        }
+
+        if (http_parser.get_request_uri_param("flag", value)) {
+            cond.flag = value;
+        }
+
+        EventSql::ev_stat_t stat {};
+        if (EventRepos::instance().get_event(cond, stat) != ErrorDef::OK) {
+            log_err("call get_event failed!");
+            break;
+        }
+
+         // build request json
+        Json::Value root;
+        root["version"] = "1.0.0";
+        if(!cond.name.empty()) root["name"] = cond.name;
+        if(!cond.flag.empty()) root["flag"] = cond.flag;
+        root["time"] = convert_to_string(stat.time);
+        root["count"] = convert_to_string(stat.count);
+        root["value_sum"] = convert_to_string(stat.value_sum);
+        root["value_avg"] = convert_to_string(stat.value_avg);
+        root["value_std"] = convert_to_string(stat.value_std);
+
+        Json::FastWriter fast_writer;
+        response = fast_writer.write(root);
+        status_line = generate_response_status_line(http_parser.get_version(), StatusCode::success_ok);
+
+        return ErrorDef::OK;
+    } while (0);
+
+    response = http_proto::content_error;
+    status_line = generate_response_status_line(http_parser.get_version(), StatusCode::server_error_internal_server_error);
+    return ErrorDef::Error;
 }
+
 
 int post_ev_submit_handler(const HttpParser& http_parser, const std::string& post_data, std::string& response, string& status_line) {
 
@@ -159,7 +232,7 @@ int post_ev_submit_handler(const HttpParser& http_parser, const std::string& pos
 
             event_data_t dat{};
             dat.name = eventList[i]["name"].asString();
-            dat.msgid = eventList[i]["msgid"].asString();
+            dat.msgid = ::atoll(eventList[i]["msgid"].asString().c_str());
             dat.value = ::atoll(eventList[i]["value"].asString().c_str());
             dat.flag = eventList[i]["flag"].asString();
 

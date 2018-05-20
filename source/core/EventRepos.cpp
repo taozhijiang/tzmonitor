@@ -106,15 +106,63 @@ int EventHandler::do_add_event(time_t ev_time, const std::vector<event_data_t>& 
 struct stat_info_t {
     int count;
     int64_t value_sum;
+    int64_t value_avg;
+    double  value_std;
+    std::vector<int64_t> values;
 };
 
-void calc_event_data(const event_data_t& data, std::map<std::string, stat_info_t>& info) {
-    if (info.find(data.flag) == info.end()) {
-        info[data.flag] = stat_info_t {};
+static void calc_event_stage1(const event_data_t& data, std::map<std::string, stat_info_t>& infos) {
+    if (infos.find(data.flag) == infos.end()) {
+        infos[data.flag] = stat_info_t {};
     }
-    info[data.flag].count += 1;
-    info[data.flag].value_sum += data.value;
+    infos[data.flag].values.push_back(data.value);
+    infos[data.flag].count += 1;
+    infos[data.flag].value_sum += data.value;
 }
+
+static void calc_event_info(std::vector<event_data_t>& data,
+                            std::map<std::string, stat_info_t>& infos) {
+
+    // 消息检查和排重
+    std::set<int64_t> ids;
+    for (auto iter = data.begin(); iter != data.end(); ++iter) {
+        ids.insert(iter->msgid);
+    }
+    if (ids.size() != data.size()) {
+        log_err("mismatch size, may contain duplicate items: %d - %d",
+                static_cast<int>(ids.size()), static_cast<int>(data.size()));
+
+        size_t expected_size = ids.size();
+        // 进行去重复
+        std::vector<event_data_t> new_data;
+        for (auto iter = data.begin(); iter != data.end(); ++iter) {
+            if (ids.find(iter->msgid) != ids.end()) {
+                new_data.push_back(*iter);
+                ids.erase(iter->msgid);
+            }
+        }
+
+        SAFE_ASSERT(new_data.size() == expected_size);
+        data = std::move(new_data);
+    }
+
+
+    std::for_each(data.begin(), data.end(),
+                  boost::bind(calc_event_stage1, _1, std::ref(infos)));
+
+    // calc avg and std
+    for (auto iter = infos.begin(); iter!= infos.end(); ++iter) {
+        auto& info = iter->second;
+        info.value_avg = info.value_sum / info.count;
+
+        double sum = 0;
+        for (size_t i=0; i< info.values.size(); ++i) {
+            sum +=  ::pow(info.values[i] - info.value_avg, 2);
+        }
+        info.value_std = ::sqrt(sum / info.values.size());
+    }
+}
+
 
 // process thread
 //
@@ -151,9 +199,7 @@ void EventHandler::run() {
             log_debug("process event %s, count %d", events_name.c_str(), static_cast<int>(events_info.size()));
 
             std::map<std::string, stat_info_t> flag_info;
-
-            std::for_each(events_info.begin(), events_info.end(),
-                          boost::bind(calc_event_data, _1, std::ref(flag_info)));
+            calc_event_info(events_info, flag_info);
 
             // log_debug("process reuslt for event: %s", events_name.c_str());
             for (auto it = flag_info.begin(); it != flag_info.end(); ++it) {
@@ -167,7 +213,8 @@ void EventHandler::run() {
                 stat.flag = iter->first;
                 stat.count = flag_info[it->first].count;
                 stat.value_sum = flag_info[it->first].value_sum;
-                stat.value_avg = flag_info[it->first].value_sum / flag_info[it->first].count;
+                stat.value_avg = flag_info[it->first].value_avg;
+                stat.value_std = flag_info[it->first].value_std;
 
                 if (insert_ev_stat(stat) != ErrorDef::OK) {
                     log_err("store for %s-%ld name:%s, flag:%s failed!", identity_.c_str(), stat.time,
@@ -233,4 +280,19 @@ int EventRepos::add_event(const event_report_t& evs) {
     }
 
     return handler->add_event(evs);
+}
+
+
+int EventRepos::get_event(const EventSql::ev_cond_t& cond, EventSql::ev_stat_t& stat) {
+    if (cond.version != "1.0.0" || cond.interval_sec <=0 || cond.name.empty()) {
+        return ErrorDef::ParamErr;
+    }
+    return EventSql::query_ev_stat(cond, stat);
+}
+
+int EventRepos::get_event(const EventSql::ev_cond_t& cond, std::vector<EventSql::ev_stat_t>& stat) {
+    if (cond.version != "1.0.0" || cond.interval_sec <=0 || cond.name.empty()) {
+        return ErrorDef::ParamErr;
+    }
+    return EventSql::query_ev_stat(cond, stat);
 }

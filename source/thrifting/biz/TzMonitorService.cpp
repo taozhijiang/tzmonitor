@@ -47,3 +47,47 @@ void TzMonitorHandler::ev_submit(tz_thrift::result_t& _return, const tz_thrift::
     _return.__set_code(-1);
     _return.__set_desc("ERROR");
 }
+
+
+void TzMonitorHandler::ev_query (tz_thrift::ev_query_response_t& resp, const tz_thrift::ev_query_request_t& req) override {
+
+    do {
+        EventSql::ev_cond_t cond {};
+        cond.version = req.version;
+        cond.host = req.host;
+        cond.serv = req.serv;
+        cond.entity_idx = req.entity_idx;
+        cond.name = req.name;
+        cond.flag = req.flag;
+        cond.start = req.start;
+        cond.interval_sec = req.interval_sec;
+
+        EventSql::ev_stat_t stat {};
+        if (EventRepos::instance().get_event(cond, stat) != ErrorDef::OK) {
+            log_err("call get_event failed!");
+            break;
+        }
+
+        resp.__set_name(cond.name);
+        resp.__set_flag(cond.flag);
+
+        resp.__set_version("1.0.0");
+
+        tz_thrift::ev_data_info_t info {};
+        info.__set_count(stat.count);
+        info.__set_value_sum(stat.value_sum);
+        info.__set_value_avg(stat.value_avg);
+        info.__set_value_std(stat.value_std);
+
+        resp.__set_info(info);
+        resp.result.__set_code(0);
+        resp.result.__set_desc("OK");
+
+        return;
+
+    } while (0);
+
+    resp.result.__set_code(-1);
+    resp.result.__set_desc("ERROR");
+}
+

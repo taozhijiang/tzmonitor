@@ -49,22 +49,22 @@ BOOST_AUTO_TEST_CASE(http_post_event_submit)
     // for
     Json::Value ordersjson;
     ordersjson["name"] = "callsrvtime";
-    ordersjson["msgid"] = "123";
+    ordersjson["msgid"] = "1";
     ordersjson["value"] = "22";
     ordersjson["flag"] = "f";
     ordersJson.append(ordersjson);
 
-    ordersjson["msgid"] = "124";
+    ordersjson["msgid"] = "2";
     ordersjson["value"] = "33";
     ordersjson["flag"] = "f";
     ordersJson.append(ordersjson);
 
-    ordersjson["msgid"] = "125";
+    ordersjson["msgid"] = "3";
     ordersjson["value"] = "10";
     ordersjson["flag"] = "t";
     ordersJson.append(ordersjson);
 
-    ordersjson["msgid"] = "124";
+    ordersjson["msgid"] = "4";
     ordersjson["value"] = "77";
     ordersjson["flag"] = "f";
     ordersJson.append(ordersjson);

@@ -20,6 +20,7 @@ const int DenialOfServiceErr = -10009;
 
 const int DatabasePoolErr = -20001;
 const int DatabaseExecErr = -20002;
+const int DatabaseResultErr = -20003;
 
 const int RedisPoolErr = -30001;
 

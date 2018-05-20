@@ -13,7 +13,7 @@ CREATE TABLE `t_tzmonitor_event_stat_201805` (
   `F_host` varchar(128) NOT NULL COMMENT '事件来源主机',
   `F_serv` varchar(128) NOT NULL COMMENT '事件来源服务',
   `F_entity_idx` varchar(128) NOT NULL DEFAULT '1' COMMENT '多服务实例编号',
-  `F_time` bigint(20) NOT NULL COMMENT '事件上报时间',
+  `F_time` bigint(20) NOT NULL COMMENT '事件上报时间， FROM_UNIXTIME可视化',
 
   `F_name` varchar(128) NOT NULL COMMENT '事件名称',
   `F_flag` varchar(128) NOT NULL DEFAULT 'T' COMMENT '事件结果分类',
@@ -21,6 +21,8 @@ CREATE TABLE `t_tzmonitor_event_stat_201805` (
   `F_value_sum` bigint(20) NOT NULL COMMENT '数值累计',
   `F_value_avg` bigint(20) NOT NULL COMMENT '数值均值',
   `F_value_std` double NOT NULL COMMENT '数值方差',
+
+  `F_update_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   PRIMARY KEY (`F_id`),
   KEY `F_time` (`F_time`)
@@ -51,8 +53,10 @@ struct ev_stat_t {
 
 
 struct ev_cond_t {
+    std::string version;
+
     time_t      start;
-    time_t      end;
+    time_t      interval_sec;
 
     std::string host;
     std::string serv;

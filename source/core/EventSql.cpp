@@ -1,6 +1,7 @@
 
 #include "General.h"
 #include "EventSql.h"
+#include "EventRepos.h"
 
 #include "Helper.h"
 
@@ -36,6 +37,11 @@ int insert_ev_stat(const ev_stat_t& stat) {
 
 
 int insert_ev_stat(sql_conn_ptr& conn, const ev_stat_t& stat) {
+
+    if (!conn){
+        log_err("request sql conn failed!");
+        return ErrorDef::DatabasePoolErr;
+    }
 
     if (stat.host.empty() || stat.serv.empty() || stat.name.empty()) {
         log_err("error check error!");
@@ -82,7 +88,60 @@ int query_ev_stat(const ev_cond_t& cond, ev_stat_t& stat) {
 
 int query_ev_stat(sql_conn_ptr& conn, const ev_cond_t& cond, ev_stat_t& stat) {
 
-    return ErrorDef::NotImplmented;
+    if (!conn){
+        log_err("request sql conn failed!");
+        return ErrorDef::DatabasePoolErr;
+    }
+
+    time_t start_time = cond.start;
+    std::stringstream ss;
+    if (cond.start <= 0) {
+        start_time = ::time(NULL) - EventRepos::instance().get_event_linger();
+    }
+
+    ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), IFNULL(AVG(F_value_std), 0) FROM " ;
+    ss << database << "." << table_prefix << "event_stat_" << get_table_suffix(start_time) ;
+    ss << " WHERE F_time <= " << start_time <<" AND F_time > " << start_time - cond.interval_sec;
+    ss << " AND F_name = '" << cond.name << "'";
+
+    if (!cond.host.empty()) {
+        ss << " AND F_host = '" << cond.host << "'";
+    }
+
+    if (!cond.serv.empty()) {
+        ss << " AND F_serv = '" << cond.serv << "'";
+    }
+
+    if (!cond.entity_idx.empty()) {
+        ss << " AND F_entity_idx = '" << cond.entity_idx << "'";
+    }
+
+    if (!cond.flag.empty()) {
+        ss << " AND F_flag = '" << cond.flag << "'";
+    }
+
+    std::string sql = ss.str();
+    log_debug("query str: %s", sql.c_str());
+
+    shared_result_ptr result;
+    result.reset(conn->sqlconn_execute_query(sql));
+    if (!result || !result->next()) {
+        log_err("Failed to query info: %s", sql.c_str());
+        return ErrorDef::DatabaseExecErr;
+    }
+
+    if (!cast_raw_value(result, 1, stat.count, stat.value_sum, stat.value_std)){
+        log_err("Failed to cast info ..." );
+        return ErrorDef::DatabaseResultErr;
+    }
+
+    stat.time = start_time;  // 真正开始取数的事件点
+    if (stat.count != 0) {
+        stat.value_avg = stat.value_sum / stat.count;
+    } else {
+        stat.value_avg = 0;
+    }
+    return ErrorDef::OK;
 }
 
 // detailed
