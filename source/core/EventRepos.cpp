@@ -24,6 +24,7 @@ bool EventHandler::init() {
 
     thread_ptr_.reset(new boost::thread(boost::bind(&EventHandler::run, shared_from_this())));
     if (!thread_ptr_){
+        log_err("create work thread failed! ");
         return false;
     }
 
@@ -285,13 +286,15 @@ int EventRepos::add_event(const event_report_t& evs) {
 
 int EventRepos::get_event(const EventSql::ev_cond_t& cond, EventSql::ev_stat_t& stat) {
     if (cond.version != "1.0.0" || cond.interval_sec <=0 || cond.name.empty()) {
+        log_err("param check error: %s, %ld, %s", cond.version.c_str(), cond.interval_sec, cond.name.c_str());
         return ErrorDef::ParamErr;
     }
     return EventSql::query_ev_stat(cond, stat);
 }
 
-int EventRepos::get_event(const EventSql::ev_cond_t& cond, std::vector<EventSql::ev_stat_t>& stat) {
+int EventRepos::get_event(const EventSql::ev_cond_t& cond, EventSql::ev_stat_detail_t& stat) {
     if (cond.version != "1.0.0" || cond.interval_sec <=0 || cond.name.empty()) {
+        log_err("param check error: %s, %ld, %s", cond.version.c_str(), cond.interval_sec, cond.name.c_str());
         return ErrorDef::ParamErr;
     }
     return EventSql::query_ev_stat(cond, stat);

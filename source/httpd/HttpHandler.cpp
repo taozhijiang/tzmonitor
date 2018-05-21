@@ -4,6 +4,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <boost/algorithm/string.hpp>
 
 #include <json/json.h>
 
@@ -159,26 +160,63 @@ int get_ev_query_handler(const HttpParser& http_parser, std::string& response, s
             cond.flag = value;
         }
 
-        EventSql::ev_stat_t stat {};
-        if (EventRepos::instance().get_event(cond, stat) != ErrorDef::OK) {
-            log_err("call get_event failed!");
-            break;
+        if (http_parser.get_request_uri_param("detail", value) && boost::iequals(value, "true")) {
+
+            EventSql::ev_stat_detail_t stat{};
+            if (EventRepos::instance().get_event(cond, stat) != ErrorDef::OK) {
+                log_err("call get_event detail failed!");
+                break;
+            }
+
+             // build request json
+            Json::Value root;
+            root["version"] = "1.0.0";
+            if(!cond.name.empty()) root["name"] = cond.name;
+            if(!cond.flag.empty()) root["flag"] = cond.flag;
+            root["time"] = convert_to_string(stat.time);
+
+            Json::Value ordersJson;
+            for (auto iter = stat.info.begin(); iter != stat.info.end(); ++iter) {
+                Json::Value orderjson{};
+
+                orderjson["time"] = convert_to_string(iter->time);
+                orderjson["count"] = convert_to_string(iter->count);
+                orderjson["value_sum"] = convert_to_string(iter->value_sum);
+                orderjson["value_avg"] = convert_to_string(iter->value_avg);
+                orderjson["value_std"] = convert_to_string(iter->value_std);
+
+                ordersJson.append(orderjson);
+            }
+            Json::FastWriter fast_writer;
+            std::string info_list = fast_writer.write(ordersJson);
+            root["info_list"] = info_list;
+
+            response = fast_writer.write(root);
+            status_line = generate_response_status_line(http_parser.get_version(), StatusCode::success_ok);
+
+        } else {  // 简单接口
+
+            EventSql::ev_stat_t stat{};
+            if (EventRepos::instance().get_event(cond, stat) != ErrorDef::OK) {
+                log_err("call get_event failed!");
+                break;
+            }
+
+             // build request json
+            Json::Value root;
+            root["version"] = "1.0.0";
+            if(!cond.name.empty()) root["name"] = cond.name;
+            if(!cond.flag.empty()) root["flag"] = cond.flag;
+            root["time"] = convert_to_string(stat.time);
+            root["count"] = convert_to_string(stat.count);
+            root["value_sum"] = convert_to_string(stat.value_sum);
+            root["value_avg"] = convert_to_string(stat.value_avg);
+            root["value_std"] = convert_to_string(stat.value_std);
+
+            Json::FastWriter fast_writer;
+            response = fast_writer.write(root);
+            status_line = generate_response_status_line(http_parser.get_version(), StatusCode::success_ok);
         }
-
-         // build request json
-        Json::Value root;
-        root["version"] = "1.0.0";
-        if(!cond.name.empty()) root["name"] = cond.name;
-        if(!cond.flag.empty()) root["flag"] = cond.flag;
-        root["time"] = convert_to_string(stat.time);
-        root["count"] = convert_to_string(stat.count);
-        root["value_sum"] = convert_to_string(stat.value_sum);
-        root["value_avg"] = convert_to_string(stat.value_avg);
-        root["value_std"] = convert_to_string(stat.value_std);
-
-        Json::FastWriter fast_writer;
-        response = fast_writer.write(root);
-        status_line = generate_response_status_line(http_parser.get_version(), StatusCode::success_ok);
 
         return ErrorDef::OK;
     } while (0);

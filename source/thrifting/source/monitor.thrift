@@ -53,8 +53,9 @@ struct ev_query_response_t {
     5:optional string version;      // 1.0.0
     6:optional string name;         // 如果请求条件约束，则原样返回校验
     7:optional string flag;         // 如果请求条件约束，则原样返回校验
+    8:optional i64    time;         // 实际数据开始取的时间
 
-    8:optional ev_data_info_t info;
+    10:optional ev_data_info_t info;
 }
 
 struct ev_query_response_detail_t {
@@ -63,8 +64,9 @@ struct ev_query_response_detail_t {
     5:optional string version;      // 1.0.0
     6:optional string name;         // 如果请求条件约束，则原样返回校验
     7:optional string flag;         // 如果请求条件约束，则原样返回校验
+    8:optional i64    time;         // 实际数据开始取的时间
 
-    8:optional list<ev_data_info_t> info;
+    10:optional list<ev_data_info_t> info;
 }
 
 
@@ -74,5 +76,6 @@ service monitor_service {
 
     result_t ev_submit(1: ev_report_t req);
     ev_query_response_t ev_query(1: ev_query_request_t req);
+    ev_query_response_detail_t ev_query_detail(1: ev_query_request_t req);
 
 }

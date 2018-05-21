@@ -65,7 +65,7 @@ public:
     // forward request to specified handlers
     int add_event(const event_report_t& evs);
     int get_event(const EventSql::ev_cond_t& cond, EventSql::ev_stat_t& stat);
-    int get_event(const EventSql::ev_cond_t& cond, std::vector<EventSql::ev_stat_t>& stat);
+    int get_event(const EventSql::ev_cond_t& cond, EventSql::ev_stat_detail_t& stat);
 
     time_t get_event_linger() {
         return config_.event_linger_;
