@@ -1,4 +1,4 @@
-#define BOOST_TEST_MODULE http_get_event
+#define BOOST_TEST_MODULE http_get_event_flag
 
 #include <boost/test/unit_test.hpp>
 
@@ -16,9 +16,9 @@
 #include <core/EventItem.h>
 
 // 类似namespace的保护
-BOOST_AUTO_TEST_SUITE(http_get_event)
+BOOST_AUTO_TEST_SUITE(http_get_event_flag)
 
-BOOST_AUTO_TEST_CASE(http_get_event)
+BOOST_AUTO_TEST_CASE(http_get_event_flag)
 {
     std::string config_file = "../tzmonitor.conf";
     if (!sys_config_init(config_file)) {
@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE(http_get_event)
 
     std::stringstream ss;
     ss << "http://127.0.0.1:" << listen_port << "/ev_query?";
-    ss << "version=1.0.0&interval_sec=300&name=callsrvtime";
+    ss << "groupby=flag&version=1.0.0&interval_sec=300&name=callsrvtime";
     std::string sUrl = ss.str();
 
     HttpUtil::HttpClient client;

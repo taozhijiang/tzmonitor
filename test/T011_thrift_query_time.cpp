@@ -1,4 +1,4 @@
-#define BOOST_TEST_MODULE thrift_event_query_detail
+#define BOOST_TEST_MODULE thrift_event_query_time
 
 #include <boost/test/unit_test.hpp>
 
@@ -18,9 +18,9 @@
 #include <core/EventItem.h>
 
 // 类似namespace的保护
-BOOST_AUTO_TEST_SUITE(thrift_event_query_detail)
+BOOST_AUTO_TEST_SUITE(thrift_event_query_time)
 
-BOOST_AUTO_TEST_CASE(thrift_event_query_detail)
+BOOST_AUTO_TEST_CASE(thrift_event_query_time)
 {
     std::string config_file = "../tzmonitor.conf";
     if (!sys_config_init(config_file)) {
@@ -35,16 +35,27 @@ BOOST_AUTO_TEST_CASE(thrift_event_query_detail)
     tz_thrift::ev_query_request_t req {};
     req.version = "1.0.0";
     req.name = "callsrvtime";
-    req.interval_sec = 600;
+    req.interval_sec = 300;
+    req.__set_groupby("time");
 
-    tz_thrift::ev_query_response_detail_t resp {};
+    tz_thrift::ev_query_response_t resp {};
     int ret = TThriftClient::call_service<TzMonitorClient>("127.0.0.1", static_cast<uint16_t>(listen_port),
-                                                           &TzMonitorClient::ev_query_detail, std::ref(resp), std::cref(req));
+                                                           &TzMonitorClient::ev_query, std::ref(resp), std::cref(req));
 
     if (ret == 0 && resp.result.code == 0 && resp.result.desc == "OK") {
         std::cerr << "real_start: " << resp.time << std::endl;
+
+        std::cerr << "summray> :";
+        std::cerr << " count: "     << resp.summary.count;
+        std::cerr << " value_sum: " << resp.summary.value_sum;
+        std::cerr << " value_avg: " << resp.summary.value_avg;
+        std::cerr << " value_std: " << resp.summary.value_std;
+        std::cerr << std::endl;
+
+        int i = 0;
         for (auto iter = resp.info.begin(); iter != resp.info.end(); ++iter) {
-            std::cerr << "time: "     << iter->time;
+            std::cerr << i++ ;
+            std::cerr << "> time: "       << iter->time;
             std::cerr << " count: "     << iter->count;
             std::cerr << " value_sum: " << iter->value_sum;
             std::cerr << " value_avg: " << iter->value_avg;

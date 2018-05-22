@@ -7,9 +7,9 @@
 #include <boost/noncopyable.hpp>
 
 #include <utils/EQueue.h>
+#include <utils/Log.h>
 
 #include "EventItem.h"
-#include "EventSql.h"
 
 class EventHandler: public boost::noncopyable,
                     public std::enable_shared_from_this<EventHandler> {
@@ -64,8 +64,7 @@ public:
 
     // forward request to specified handlers
     int add_event(const event_report_t& evs);
-    int get_event(const EventSql::ev_cond_t& cond, EventSql::ev_stat_t& stat);
-    int get_event(const EventSql::ev_cond_t& cond, EventSql::ev_stat_detail_t& stat);
+    int get_event(const event_cond_t& cond, event_query_t& stat);
 
     time_t get_event_linger() {
         return config_.event_linger_;

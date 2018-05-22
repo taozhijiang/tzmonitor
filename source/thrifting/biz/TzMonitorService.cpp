@@ -1,12 +1,13 @@
 #include "General.h"
 #include "ErrorDef.h"
-#include "TzMonitorService.h"
+
+#include <boost/algorithm/string.hpp>
 
 #include <core/EventItem.h>
 #include <core/EventRepos.h>
-
 #include <utils/Log.h>
 
+#include "TzMonitorService.h"
 
 void TzMonitorHandler::ping_test(tz_thrift::result_t& _return, const tz_thrift::ping_t& req) override {
 
@@ -52,7 +53,8 @@ void TzMonitorHandler::ev_submit(tz_thrift::result_t& _return, const tz_thrift::
 void TzMonitorHandler::ev_query (tz_thrift::ev_query_response_t& resp, const tz_thrift::ev_query_request_t& req) override {
 
     do {
-        EventSql::ev_cond_t cond {};
+        event_cond_t cond {};
+
         cond.version = req.version;
         cond.host = req.host;
         cond.serv = req.serv;
@@ -62,7 +64,14 @@ void TzMonitorHandler::ev_query (tz_thrift::ev_query_response_t& resp, const tz_
         cond.start = req.start;
         cond.interval_sec = req.interval_sec;
 
-        EventSql::ev_stat_t stat {};
+        cond.groupby = GroupType::kGroupNone;
+        if (boost::iequals(req.groupby, "time")) {
+            cond.groupby = GroupType::kGroupbyTime;
+        } else if (boost::iequals(req.groupby, "flag")) {
+            cond.groupby = GroupType::kGroupbyFlag;
+        }
+
+        event_query_t stat{};
         if (EventRepos::instance().get_event(cond, stat) != ErrorDef::OK) {
             log_err("call get_event failed!");
             break;
@@ -74,64 +83,36 @@ void TzMonitorHandler::ev_query (tz_thrift::ev_query_response_t& resp, const tz_
         resp.__set_version("1.0.0");
         resp.__set_time(stat.time);
 
-        tz_thrift::ev_data_info_t info {};
-        info.__set_count(stat.count);
-        info.__set_value_sum(stat.value_sum);
-        info.__set_value_avg(stat.value_avg);
-        info.__set_value_std(stat.value_std);
+        // 总览统计数据
+        tz_thrift::ev_info_t summary_item {};
+        summary_item.__set_count(stat.summary.count);
+        summary_item.__set_value_sum(stat.summary.value_sum);
+        summary_item.__set_value_avg(stat.summary.value_avg);
+        summary_item.__set_value_std(stat.summary.value_std);
+        resp.__set_summary(summary_item);
 
-        resp.__set_info(info);
-        resp.result.__set_code(0);
-        resp.result.__set_desc("OK");
+        if (cond.groupby != GroupType::kGroupNone) {
 
-        return;
+            std::vector<tz_thrift::ev_info_t> info{};
+            for (auto iter = stat.info.begin(); iter != stat.info.end(); ++iter) {
+                tz_thrift::ev_info_t item {};
 
-    } while (0);
+                if ( cond.groupby == GroupType::kGroupbyTime ) {
+                    item.__set_time(iter->time);
+                } else if ( cond.groupby == GroupType::kGroupbyFlag ) {
+                    item.__set_flag(iter->flag);
+                }
 
-    resp.result.__set_code(-1);
-    resp.result.__set_desc("ERROR");
-}
+                item.__set_count(iter->count);
+                item.__set_value_sum(iter->value_sum);
+                item.__set_value_avg(iter->value_avg);
+                item.__set_value_std(iter->value_std);
 
-
-void TzMonitorHandler::ev_query_detail(tz_thrift::ev_query_response_detail_t& resp, const tz_thrift::ev_query_request_t& req) override {
-
-    do {
-        EventSql::ev_cond_t cond {};
-        cond.version = req.version;
-        cond.host = req.host;
-        cond.serv = req.serv;
-        cond.entity_idx = req.entity_idx;
-        cond.name = req.name;
-        cond.flag = req.flag;
-        cond.start = req.start;
-        cond.interval_sec = req.interval_sec;
-
-        EventSql::ev_stat_detail_t stat {};
-        if (EventRepos::instance().get_event(cond, stat) != ErrorDef::OK) {
-            log_err("call get_event failed!");
-            break;
+                info.push_back(item);
+            }
+            resp.__set_info(info);
         }
 
-        resp.__set_name(cond.name);
-        resp.__set_flag(cond.flag);
-
-        resp.__set_version("1.0.0");
-        resp.__set_time(stat.time);
-
-        std::vector<tz_thrift::ev_data_info_t> info {};
-        for (auto iter = stat.info.begin(); iter != stat.info.end(); ++iter) {
-            tz_thrift::ev_data_info_t item {};
-
-            item.__set_time(iter->time);
-            item.__set_count(iter->count);
-            item.__set_value_sum(iter->value_sum);
-            item.__set_value_avg(iter->value_avg);
-            item.__set_value_std(iter->value_std);
-
-            info.push_back(item);
-        }
-
-        resp.__set_info(info);
         resp.result.__set_code(0);
         resp.result.__set_desc("OK");
 

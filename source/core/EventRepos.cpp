@@ -175,7 +175,7 @@ void EventHandler::run() {
 
     log_info("EventHandler thread begin to run ...");
 
-    EventSql::ev_stat_t stat {};
+    event_insert_t stat {};
     stat.host = host_;
     stat.serv = serv_;
     stat.entity_idx = entity_idx_;
@@ -192,6 +192,8 @@ void EventHandler::run() {
         stat.entity_idx = entity_idx_;
         stat.time = event->time;
         auto& event_slot = event->data;
+
+        // TODO 线程优化
 
         // process event
         for (auto iter = event_slot.begin(); iter != event_slot.end(); ++iter) {
@@ -217,7 +219,7 @@ void EventHandler::run() {
                 stat.value_avg = flag_info[it->first].value_avg;
                 stat.value_std = flag_info[it->first].value_std;
 
-                if (insert_ev_stat(stat) != ErrorDef::OK) {
+                if (EventSql::insert_ev_stat(stat) != ErrorDef::OK) {
                     log_err("store for %s-%ld name:%s, flag:%s failed!", identity_.c_str(), stat.time,
                             stat.name.c_str(), stat.flag.c_str());
                 } else {
@@ -284,15 +286,7 @@ int EventRepos::add_event(const event_report_t& evs) {
 }
 
 
-int EventRepos::get_event(const EventSql::ev_cond_t& cond, EventSql::ev_stat_t& stat) {
-    if (cond.version != "1.0.0" || cond.interval_sec <=0 || cond.name.empty()) {
-        log_err("param check error: %s, %ld, %s", cond.version.c_str(), cond.interval_sec, cond.name.c_str());
-        return ErrorDef::ParamErr;
-    }
-    return EventSql::query_ev_stat(cond, stat);
-}
-
-int EventRepos::get_event(const EventSql::ev_cond_t& cond, EventSql::ev_stat_detail_t& stat) {
+int EventRepos::get_event(const event_cond_t& cond, event_query_t& stat) {
     if (cond.version != "1.0.0" || cond.interval_sec <=0 || cond.name.empty()) {
         log_err("param check error: %s, %ld, %s", cond.version.c_str(), cond.interval_sec, cond.name.c_str());
         return ErrorDef::ParamErr;

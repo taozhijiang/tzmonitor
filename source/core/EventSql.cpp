@@ -23,11 +23,11 @@ static std::string get_table_suffix(time_t time_sec) {
     return buff;
 }
 
-int insert_ev_stat(const ev_stat_t& stat) {
+int insert_ev_stat(const event_insert_t& stat) {
 
     sql_conn_ptr conn;
     helper::request_scoped_sql_conn(conn);
-    if (!conn){
+    if (!conn) {
         log_err("request sql conn failed!");
         return ErrorDef::DatabasePoolErr;
     }
@@ -36,9 +36,9 @@ int insert_ev_stat(const ev_stat_t& stat) {
 }
 
 
-int insert_ev_stat(sql_conn_ptr& conn, const ev_stat_t& stat) {
+int insert_ev_stat(sql_conn_ptr& conn, const event_insert_t& stat) {
 
-    if (!conn){
+    if (!conn) {
         log_err("request sql conn failed!");
         return ErrorDef::DatabasePoolErr;
     }
@@ -73,7 +73,7 @@ int insert_ev_stat(sql_conn_ptr& conn, const ev_stat_t& stat) {
     return nAffected == 1 ? 0 : ErrorDef::DatabaseExecErr;
 }
 
-static std::string build_sql(const ev_cond_t& cond, time_t& start_time, bool detail) {
+static std::string build_sql(const event_cond_t& cond, time_t& start_time) {
 
     start_time = cond.start;
     std::stringstream ss;
@@ -81,11 +81,14 @@ static std::string build_sql(const ev_cond_t& cond, time_t& start_time, bool det
         start_time = ::time(NULL) - EventRepos::instance().get_event_linger();
     }
 
-    if (!detail) {
-        ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), IFNULL(AVG(F_value_std), 0) FROM ";
-    } else {
+    if (cond.groupby == GroupType::kGroupbyTime) {
         ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), IFNULL(AVG(F_value_std), 0), F_time FROM ";
+    } else if (cond.groupby == GroupType::kGroupbyFlag) {
+        ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), IFNULL(AVG(F_value_std), 0), F_flag FROM ";
+    } else {
+        ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), IFNULL(AVG(F_value_std), 0) FROM ";
     }
+
     ss << database << "." << table_prefix << "event_stat_" << get_table_suffix(start_time) ;
     ss << " WHERE F_time <= " << start_time <<" AND F_time > " << start_time - cond.interval_sec;
     ss << " AND F_name = '" << cond.name << "'";
@@ -106,10 +109,11 @@ static std::string build_sql(const ev_cond_t& cond, time_t& start_time, bool det
         ss << " AND F_flag = '" << cond.flag << "'";
     }
 
-    if (detail) {
+    if (cond.groupby == GroupType::kGroupbyTime) {
         ss << " GROUP BY F_time ORDER BY F_time DESC; ";
+    } else if (cond.groupby == GroupType::kGroupbyFlag) {
+        ss << " GROUP BY F_flag; ";
     }
-
 
     std::string sql = ss.str();
     log_debug("query str: %s", sql.c_str());
@@ -119,10 +123,10 @@ static std::string build_sql(const ev_cond_t& cond, time_t& start_time, bool det
 
 
 // group summary
-int query_ev_stat(const ev_cond_t& cond, ev_stat_t& stat) {
+int query_ev_stat(const event_cond_t& cond, event_query_t& stat) {
     sql_conn_ptr conn;
     helper::request_scoped_sql_conn(conn);
-    if (!conn){
+    if (!conn) {
         log_err("request sql conn failed!");
         return ErrorDef::DatabasePoolErr;
     }
@@ -130,60 +134,16 @@ int query_ev_stat(const ev_cond_t& cond, ev_stat_t& stat) {
     return query_ev_stat(conn, cond, stat);
 }
 
-int query_ev_stat(sql_conn_ptr& conn, const ev_cond_t& cond, ev_stat_t& stat) {
+int query_ev_stat(sql_conn_ptr& conn, const event_cond_t& cond, event_query_t& stat) {
 
-    if (!conn){
-        log_err("request sql conn failed!");
-        return ErrorDef::DatabasePoolErr;
-    }
-
-    time_t real_start_time = 0;
-    std::string sql = build_sql(cond, real_start_time, false);
-
-    shared_result_ptr result;
-    result.reset(conn->sqlconn_execute_query(sql));
-    if (!result || !result->next()) { // 必定有一条数据
-        log_err("Failed to query info: %s", sql.c_str());
-        return ErrorDef::DatabaseExecErr;
-    }
-
-    if (!cast_raw_value(result, 1, stat.count, stat.value_sum, stat.value_std)){
-        log_err("Failed to cast info ..." );
-        return ErrorDef::DatabaseResultErr;
-    }
-
-    stat.time = real_start_time;
-    if (stat.count != 0) {
-        stat.value_avg = stat.value_sum / stat.count;
-    } else {
-        stat.value_avg = 0;
-    }
-    return ErrorDef::OK;
-}
-
-// detailed
-// may never be used in practice
-int query_ev_stat(const ev_cond_t& cond, ev_stat_detail_t& stats) {
-    sql_conn_ptr conn;
-    helper::request_scoped_sql_conn(conn);
-    if (!conn){
-        log_err("request sql conn failed!");
-        return ErrorDef::DatabasePoolErr;
-    }
-
-    return query_ev_stat(conn, cond, stats);
-}
-
-int query_ev_stat(sql_conn_ptr& conn, const ev_cond_t& cond, ev_stat_detail_t& stats) {
-
-    if (!conn){
+    if (!conn) {
          log_err("request sql conn failed!");
          return ErrorDef::DatabasePoolErr;
      }
 
     time_t real_start_time = 0;
-    std::string sql = build_sql(cond, real_start_time, true);
-    stats.time = real_start_time;
+    std::string sql = build_sql(cond, real_start_time);
+    stat.time = real_start_time;
 
      shared_result_ptr result;
      result.reset(conn->sqlconn_execute_query(sql));
@@ -201,8 +161,18 @@ int query_ev_stat(sql_conn_ptr& conn, const ev_cond_t& cond, ev_stat_detail_t& s
      // 服务端不进行填充，减少网络数据的传输
      while (result->next()) {
 
-         ev_data_info_t item {};
-         if (!cast_raw_value(result, 1, item.count, item.value_sum, item.value_std, item.time)) {
+         event_info_t item {};
+
+         bool success = false;
+         if (cond.groupby == GroupType::kGroupbyTime) {
+             success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std, item.time);
+         } else if (cond.groupby == GroupType::kGroupbyFlag) {
+             success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std, item.flag);
+         } else {
+             success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std);
+         }
+
+         if (!success) {
              log_err("Failed to cast info ..." );
              continue;
          }
@@ -213,8 +183,15 @@ int query_ev_stat(sql_conn_ptr& conn, const ev_cond_t& cond, ev_stat_detail_t& s
              item.value_avg = 0;
          }
 
-         stats.info.push_back(item);
+         stat.summary.count += item.count;
+         stat.summary.value_sum += item.value_sum;
+         stat.summary.value_std += item.value_std;
+
+         stat.info.push_back(item);
      }
+
+     stat.summary.value_avg = stat.summary.value_sum / stat.summary.count;
+     stat.summary.value_std = stat.summary.value_std / stat.summary.count;   // not very well
 
      return ErrorDef::OK;
 }

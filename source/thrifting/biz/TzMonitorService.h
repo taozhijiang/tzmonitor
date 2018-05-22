@@ -18,7 +18,6 @@ public:
     virtual void ping_test(tz_thrift::result_t& _return, const tz_thrift::ping_t& req) override;
     virtual void ev_submit(tz_thrift::result_t& result, const tz_thrift::ev_report_t& req) override;
     virtual void ev_query (tz_thrift::ev_query_response_t& resp, const tz_thrift::ev_query_request_t& req) override;
-    virtual void ev_query_detail(tz_thrift::ev_query_response_detail_t& resp, const tz_thrift::ev_query_request_t& req) override;
 };
 
 

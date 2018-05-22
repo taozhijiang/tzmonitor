@@ -4,6 +4,7 @@
 #include "General.h"
 
 #include <connect/SqlConn.h>
+#include "EventItem.h"
 
 #if 0
 CREATE TABLE `t_tzmonitor_event_stat_201805` (
@@ -36,69 +37,14 @@ namespace EventSql {
 extern std::string database;
 extern std::string table_prefix;
 
-// same define in thrift
-struct ev_data_info_t {
-    time_t      time;
 
-    int         count;
-    int64_t     value_sum;
-    int64_t     value_avg;
-    double      value_std;
-};
-
-struct ev_stat_t {
-    std::string host;
-    std::string serv;
-    std::string entity_idx;
-    time_t      time;
-
-    std::string name;
-    std::string flag;
-
-    int         count;
-    int64_t     value_sum;
-    int64_t     value_avg;
-    double      value_std;
-};
-
-struct ev_stat_detail_t {
-    std::string host;
-    std::string serv;
-    std::string entity_idx;
-    time_t      time;
-
-    std::string name;
-    std::string flag;
-
-    std::vector<ev_data_info_t> info;
-};
-
-
-struct ev_cond_t {
-    std::string version;
-
-    time_t      start;
-    time_t      interval_sec;
-
-    std::string host;
-    std::string serv;
-    std::string entity_idx;
-
-    std::string name;
-    std::string flag;
-};
-
-
-int insert_ev_stat(const ev_stat_t& stat);
-int insert_ev_stat(sql_conn_ptr& conn, const ev_stat_t& stat);
+int insert_ev_stat(const event_insert_t& stat);
+int insert_ev_stat(sql_conn_ptr &conn, const event_insert_t& stat);
 
 // group
-int query_ev_stat(const ev_cond_t& cond, ev_stat_t& stat);
-int query_ev_stat(sql_conn_ptr& conn, const ev_cond_t& cond, ev_stat_t& stat);
+int query_ev_stat(const event_cond_t& cond, event_query_t& stat);
+int query_ev_stat(sql_conn_ptr& conn, const event_cond_t& cond, event_query_t& stat);
 
-// detailed
-int query_ev_stat(const ev_cond_t& cond, ev_stat_detail_t& stat);
-int query_ev_stat(sql_conn_ptr& conn, const ev_cond_t& cond, ev_stat_detail_t& stat);
 
 } // end namespace
 
