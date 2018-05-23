@@ -5,7 +5,6 @@
 #include <hiredis/hiredis.h>
 #include <hiredis/async.h>
 
-#include <boost/thread/mutex.hpp>
 #include "ConnPool.h"
 #include "ConnWrap.h"
 

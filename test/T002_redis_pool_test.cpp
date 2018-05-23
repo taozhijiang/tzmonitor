@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE(redis_test)
         BOOST_CHECK(false);
     }
 
-    ::srand(::time(NULL));
+    ::srand((unsigned int)::time(NULL));
 
     std::string redis_test_key1 = "redis_pool_prefix";
     std::string redis_test_key2 = "test_key_at_initialize";

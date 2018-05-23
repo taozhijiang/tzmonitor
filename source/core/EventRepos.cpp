@@ -1,4 +1,4 @@
-#include <boost/bind.hpp>
+#include <functional>
 
 #include <utils/Log.h>
 #include <utils/Utils.h>
@@ -16,13 +16,13 @@ bool EventHandler::init() {
     }
 
     check_timer_id_ =
-        helper::register_timer_task(boost::bind(&EventHandler::check_timer_run, shared_from_this()), 500, true, true);
+        helper::register_timer_task(std::bind(&EventHandler::check_timer_run, shared_from_this()), 500, true, true);
     if (check_timer_id_ == 0) {
         log_err("Register check_timer failed! ");
         return false;
     }
 
-    thread_ptr_.reset(new boost::thread(boost::bind(&EventHandler::run, shared_from_this())));
+    thread_ptr_.reset(new std::thread(std::bind(&EventHandler::run, shared_from_this())));
     if (!thread_ptr_){
         log_err("create work thread failed! ");
         return false;
@@ -42,7 +42,7 @@ EventHandler::~EventHandler() {
 
 void EventHandler::check_timer_run() {
 
-    boost::lock_guard<boost::mutex> lock(lock_);
+    std::lock_guard<std::mutex> lock(lock_);
 
     time_t now = ::time(NULL);
     for (auto iter = events_.begin(); iter != events_.end(); /*nop*/) {
@@ -69,7 +69,7 @@ int EventHandler::add_event(const event_report_t& ev) {
         return ErrorDef::ParamErr;
     }
 
-    boost::lock_guard<boost::mutex> lock(lock_);
+    std::lock_guard<std::mutex> lock(lock_);
     time_t now = ::time(NULL);
     if (now - ev.time > EventRepos::instance().get_event_linger()) {
         log_err("Too old report: %s %ld - %ld, drop it!", identity_.c_str(), now, ev.time);
@@ -149,7 +149,7 @@ static void calc_event_info(std::vector<event_data_t>& data,
 
 
     std::for_each(data.begin(), data.end(),
-                  boost::bind(calc_event_stage1, _1, std::ref(infos)));
+                  std::bind(calc_event_stage1, std::placeholders::_1, std::ref(infos)));
 
     // calc avg and std
     for (auto iter = infos.begin(); iter!= infos.end(); ++iter) {

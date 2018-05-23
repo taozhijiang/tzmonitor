@@ -1,4 +1,6 @@
-#include <boost/thread.hpp>
+#include <thread>
+#include <functional>
+
 #include <boost/algorithm/string.hpp>
 
 #include "HttpServer.h"
@@ -71,10 +73,10 @@ void TCPConnAsync::do_read_head() {
     async_read_until(*sock_ptr_, request_,
                              "\r\n\r\n",
                              strand_->wrap(
-                                 boost::bind(&TCPConnAsync::read_head_handler,
+                                 std::bind(&TCPConnAsync::read_head_handler,
                                      shared_from_this(),
-                                     boost::asio::placeholders::error,
-                                     boost::asio::placeholders::bytes_transferred)));
+                                     std::placeholders::_1,
+                                     std::placeholders::_2)));
     return;
 }
 
@@ -227,10 +229,10 @@ void TCPConnAsync::do_read_body() {
     async_read(*sock_ptr_, buffer(p_buffer_->data() + r_size_, len - r_size_),
                     boost::asio::transfer_at_least(len - r_size_),
                              strand_->wrap(
-                                 boost::bind(&TCPConnAsync::read_body_handler,
+                                 std::bind(&TCPConnAsync::read_body_handler,
                                      shared_from_this(),
-                                     boost::asio::placeholders::error,
-                                     boost::asio::placeholders::bytes_transferred)));
+                                     std::placeholders::_1,
+                                     std::placeholders::_2)));
     return;
 }
 
@@ -309,10 +311,10 @@ void TCPConnAsync::do_write() override {
     async_write(*sock_ptr_, buffer(p_write_->data() + w_pos_, w_size_ - w_pos_),
                     boost::asio::transfer_at_least(w_size_ - w_pos_),
                               strand_->wrap(
-                                 boost::bind(&TCPConnAsync::write_handler,
+                                 std::bind(&TCPConnAsync::write_handler,
                                      shared_from_this(),
-                                     boost::asio::placeholders::error,
-                                     boost::asio::placeholders::bytes_transferred)));
+                                     std::placeholders::_1,
+                                     std::placeholders::_2)));
     return;
 }
 
@@ -461,7 +463,7 @@ bool TCPConnAsync::keep_continue() {
 
 void TCPConnAsync::set_ops_cancel_timeout() {
 
-    boost::unique_lock<boost::mutex> lock(ops_cancel_mutex_);
+    std::lock_guard<std::mutex> lock(ops_cancel_mutex_);
 
     if (http_server_.ops_cancel_time_out() == 0){
         SAFE_ASSERT(!ops_cancel_timer_);
@@ -471,14 +473,14 @@ void TCPConnAsync::set_ops_cancel_timeout() {
     ops_cancel_timer_.reset( new boost::asio::deadline_timer (http_server_.io_service_,
                                       boost::posix_time::seconds(http_server_.ops_cancel_time_out())) );
     SAFE_ASSERT(http_server_.ops_cancel_time_out());
-    ops_cancel_timer_->async_wait(boost::bind(&TCPConnAsync::ops_cancel_timeout_call, shared_from_this(),
-                                           boost::asio::placeholders::error));
+    ops_cancel_timer_->async_wait(std::bind(&TCPConnAsync::ops_cancel_timeout_call, shared_from_this(),
+                                           std::placeholders::_1));
     log_debug("register ops_cancel_time_out %d sec", http_server_.ops_cancel_time_out());
 }
 
 void TCPConnAsync::revoke_ops_cancel_timeout() {
 
-    boost::unique_lock<boost::mutex> lock(ops_cancel_mutex_);
+    std::lock_guard<std::mutex> lock(ops_cancel_mutex_);
 
     boost::system::error_code ignore_ec;
     if (ops_cancel_timer_) {

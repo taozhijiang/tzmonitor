@@ -6,9 +6,9 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <functional>
 
 #include <boost/noncopyable.hpp>
-#include <boost/function.hpp>
 
 
 // SQL connection pool
@@ -20,7 +20,7 @@ class RedisConn;
 typedef std::shared_ptr<RedisConn> redis_conn_ptr;
 
 // Timer Task helper
-typedef boost::function<void ()> TimerEventCallable;
+typedef std::function<void ()> TimerEventCallable;
 class TimerService;
 
 

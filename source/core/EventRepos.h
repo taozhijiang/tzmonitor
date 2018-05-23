@@ -4,6 +4,8 @@
 #include "General.h"
 
 #include <deque>
+#include <mutex>
+
 #include <boost/noncopyable.hpp>
 
 #include <utils/EQueue.h>
@@ -41,9 +43,9 @@ private:
     const std::string identity_;    // for debug info purpose
 
     EQueue<events_ptr_t> process_queue_;
-    std::shared_ptr<boost::thread> thread_ptr_;
+    std::shared_ptr<std::thread> thread_ptr_;
 
-    boost::mutex lock_;
+    std::mutex lock_;
     timed_events_ptr_t events_;
 
     int64_t check_timer_id_;
@@ -80,30 +82,19 @@ private:
         }
 
         std::string identity = construct_identity(evs.host, evs.serv, evs.entity_idx);
+        std::lock_guard<std::mutex> lock(lock_);
 
-        { // read lock
-            boost::shared_lock<boost::shared_mutex> rlock(rw_lock_);
-            auto iter = handlers_.find(identity);
-            if (iter!= handlers_.end()) {
-                handler = iter->second;
-                return ErrorDef::OK;
-            }
+        auto iter = handlers_.find(identity);
+        if (iter != handlers_.end()) {
+            handler = iter->second;
+            return ErrorDef::OK;
         }
 
-        { // write lock, double lock check
-            boost::unique_lock<boost::shared_mutex> wlock(rw_lock_);
-            auto iter = handlers_.find(identity);
-            if (iter != handlers_.end()) {
-                handler = iter->second;
-                return ErrorDef::OK;
-            }
-
-            // create new handler
-            std::shared_ptr<EventHandler> new_handler;
-            if (do_create_event_handler(evs, new_handler) == ErrorDef::OK) {
-                handler = new_handler;
-                return ErrorDef::OK;
-            }
+        // create new handler
+        std::shared_ptr<EventHandler> new_handler;
+        if (do_create_event_handler(evs, new_handler) == ErrorDef::OK) {
+            handler = new_handler;
+            return ErrorDef::OK;
         }
 
         return ErrorDef::Error;
@@ -129,7 +120,7 @@ private:
         return ErrorDef::OK;
     }
 
-    boost::shared_mutex rw_lock_;
+    std::mutex lock_;
     std::map<std::string, std::shared_ptr<EventHandler>> handlers_;
 
     EventReposConfig config_;

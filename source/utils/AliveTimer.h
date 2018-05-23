@@ -42,8 +42,8 @@ public:
     typedef std::shared_ptr<AliveItem<T> >               active_item_ptr;     // internel use
     typedef std::map<time_t, std::set<active_item_ptr> > TimeContainer;       //
     typedef std::map<T*, active_item_ptr >               BucketContainer;     //
-    typedef std::set<T* >                                DropContainer;         // 主动删除
-    typedef boost::function<int(std::shared_ptr<T>)>     ExpiredHandler;
+    typedef std::set<T* >                                DropContainer;       // 主动删除
+    typedef std::function<int(std::shared_ptr<T>)>       ExpiredHandler;
 
 public:
 
@@ -96,10 +96,12 @@ public:
      }
 
     bool TOUCH(std::shared_ptr<T> ptr, time_t tm) {
-        boost::unique_lock<boost::mutex> lock(lock_);
+
+        std::lock_guard<std::mutex> lock(lock_);
+
         typename BucketContainer::iterator iter = bucket_items_.find(ptr.get());
         if (iter == bucket_items_.end()) {
-            log_err("touched item not found!");
+            log_err("touched item %p not found!", ptr.get());
             SAFE_ASSERT(false);
             return false;
         }
@@ -134,7 +136,7 @@ public:
     }
 
     bool INSERT(std::shared_ptr<T> ptr, time_t tm ) {
-        boost::unique_lock<boost::mutex> lock(lock_);
+        std::lock_guard<std::mutex> lock(lock_);
         typename BucketContainer::iterator iter = bucket_items_.find(ptr.get());
         if (iter != bucket_items_.end()) {
             log_err("insert item already exists: @ %ld, %p", iter->second->get_expire_time(),
@@ -160,19 +162,20 @@ public:
     }
 
     bool DROP(std::shared_ptr<T> ptr) { // 此处肯定是shared_ptr的
-        boost::unique_lock<boost::mutex> drop_lock(drop_lock_);
+        std::lock_guard<std::mutex> drop_lock(drop_lock_);
 
         auto result = drop_items_.insert(ptr.get());  // store raw_ptr
         return result.second;
     }
 
     bool DROP(T* ptr) {
-        boost::unique_lock<boost::mutex> drop_lock(drop_lock_);
+        std::lock_guard<std::mutex> drop_lock(drop_lock_);
 
         auto result = drop_items_.insert(ptr);  // store raw_ptr
         return result.second;
     }
 
+    // 被管理池绑定使用，一般是定时周期执行
     bool clean_up() {
 
         if (!initialized_) {
@@ -195,7 +198,7 @@ public:
         }
 
 
-        boost::unique_lock<boost::mutex> lock(lock_);
+        std::lock_guard<std::mutex> lock(lock_);
 
         ::gettimeofday(&checked_start, NULL);
         int checked_count = 0;
@@ -249,7 +252,7 @@ public:
             }
         }
 
-        int64_t total_count = 0;
+        size_t total_count = 0;
         for (iter = time_items_.begin() ; iter != time_items_.end(); ++ iter) {
             total_count += iter->second.size();
         }
@@ -258,6 +261,8 @@ public:
             log_err("mismatch item count, bug count:%ld, timed_count: %ld", bucket_items_.size(), total_count);
             SAFE_ASSERT(false);
         }
+
+        return true;
     }
 
 private:
@@ -316,17 +321,17 @@ private:
     // 主动处理已经废弃的连接
     int active_remove_conns() {
 
-        boost::unique_lock<boost::mutex> drop_lock(drop_lock_);
+        std::lock_guard<std::mutex> drop_lock(drop_lock_);
 
         if (drop_items_.empty()) {
             return 0;
         }
 
-        boost::unique_lock<boost::mutex> lock(lock_);
+        std::lock_guard<std::mutex> lock(lock_);
 
         // 在高并发的情况下会占用大量的时间，导致实时交易延迟而不能退出
         // 后续优化之
-        std::for_each(drop_items_.begin(), drop_items_.end(), boost::bind(&AliveTimer::active_remove_item, this, _1));
+        std::for_each(drop_items_.begin(), drop_items_.end(), std::bind(&AliveTimer::active_remove_item, this, std::placeholders::_1));
 
         int count = static_cast<int>(drop_items_.size());
         drop_items_.clear();
@@ -338,12 +343,12 @@ private:
 private:
     bool initialized_;
     std::string     alive_name_;
-    mutable boost::mutex lock_;
+    mutable std::mutex lock_;
     TimeContainer   time_items_;
     BucketContainer bucket_items_;
     ExpiredHandler  func_;
 
-    mutable boost::mutex drop_lock_;
+    mutable std::mutex drop_lock_;
     DropContainer   drop_items_;
 
     time_t time_out_;

@@ -6,8 +6,8 @@
 #include "General.h"
 #include "HttpParser.h"
 
-typedef boost::function<int (const HttpParser& http_parser, const std::string& post_data, std::string& response, string& status_line)> HttpPostHandler;
-typedef boost::function<int (const HttpParser& http_parser, std::string& response, string& status_line)> HttpGetHandler;
+typedef std::function<int (const HttpParser& http_parser, const std::string& post_data, std::string& response, string& status_line)> HttpPostHandler;
+typedef std::function<int (const HttpParser& http_parser, std::string& response, string& status_line)> HttpGetHandler;
 
 namespace http_handler {
 

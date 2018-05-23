@@ -1,4 +1,5 @@
 #include <sstream>
+#include <functional>
 
 #include "MqConn.h"
 
@@ -33,13 +34,13 @@ bool MqConn::init(int64_t conn_uuid,  const MqConnPoolHelper& helper) {
 
     int retCode = 0;
     if (state_ == MqWorkState::kProducer) {
-        retCode = mq_.checkAndRepairChannel(t_, boost::bind(&MqConn::mq_setup_channel_publish, this, _1, _2),
+        retCode = mq_.checkAndRepairChannel(t_, std::bind(&MqConn::mq_setup_channel_publish, this, std::placeholders::_1, std::placeholders::_2),
                                                                 const_cast<rabbitmq_character_t *>(&helper_.properity_));
     } else if (state_ == MqWorkState::kConsumer) {
-        retCode = mq_.checkAndRepairChannel(t_, boost::bind(&MqConn::mq_setup_channel_consume, this, _1, _2),
+        retCode = mq_.checkAndRepairChannel(t_, std::bind(&MqConn::mq_setup_channel_consume, this, std::placeholders::_1, std::placeholders::_2),
                                                                 const_cast<rabbitmq_character_t *>(&helper_.properity_));
     } else if (state_ == MqWorkState::kGetter) {
-        retCode = mq_.checkAndRepairChannel(t_, boost::bind(&MqConn::mq_setup_channel_get, this, _1, _2),
+        retCode = mq_.checkAndRepairChannel(t_, std::bind(&MqConn::mq_setup_channel_get, this, std::placeholders::_1, std::placeholders::_2),
                                                                 const_cast<rabbitmq_character_t *>(&helper_.properity_));
     } else {
         log_err("Unknown work mode here: %d", static_cast<int>(state_));
@@ -206,13 +207,13 @@ bool MqConn::check_and_set_work_mode(enum MqWorkState state) {
 
         // force re-setup once
         if (state_ == MqWorkState::kProducer) {
-            boolRet = mq_.setupChannel(t_, boost::bind(&MqConn::mq_setup_channel_publish, this, _1, _2),
+            boolRet = mq_.setupChannel(t_, std::bind(&MqConn::mq_setup_channel_publish, this, std::placeholders::_1, std::placeholders::_2),
                                                                 const_cast<rabbitmq_character_t *>(&helper_.properity_));
         } else if (state_ == MqWorkState::kConsumer) {
-            boolRet = mq_.setupChannel(t_, boost::bind(&MqConn::mq_setup_channel_consume, this, _1, _2),
+            boolRet = mq_.setupChannel(t_, std::bind(&MqConn::mq_setup_channel_consume, this, std::placeholders::_1, std::placeholders::_2),
                                                                 const_cast<rabbitmq_character_t *>(&helper_.properity_));
         } else if (state_ == MqWorkState::kGetter) {
-            boolRet = mq_.setupChannel(t_, boost::bind(&MqConn::mq_setup_channel_get, this, _1, _2),
+            boolRet = mq_.setupChannel(t_, std::bind(&MqConn::mq_setup_channel_get, this, std::placeholders::_1, std::placeholders::_2),
                                                                 const_cast<rabbitmq_character_t *>(&helper_.properity_));
         } else {
             log_err("nnknown work mode here: %d", static_cast<int>(state_));
@@ -236,13 +237,13 @@ bool MqConn::check_and_repair() {
     int retry_count = helper_.connect_urls_.size() * 2;
     do {
         if (state_ == MqWorkState::kProducer) {
-            intRet = mq_.checkAndRepairChannel(t_, boost::bind(&MqConn::mq_setup_channel_publish, this, _1, _2),
+            intRet = mq_.checkAndRepairChannel(t_, std::bind(&MqConn::mq_setup_channel_publish, this, std::placeholders::_1, std::placeholders::_2),
                                                     const_cast<rabbitmq_character_t *>(&helper_.properity_));
         } else if (state_ == MqWorkState::kConsumer) {
-            intRet = mq_.checkAndRepairChannel(t_, boost::bind(&MqConn::mq_setup_channel_consume, this, _1, _2),
+            intRet = mq_.checkAndRepairChannel(t_, std::bind(&MqConn::mq_setup_channel_consume, this, std::placeholders::_1, std::placeholders::_2),
                                                     const_cast<rabbitmq_character_t *>(&helper_.properity_));
         } else if (state_ == MqWorkState::kGetter) {
-            intRet = mq_.checkAndRepairChannel(t_, boost::bind(&MqConn::mq_setup_channel_get, this, _1, _2),
+            intRet = mq_.checkAndRepairChannel(t_, std::bind(&MqConn::mq_setup_channel_get, this, std::placeholders::_1, std::placeholders::_2),
                                                     const_cast<rabbitmq_character_t *>(&helper_.properity_));
         } else {
             log_err("nnknown work mode here: %d", static_cast<int>(state_));

@@ -3,7 +3,8 @@
 
 // 用Bucket存放多个set，降低空间浪费和lock contention
 
-#include <boost/function.hpp>
+#include <mutex>
+#include <functional>
 
 #include "Log.h"
 
@@ -16,47 +17,47 @@ class SetItem {
 public:
     // 返回true表示实际插入了
     bool do_insert(const T& t) {
-        boost::unique_lock<boost::mutex> lock(lock_);
+        std::lock_guard<std::mutex> lock(lock_);
         auto ret = item_.insert(t);
         return ret.second;
     }
 
     // 返回实际被删除的元素个数
     size_t do_erase(const T& t) {
-        boost::unique_lock<boost::mutex> lock(lock_);
+        std::lock_guard<std::mutex> lock(lock_);
         return item_.erase(t);
     }
 
     size_t do_exist(const T& t) const {
-        boost::unique_lock<boost::mutex> lock(lock_);
+        std::lock_guard<std::mutex> lock(lock_);
         return (item_.find(t) != item_.end());
     }
 
     size_t do_size() const {
-        boost::unique_lock<boost::mutex> lock(lock_);
+        std::lock_guard<std::mutex> lock(lock_);
         return item_.size();
     }
 
     bool do_empty() const {
-        boost::unique_lock<boost::mutex> lock(lock_);
+        std::lock_guard<std::mutex> lock(lock_);
         return item_.empty();
     }
 
     void do_clear() {
-        boost::unique_lock<boost::mutex> lock(lock_);
+        std::lock_guard<std::mutex> lock(lock_);
         return item_.clear();
     }
 
 private:
     Container item_;
-    boost::mutex lock_;
+    std::mutex lock_;
 };
 
 
 template<typename T>
 class BucketSet {
 public:
-    explicit BucketSet(size_t bucket_size, boost::function<size_t(const T&)> call):
+    explicit BucketSet(size_t bucket_size, std::function<size_t(const T&)> call):
         bucket_size_(round_to_power(bucket_size)),
         hash_index_call_(call),
         items_(NULL) {
@@ -124,9 +125,9 @@ private:
     }
 
     size_t bucket_size_;
-    boost::function<size_t(const T&)> hash_index_call_;
+    std::function<size_t(const T&)> hash_index_call_;
 
-    // STL容器需要拷贝，但是boost::mutex是不可拷贝的，此处只能动态申请数组
+    // STL容器需要拷贝，但是mutex是不可拷贝的，此处只能动态申请数组
     SetItem<T>* items_;
 };
 

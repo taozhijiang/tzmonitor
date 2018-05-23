@@ -2,7 +2,8 @@
 #include <sstream>
 
 #include <boost/format.hpp>
-#include <boost/thread.hpp>
+#include <thread>
+#include <functional>
 
 #include "HttpHandler.h"
 #include "HttpServer.h"
@@ -60,7 +61,7 @@ bool HttpServer::init() {
     }
 
     log_debug("socket/session conn time_out: %ds, linger: %ds", conf_.conn_time_out_, conf_.conn_time_out_linger_);
-    conns_alive_.init(boost::bind(&HttpServer::conn_destroy, this, _1),
+    conns_alive_.init(std::bind(&HttpServer::conn_destroy, this, std::placeholders::_1),
                                   conf_.conn_time_out_, conf_.conn_time_out_linger_);
 
     if (!get_config_value("http.ops_cancel_time_out", conf_.ops_cancel_time_out_)){
@@ -83,7 +84,7 @@ bool HttpServer::init() {
         conf_.http_service_speed_ = 0;
     }
 
-    if (conf_.http_service_speed_ && (helper::register_timer_task( boost::bind(&HttpConf::feed_http_service_token, &conf_), 5*1000, true, true) == 0) ) {
+    if (conf_.http_service_speed_ && (helper::register_timer_task( std::bind(&HttpConf::feed_http_service_token, &conf_), 5*1000, true, true) == 0) ) {
         log_err("register http token feed task failed!");
         return false;
     }
@@ -92,7 +93,7 @@ bool HttpServer::init() {
 
 
 
-    if (!io_service_threads_.init_threads(boost::bind(&HttpServer::io_service_run, shared_from_this(), _1))) {
+    if (!io_service_threads_.init_threads(std::bind(&HttpServer::io_service_run, shared_from_this(), std::placeholders::_1))) {
         log_err("HttpServer::io_service_run init task failed!");
         return false;
     }
@@ -109,7 +110,7 @@ bool HttpServer::init() {
     register_http_post_handler("/test", http_handler::post_test_handler);
 
 
-    if (helper::register_timer_task( boost::bind(&AliveTimer<ConnType>::clean_up, &conns_alive_), 5*1000, true, false) == 0) {
+    if (helper::register_timer_task( std::bind(&AliveTimer<ConnType>::clean_up, &conns_alive_), 5*1000, true, false) == 0) {
         log_err("Register alive conn purge task failed!");
         return false;
     }
@@ -169,8 +170,8 @@ void HttpServer::do_accept() {
 
     SocketPtr sock_ptr(new ip::tcp::socket(io_service_));
     acceptor_->async_accept(*sock_ptr,
-                           boost::bind(&HttpServer::accept_handler, this,
-                                       boost::asio::placeholders::error, sock_ptr));
+                           std::bind(&HttpServer::accept_handler, this,
+                                       std::placeholders::_1, sock_ptr));
 }
 
 void HttpServer::accept_handler(const boost::system::error_code& ec, SocketPtr sock_ptr) {
@@ -178,7 +179,7 @@ void HttpServer::accept_handler(const boost::system::error_code& ec, SocketPtr s
     do {
 
         if (ec) {
-            log_err("Error during accept with %d, %s", ec, ec.message());
+            log_err("Error during accept with %d, %s", ec, ec.message().c_str());
             break;
         }
 
@@ -186,7 +187,7 @@ void HttpServer::accept_handler(const boost::system::error_code& ec, SocketPtr s
         std::stringstream output;
         auto remote = sock_ptr->remote_endpoint(ignore_ec);
         if (ignore_ec) {
-            log_err("get remote info failed:%d, %s", ignore_ec, ignore_ec.message());
+            log_err("get remote info failed:%d, %s", ignore_ec, ignore_ec.message().c_str());
             break;
         }
 

@@ -1,6 +1,7 @@
 #ifndef __TZ_THREAD_POOL_H__
 #define __TZ_THREAD_POOL_H__
 
+#include <boost/thread.hpp>
 #include <memory>
 #include "Log.h"
 
@@ -21,9 +22,11 @@ struct ThreadObj {
 
 const static uint8_t kMaxiumThreadPoolSize = 200;
 
+// 因为需要适用timed_join，但是std::thread没有，所以这里仍然使用boost::thread
+
 typedef std::shared_ptr<boost::thread>       ThreadPtr;
 typedef std::shared_ptr<ThreadObj>           ThreadObjPtr;
-typedef boost::function<void (ThreadObjPtr)> ThreadRunnable;
+typedef std::function<void (ThreadObjPtr)>   ThreadRunnable;
 
 class ThreadPool: private boost::noncopyable {
         // 先于线程工作之前的所有预备工作

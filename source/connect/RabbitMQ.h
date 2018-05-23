@@ -14,7 +14,7 @@
 #include <map>
 
 #include <memory>
-#include <boost/function.hpp>
+#include <functional>
 
 #include <utils/Log.h>
 
@@ -79,7 +79,7 @@ private:
 
 
 typedef std::shared_ptr<RabbitChannel> RabbitChannelPtr;
-typedef boost::function<bool (RabbitChannelPtr, void*)> RabbitChannelSetupFunc;
+typedef std::function<bool (RabbitChannelPtr, void*)> RabbitChannelSetupFunc;
 
 class RabbitMQHelper {
 

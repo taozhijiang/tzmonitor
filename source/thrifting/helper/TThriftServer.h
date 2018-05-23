@@ -3,8 +3,8 @@
 
 #include <memory>
 #include <sstream>
+#include <thread>
 
-#include <boost/thread.hpp>
 #include <boost/noncopyable.hpp>
 
 template <typename ServiceHandler, typename ServiceProcessor>
@@ -55,7 +55,7 @@ public:
             return false;
         }
 
-        thread_ptr_.reset(new boost::thread(boost::bind(&TThriftServer::run, this)));
+        thread_ptr_.reset(new std::thread(std::bind(&TThriftServer::run, this)));
         if (!thread_ptr_){
             log_err("ThriftService create thread failed ...");
             return false;
@@ -89,7 +89,7 @@ private:
     void run() {
 
         std::stringstream ss_id;
-        ss_id << boost::this_thread::get_id();
+        ss_id << std::this_thread::get_id();
         log_notice("ThrifServer %s is running...", ss_id.str().c_str());
 
         SAFE_ASSERT(server_impl_);
@@ -99,7 +99,7 @@ private:
 
 private:
     std::unique_ptr<ServerHelperType<ServiceHandler, ServiceProcessor>> server_impl_;
-    std::shared_ptr<boost::thread> thread_ptr_;
+    std::shared_ptr<std::thread> thread_ptr_;
     bool running_;
 };
 

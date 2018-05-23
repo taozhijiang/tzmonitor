@@ -3,7 +3,7 @@
 
 #include <event.h>
 
-#include <boost/thread.hpp>
+#include <thread>
 #include <boost/noncopyable.hpp>
 
 #include <utils/EQueue.h>
@@ -11,7 +11,7 @@
 
 
 // 提供定时回调接口服务
-typedef boost::function<void ()> TimerEventCallable;
+typedef std::function<void ()> TimerEventCallable;
 
 
 struct TimerTask {
@@ -75,7 +75,7 @@ private:
 
 private:
     // base loop 主线程
-    boost::thread timer_thread_;
+    std::thread timer_thread_;
 
 public:
     // 目前而言最好使用单个工作线程串行执行，否则注册的任务可能会并行执行导致不可预料的结果
@@ -85,7 +85,7 @@ public:
 private:
     EQueue<TimerEventCallable> defer_ready_;
 
-    boost::mutex tasks_lock_;
+    std::mutex tasks_lock_;
     std::map<int64_t, TimerTaskPtr> tasks_;  // pointer cast
     struct event_base *ev_base_;
 

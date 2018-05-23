@@ -8,7 +8,6 @@
 #include <vector>
 
 #include <boost/noncopyable.hpp>
-#include <boost/function.hpp>
 
 void backtrace_init();
 int set_nonblocking(int fd);

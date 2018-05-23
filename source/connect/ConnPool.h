@@ -12,8 +12,10 @@
 
 //#include <boost/atomic.hpp>
 
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/condition_variable.hpp>
+#include <mutex>
+#include <condition_variable>
+#include <chrono>
+#include <functional>
 
 #include <utils/Log.h>
 
@@ -61,7 +63,7 @@ public:
 
 #ifndef BOOST_TEST_MODULE
         conn_pool_stats_timer_id_ = helper::register_timer_task(
-                boost::bind(&ConnPool::show_conn_pool_stats, this->shared_from_this()), 60 * 1000/* 60s */, true, true);
+                std::bind(&ConnPool::show_conn_pool_stats, this->shared_from_this()), 60 * 1000/* 60s */, true, true);
         if (conn_pool_stats_timer_id_ == 0) {
             log_err("Register conn_pool_stats_timer failed! ");
             return false;
@@ -71,7 +73,7 @@ public:
             log_info("We will try to trim idle connection %lu sec.", conn_pool_linger_sec_);
 
             conn_pool_linger_trim_id_ = helper::register_timer_task(
-                boost::bind(&ConnPool::do_conn_pool_linger_trim, this->shared_from_this()), 10 * 1000/* 10s */, true, false);
+                std::bind(&ConnPool::do_conn_pool_linger_trim, this->shared_from_this()), 10 * 1000/* 10s */, true, false);
             if (conn_pool_linger_trim_id_ == 0) {
                 log_err("Register do_conn_pool_linger_trim failed! ");
                 return false;
@@ -86,7 +88,7 @@ public:
     // 由于会返回nullptr，所以不能返回引用
     ConnPtr request_conn() {
 
-        boost::unique_lock<boost::mutex> lock(conn_notify_mutex_);
+        std::unique_lock<std::mutex> lock(conn_notify_mutex_);
 
         while (!do_check_available()) {
             conn_notify_.wait(lock);
@@ -97,14 +99,14 @@ public:
 
     ConnPtr try_request_conn(size_t msec)  {
 
-        boost::unique_lock<boost::mutex> lock(conn_notify_mutex_);
+        std::unique_lock<std::mutex> lock(conn_notify_mutex_);
         ConnPtr conn;
 
         if (!do_check_available() && !msec)
             return conn; // nullptr
 
         // timed_wait not work with 0
-        if(do_check_available() || conn_notify_.timed_wait(lock, boost::posix_time::milliseconds(msec))) {
+        if(do_check_available() || conn_notify_.wait_for(lock, std::chrono::milliseconds(msec))) {
             typename ConnContainer::iterator it;
             return do_request_conn();
         }
@@ -118,7 +120,7 @@ public:
         // probably recursive require conn_nofity_mutex problem
 
         scope_conn.reset();
-        boost::unique_lock<boost::mutex> lock(conn_notify_mutex_);
+        std::unique_lock<std::mutex> lock(conn_notify_mutex_);
 
         while (!do_check_available()) {
             conn_notify_.wait(lock);
@@ -127,7 +129,7 @@ public:
         ConnPtr conn = do_request_conn();
         if (conn) {
             scope_conn.reset(conn.get(),
-                             boost::bind(&ConnPool::free_conn,
+                             std::bind(&ConnPool::free_conn,
                              this, conn)); // 还是通过智能指针拷贝一份吧
             // log_debug("Request guard connection: %ld", scope_conn->get_uuid());
             return true;
@@ -139,7 +141,7 @@ public:
     void free_conn(ConnPtr conn) {
 
         {
-            boost::lock_guard<boost::mutex> lock(conn_notify_mutex_);
+            std::lock_guard<std::mutex> lock(conn_notify_mutex_);
 
             conns_idle_.push_back(conn);
             conns_busy_.erase(conn);
@@ -214,8 +216,10 @@ private:
     std::set<ConnPtr, conn_ptr_compare<T> > conns_busy_;
     std::deque<ConnPtr> conns_idle_;
 
-    boost::condition_variable_any conn_notify_;
-    boost::mutex conn_notify_mutex_;
+    // If the lock is std::unique_lock, std::condition_variable may provide better performance.
+    // http://en.cppreference.com/w/cpp/thread/condition_variable
+    std::condition_variable conn_notify_;
+    std::mutex conn_notify_mutex_;
 
     // 状态和统计，下面这些变量都是用上面的mutex保护
     uint64_t acquired_count_;   // 总请求计数
@@ -230,12 +234,12 @@ private:
         output << "[" << pool_name_ << "] PoolStats: " << std::endl;
 
         {   // hold lock
-            boost::lock_guard<boost::mutex> lock(conn_notify_mutex_);
+            std::lock_guard<std::mutex> lock(conn_notify_mutex_);
 
             output << "capacity: " << capacity_ << ", acquired_count: " << acquired_count_ << ", ok_count: " << acquired_ok_count_;
 
             if (likely(acquired_count_)) {
-                output << ", success_ratio: " << 100 * (static_cast<double>(acquired_ok_count_) / acquired_count_) << "%" << std::endl;
+                output << ", success_ratio: " << 100 * (((double)acquired_ok_count_) / acquired_count_) << "%" << std::endl;
             }
 
             if (likely(!hold_time_ms_.empty())) {
@@ -258,7 +262,7 @@ private:
         struct timeval start_time;
         ::gettimeofday(&start_time, NULL);
 
-        boost::lock_guard<boost::mutex> lock(conn_notify_mutex_);
+        std::lock_guard<std::mutex> lock(conn_notify_mutex_);
 
         if (conns_idle_.empty()){
             return;

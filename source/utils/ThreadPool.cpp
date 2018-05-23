@@ -1,8 +1,9 @@
+#include <mutex>
+#include <functional>
+
 #include <boost/noncopyable.hpp>
-#include <boost/function.hpp>
 #include <boost/thread.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread_time.hpp>
+//#include <boost/thread/thread_time.hpp>
 
 #include "Log.h"
 #include "ThreadPool.h"
@@ -44,7 +45,7 @@ public:
                 log_err("create ThreadObj failed!");
                 return false;
             }
-            ThreadPtr worker(new boost::thread(boost::bind(&ThreadPool::Impl::callable_wrapper, this, workobj)));
+            ThreadPtr worker(new boost::thread(std::bind(&ThreadPool::Impl::callable_wrapper, this, workobj)));
             if (!worker || !workobj) {
                 log_err("create thread failed!");
                 return false;
@@ -183,7 +184,7 @@ private:
                 log_err("create ThreadObj failed!");
                 return -1;
             }
-            ThreadPtr worker(new boost::thread(boost::bind(&ThreadPool::Impl::callable_wrapper, this, workobj)));
+            ThreadPtr worker(new boost::thread(std::bind(&ThreadPool::Impl::callable_wrapper, this, workobj)));
             if (!worker || !workobj) {
                 log_err("create thread failed!");
                 return -1;
@@ -228,7 +229,7 @@ private:
 private:
     ThreadRunnable func_;
 
-    boost::mutex lock_;
+    std::mutex lock_;
     uint8_t thread_num_;
     std::map<ThreadPtr, ThreadObjPtr> workers_;
 };

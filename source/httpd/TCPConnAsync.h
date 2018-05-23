@@ -52,12 +52,12 @@ private:
     void set_ops_cancel_timeout();
     void revoke_ops_cancel_timeout();
     bool was_ops_cancelled() {
-        boost::unique_lock<boost::mutex> lock(ops_cancel_mutex_);
+        std::lock_guard<std::mutex> lock(ops_cancel_mutex_);
         return was_cancelled_;
     }
 
     bool ops_cancel() {
-        boost::unique_lock<boost::mutex> lock(ops_cancel_mutex_);
+        std::lock_guard<std::mutex> lock(ops_cancel_mutex_);
         sock_cancel();
         set_conn_stat(ConnStat::kConnError);
         was_cancelled_ = true;
@@ -80,7 +80,7 @@ private:
     boost::asio::streambuf request_;   // client request_ read
 
     bool was_cancelled_;
-    boost::mutex ops_cancel_mutex_;
+    std::mutex ops_cancel_mutex_;
     std::unique_ptr<boost::asio::deadline_timer> ops_cancel_timer_;
 
 private:

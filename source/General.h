@@ -45,8 +45,8 @@ using std::string;
 
 #include <memory>
 
-#include <boost/thread.hpp>
-#include <boost/bind.hpp>
+#include <thread>
+#include <functional>  // bind
 
 #include <boost/asio.hpp>
 using namespace boost::asio;

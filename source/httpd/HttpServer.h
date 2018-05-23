@@ -5,11 +5,11 @@
 
 #include <set>
 #include <map>
+#include <mutex>
+#include <condition_variable>
+#include <functional>
 
 #include <boost/noncopyable.hpp>
-#include <boost/bind.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/condition_variable.hpp>
 
 #include <utils/EQueue.h>
 #include <utils/ThreadPool.h>
@@ -20,8 +20,8 @@
 
 #include "HttpParser.h"
 
-typedef boost::function<int (const HttpParser& http_parser, const std::string& post_data, std::string& response, string& status)> HttpPostHandler;
-typedef boost::function<int (const HttpParser& http_parser, std::string& response, string& status)> HttpGetHandler;
+typedef std::function<int (const HttpParser& http_parser, const std::string& post_data, std::string& response, string& status)> HttpPostHandler;
+typedef std::function<int (const HttpParser& http_parser, std::string& response, string& status)> HttpGetHandler;
 
 typedef TCPConnAsync ConnType;
 typedef std::shared_ptr<ConnType> ConnTypePtr;
@@ -41,13 +41,13 @@ private:
 
     int ops_cancel_time_out_;  // sec 会话超时自动取消ops
 
-    boost::mutex      lock_;
+    std::mutex        lock_;
     bool              http_service_enabled_;  // 服务开关
     int64_t           http_service_speed_;
     volatile int64_t  http_service_token_;
 
     bool get_http_service_token() {
-        boost::unique_lock<boost::mutex> lock(lock_);
+        std::lock_guard<std::mutex> lock(lock_);
         if (http_service_speed_ == 0) // 没有限流
             return true;
 
@@ -60,12 +60,12 @@ private:
 
 
     void withdraw_http_service_token() {    // 支持将令牌还回去
-        boost::unique_lock<boost::mutex> lock(lock_);
+        std::lock_guard<std::mutex> lock(lock_);
         ++ http_service_token_;
     }
 
     void feed_http_service_token(){
-        boost::unique_lock<boost::mutex> lock(lock_);
+        std::lock_guard<std::mutex> lock(lock_);
         http_service_token_ = http_service_speed_;
     }
 };

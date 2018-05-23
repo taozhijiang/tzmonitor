@@ -4,7 +4,7 @@
 // 不同于map的key value，使用vector保持推入的顺序
 
 #include <utility>
-#include <boost/function.hpp>
+#include <functional>
 
 #include "Log.h"
 
@@ -36,17 +36,17 @@ public:
     }
 
     void PUSH_BACK(const K& k, const V& v) {
-        boost::unique_lock<boost::mutex> lock(lock_);
+        std::lock_guard<std::mutex> lock(lock_);
         items_.push_back({k, v}); // make_pair can not use - const ref
     }
 
     void PUSH_BACK(const Entry& entry) {
-        boost::unique_lock<boost::mutex> lock(lock_);
+        std::lock_guard<std::mutex> lock(lock_);
         items_.push_back(entry);
     }
 
     bool FIND(const K& k, V& v) const {
-        boost::unique_lock<boost::mutex> lock(lock_);
+        std::lock_guard<std::mutex> lock(lock_);
         for (size_t idx = 0; idx < items_.size(); ++idx) {
             if (items_[idx].first == k) {
                 v = items_[idx].second;
@@ -57,7 +57,7 @@ public:
     }
 
     bool FIND(const K& k, Entry& entry) const {
-        boost::unique_lock<boost::mutex> lock(lock_);
+        std::lock_guard<std::mutex> lock(lock_);
         for (size_t idx = 0; idx < items_.size(); ++idx) {
             if (items_[idx].first == k) {
                 entry = items_[idx];
@@ -68,22 +68,22 @@ public:
     }
 
     size_t SIZE() const {
-        boost::unique_lock<boost::mutex> lock(lock_);
+        std::lock_guard<std::mutex> lock(lock_);
         return items_.size();
     }
 
     bool EMPTY() const {
-        boost::unique_lock<boost::mutex> lock(lock_);
+        std::lock_guard<std::mutex> lock(lock_);
         return items_.empty();
     }
 
     void CLEAR() {
-        boost::unique_lock<boost::mutex> lock(lock_);
+        std::lock_guard<std::mutex> lock(lock_);
         items_.clear();
     }
 
 private:
-    mutable boost::mutex lock_;
+    mutable std::mutex lock_;
     std::vector<std::pair<K, V> > items_;
 };
 

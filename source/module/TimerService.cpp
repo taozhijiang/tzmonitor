@@ -18,7 +18,7 @@ bool TimerService::init() {
     log_info("Current Using Method: %s", event_base_get_method(ev_base_)); // epoll
 
     // add purge task
-    if (register_timer_task(boost::bind(&TimerService::purge_dead_task, this), 5*1000, true, true) == 0) {
+    if (register_timer_task(std::bind(&TimerService::purge_dead_task, this), 5*1000, true, true) == 0) {
         log_err("Register purge task failed!");
         return false;
     }
@@ -114,9 +114,9 @@ void TimerService::timer_defer_run(ThreadObjPtr ptr){
 
 int TimerService::start_timer(){
 
-    timer_thread_ = boost::thread(boost::bind(&TimerService::timer_run, this));
+    timer_thread_ = std::thread(std::bind(&TimerService::timer_run, this));
 
-    if (! timer_defer_.init_threads(boost::bind(&TimerService::timer_defer_run, this,_1))) {
+    if (! timer_defer_.init_threads(std::bind(&TimerService::timer_defer_run, this, std::placeholders::_1))) {
         log_err("TimerService::init failed!");
         return -1;
     }
@@ -129,7 +129,7 @@ int TimerService::start_timer(){
 int TimerService::stop_graceful() {
     {
         std::map<int64_t, TimerTaskPtr>::iterator it, tmp;
-        boost::lock_guard<boost::mutex> lock(tasks_lock_);
+        std::lock_guard<std::mutex> lock(tasks_lock_);
 
         for (it = tasks_.begin(); it != tasks_.end(); /**/ ) {
             evtimer_del(&it->second->ev_timer_);
@@ -174,7 +174,7 @@ int64_t TimerService::register_timer_task(TimerEventCallable func, int64_t msec,
 bool TimerService::revoke_timer_task(int64_t index) {
     TimerTaskPtr ret;
 
-    boost::lock_guard<boost::mutex> lock(tasks_lock_);
+    std::lock_guard<std::mutex> lock(tasks_lock_);
     std::map<int64_t, TimerTaskPtr>::iterator it = tasks_.find(index);
     if (it != tasks_.end()) {
         evtimer_del(&it->second->ev_timer_);
@@ -185,7 +185,7 @@ bool TimerService::revoke_timer_task(int64_t index) {
 TimerTaskPtr TimerService::find_task(int64_t index) {
     TimerTaskPtr ret;
 
-    boost::lock_guard<boost::mutex> lock(tasks_lock_);
+    std::lock_guard<std::mutex> lock(tasks_lock_);
     std::map<int64_t, TimerTaskPtr>::iterator it = tasks_.find(index);
     if (it != tasks_.end()) {
         ret = it->second;
@@ -199,7 +199,7 @@ int TimerService::add_task(TimerTaskPtr task_ptr) {
         return -1;
 
     int64_t index = reinterpret_cast<int64_t>(task_ptr.get());
-    boost::lock_guard<boost::mutex> lock(tasks_lock_);
+    std::lock_guard<std::mutex> lock(tasks_lock_);
     std::map<int64_t, TimerTaskPtr>::iterator it = tasks_.find(index);
     if (it != tasks_.end()) {
         log_err("The timer task already found: %ld", reinterpret_cast<int64_t>(task_ptr.get()));
@@ -217,7 +217,7 @@ void TimerService::purge_dead_task(){
 
     // log_debug("purge_dead_task check ...");
 
-    boost::lock_guard<boost::mutex> lock(tasks_lock_);
+    std::lock_guard<std::mutex> lock(tasks_lock_);
     std::map<int64_t, TimerTaskPtr>::iterator it;
     std::map<int64_t, TimerTaskPtr>::iterator tmp;
 
