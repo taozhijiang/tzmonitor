@@ -40,7 +40,7 @@ public:
     const string db_;
 };
 
-static const int kMaxBuffSize = 8190;
+static const int kMaxBuffSize = 4*8190;
 static std::string va_format(const char * fmt, ...) {
 
     char buff[kMaxBuffSize + 1] = {0, };

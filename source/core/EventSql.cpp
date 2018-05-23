@@ -6,6 +6,7 @@
 #include "Helper.h"
 
 #include <utils/Log.h>
+#include <sstream>
 
 namespace EventSql {
 
@@ -137,64 +138,89 @@ int query_ev_stat(const event_cond_t& cond, event_query_t& stat) {
 int query_ev_stat(sql_conn_ptr& conn, const event_cond_t& cond, event_query_t& stat) {
 
     if (!conn) {
-         log_err("request sql conn failed!");
-         return ErrorDef::DatabasePoolErr;
-     }
+        log_err("request sql conn failed!");
+        return ErrorDef::DatabasePoolErr;
+    }
 
     time_t real_start_time = 0;
     std::string sql = build_sql(cond, real_start_time);
     stat.time = real_start_time;
 
-     shared_result_ptr result;
-     result.reset(conn->sqlconn_execute_query(sql));
-     if (!result) {
-         log_err("Failed to query info: %s", sql.c_str());
-         return ErrorDef::DatabaseExecErr;
-     }
+    shared_result_ptr result;
+    result.reset(conn->sqlconn_execute_query(sql));
+    if (!result) {
+        log_err("Failed to query info: %s", sql.c_str());
+        return ErrorDef::DatabaseExecErr;
+    }
 
-     if (result->rowsCount() == 0) {
-         log_info("Empty record found!");
-         return ErrorDef::OK;
-     }
+    if (result->rowsCount() == 0) {
+        log_info("Empty record found!");
+        return ErrorDef::OK;
+    }
 
-     // 可能会有某个时刻没有数据的情况，这留给客户端去填充
-     // 服务端不进行填充，减少网络数据的传输
-     while (result->next()) {
+      // 可能会有某个时刻没有数据的情况，这留给客户端去填充
+      // 服务端不进行填充，减少网络数据的传输
+    while (result->next()) {
 
-         event_info_t item {};
+        event_info_t item {};
 
-         bool success = false;
-         if (cond.groupby == GroupType::kGroupbyTime) {
-             success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std, item.time);
-         } else if (cond.groupby == GroupType::kGroupbyFlag) {
-             success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std, item.flag);
-         } else {
-             success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std);
-         }
+        bool success = false;
+        if (cond.groupby == GroupType::kGroupbyTime) {
+            success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std, item.time);
+        } else if (cond.groupby == GroupType::kGroupbyFlag) {
+            success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std, item.flag);
+        } else {
+            success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std);
+        }
 
-         if (!success) {
-             log_err("Failed to cast info ..." );
-             continue;
-         }
+        if (!success) {
+            log_err("Failed to cast info ..." );
+            continue;
+        }
 
-         if (item.count != 0) {
-             item.value_avg = item.value_sum / item.count;
-         } else {
-             item.value_avg = 0;
-         }
+        if (item.count != 0) {
+            item.value_avg = item.value_sum / item.count;
+        } else {
+            item.value_avg = 0;
+        }
 
-         stat.summary.count += item.count;
-         stat.summary.value_sum += item.value_sum;
-         stat.summary.value_std += item.value_std;
+        stat.summary.count += item.count;
+        stat.summary.value_sum += item.value_sum;
+        stat.summary.value_std += item.value_std * item.count;
 
-         stat.info.push_back(item);
-     }
+        stat.info.push_back(item);
+    }
 
-     stat.summary.value_avg = stat.summary.value_sum / stat.summary.count;
-     stat.summary.value_std = stat.summary.value_std / stat.summary.count;   // not very well
+    if (stat.summary.count != 0) {
+        stat.summary.value_avg = stat.summary.value_sum / stat.summary.count;
+        stat.summary.value_std = stat.summary.value_std / stat.summary.count;   // not very well
+    }
 
-     return ErrorDef::OK;
+    return ErrorDef::OK;
 }
 
+int get_distinct_ev_name(std::vector<std::string>& name) {
+
+    sql_conn_ptr conn;
+    helper::request_scoped_sql_conn(conn);
+    if (!conn) {
+        log_err("request sql conn failed!");
+        return ErrorDef::DatabasePoolErr;
+    }
+
+    time_t time = ::time(NULL) - EventRepos::instance().get_event_linger();
+
+    std::stringstream ss;
+    ss << "SELECT DISTINCT F_name FROM " ;
+    ss << database << "." << table_prefix << "event_stat_" << get_table_suffix(time) ;
+    std::string sql = ss.str();
+
+    if(!conn->sqlconn_execute_query_multi(ss.str(), name)) {
+        log_err("Failed to query info: %s", sql.c_str());
+        return ErrorDef::DatabaseExecErr;
+    }
+
+    return ErrorDef::OK;
+}
 
 } // end namespace

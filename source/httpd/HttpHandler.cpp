@@ -11,6 +11,7 @@
 #include "ErrorDef.h"
 #include "HttpProto.h"
 #include "HttpHandler.h"
+#include "StatHandler.h"
 #include "HttpServer.h"
 
 #include "Helper.h"
@@ -286,6 +287,32 @@ int post_ev_submit_handler(const HttpParser& http_parser, const std::string& pos
     response = http_proto::content_error;
     status_line = generate_response_status_line(http_parser.get_version(), StatusCode::server_error_internal_server_error);
     return ErrorDef::Error;
+}
+
+
+int index_http_get_handler(const HttpParser& http_parser, std::string& response, string& status_line) {
+    std::unique_ptr<IndexStatHandler> handler(new IndexStatHandler(http_parser));
+    if (handler->fetch_stat(response) == 0) {
+        status_line = generate_response_status_line(http_parser.get_version(), StatusCode::success_ok);
+        return 0;
+    }
+
+    response = http_proto::content_error;
+    status_line = generate_response_status_line(http_parser.get_version(), StatusCode::server_error_internal_server_error);
+    return -1;
+}
+
+int event_stat_http_get_handler(const HttpParser& http_parser, std::string& response, string& status_line) {
+
+    std::unique_ptr<EventStatHandler> handler(new EventStatHandler(http_parser));
+    if (handler->fetch_stat(response) == 0) {
+        status_line = generate_response_status_line(http_parser.get_version(), StatusCode::success_ok);
+        return 0;
+    }
+
+    response = http_proto::content_error;
+    status_line = generate_response_status_line(http_parser.get_version(), StatusCode::server_error_internal_server_error);
+    return -1;
 }
 
 int get_test_handler(const HttpParser& http_parser, std::string& response, string& status_line) {

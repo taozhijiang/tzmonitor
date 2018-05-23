@@ -45,6 +45,8 @@ int insert_ev_stat(sql_conn_ptr &conn, const event_insert_t& stat);
 int query_ev_stat(const event_cond_t& cond, event_query_t& stat);
 int query_ev_stat(sql_conn_ptr& conn, const event_cond_t& cond, event_query_t& stat);
 
+int get_distinct_ev_name(std::vector<std::string>& name);
+
 
 } // end namespace
 
