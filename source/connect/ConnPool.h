@@ -244,10 +244,10 @@ private:
 
             if (likely(!hold_time_ms_.empty())) {
                 int64_t sum_out = std::accumulate(hold_time_ms_.begin(), hold_time_ms_.end(), 0);
-                output << "average hold time: " << sum_out / hold_time_ms_.size() << " ms, ";
+                output << ", average hold time: " << sum_out / hold_time_ms_.size() << " ms";
             }
 
-            output << "current busy: " << conns_busy_.size() << ", idle: " << conns_idle_.size() << std::endl;
+            output << ", current busy: " << conns_busy_.size() << ", idle: " << conns_idle_.size() << std::endl;
         }
 
         log_debug("%s", output.str().c_str());

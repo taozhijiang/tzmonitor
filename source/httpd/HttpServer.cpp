@@ -122,14 +122,12 @@ bool HttpServer::init() {
 // main task loop
 void HttpServer::io_service_run(ThreadObjPtr ptr) {
 
-    std::stringstream ss_id;
-    ss_id << boost::this_thread::get_id();
-    log_info("HttpServer io_service thread %s is about to work... ", ss_id.str().c_str());
+    log_info("HttpServer io_service thread %#lx is about to work... ", (long)pthread_self());
 
     while (true) {
 
         if (unlikely(ptr->status_ == ThreadStatus::kThreadTerminating)) {
-            log_err("Thread %s is about to terminating...", ss_id.str().c_str());
+            log_err("thread %#lx is about to terminating...", (long)pthread_self());
             break;
         }
 
@@ -149,7 +147,7 @@ void HttpServer::io_service_run(ThreadObjPtr ptr) {
     }
 
     ptr->status_ = ThreadStatus::kThreadDead;
-    log_info("HttpServer io_service thread %s is about to terminate ... ", ss_id.str().c_str());
+    log_info("HttpServer io_service thread %#lx is about to terminate ... ", (long)pthread_self());
 
     return;
 }

@@ -60,7 +60,7 @@ MqConn::~MqConn() {
 
     /* reset to fore delete, actually not need */
 
-    log_info("destruct mq connection %ld OK!", get_uuid());
+    log_info("Destroy Mq Connection %ld OK!", get_uuid());
 }
 
 

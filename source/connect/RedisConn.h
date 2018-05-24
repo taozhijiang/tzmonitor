@@ -33,6 +33,7 @@ public:
     }
 
     ~RedisConn(){
+        log_info("Destroy Sql Connection %ld OK!", get_uuid());
     }
 
     bool init(int64_t conn_uuid, const RedisConnPoolHelper& helper);

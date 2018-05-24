@@ -38,7 +38,7 @@ BOOST_AUTO_TEST_CASE(http_post_event_submit)
     std::map<std::string, std::string> map_param;
     map_param["version"] = "1.0.0";
     map_param["host"] = "centos";
-    map_param["serv"] = "tstsrv";
+    map_param["serv"] = "tzmonitor_service";
     map_param["entity_idx"] = "1";
     map_param["time"] = convert_to_string(::time(NULL));
 
@@ -48,25 +48,25 @@ BOOST_AUTO_TEST_CASE(http_post_event_submit)
 
     // for
     Json::Value ordersjson;
-    ordersjson["name"] = "callsrvtime";
+    ordersjson["name"] = "callevent1";
     ordersjson["msgid"] = "1";
     ordersjson["value"] = "22";
-    ordersjson["flag"] = "f";
+    ordersjson["flag"] = "flag_f";
     ordersJson.append(ordersjson);
 
     ordersjson["msgid"] = "2";
     ordersjson["value"] = "33";
-    ordersjson["flag"] = "f";
+    ordersjson["flag"] = "flag_f";
     ordersJson.append(ordersjson);
 
     ordersjson["msgid"] = "3";
     ordersjson["value"] = "10";
-    ordersjson["flag"] = "t";
+    ordersjson["flag"] = "flag_t";
     ordersJson.append(ordersjson);
 
     ordersjson["msgid"] = "4";
     ordersjson["value"] = "77";
-    ordersjson["flag"] = "f";
+    ordersjson["flag"] = "flag_t";
     ordersJson.append(ordersjson);
     // end for
 

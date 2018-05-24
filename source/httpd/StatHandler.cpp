@@ -171,6 +171,7 @@ int EventStatHandler::print_items() override {
     // 10min明细可以接受
     if (cond_.interval_sec <= 600) {
 
+        result.info.clear();
         cond_.groupby = GroupType::kGroupbyTime;
         if (EventRepos::instance().get_event(cond_, result) != ErrorDef::OK) {
             log_err("query failed!");

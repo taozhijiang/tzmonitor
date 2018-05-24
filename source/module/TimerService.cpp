@@ -75,15 +75,14 @@ void TimerService::timer_run() {
 
 void TimerService::timer_defer_run(ThreadObjPtr ptr){
 
-    std::stringstream ss_id;
-    ss_id << boost::this_thread::get_id();
-    log_info("TimerService thread %s is about to work... ", ss_id.str().c_str());
+    log_info("TimerService thread %#lx is about to work... ", (long)pthread_self());
 
     TimerEventCallable func;
 
     while (true) {
 
         if (unlikely(ptr->status_ == ThreadStatus::kThreadTerminating)) {
+            log_err("thread %#lx is about to terminating...", (long)pthread_self());
             break;
         }
 
@@ -107,7 +106,7 @@ void TimerService::timer_defer_run(ThreadObjPtr ptr){
     }
 
     ptr->status_ = ThreadStatus::kThreadDead;
-    log_info("TimerService thread %s is about to terminate ... ", ss_id.str().c_str());
+    log_info("TimerService thread %#lx is about to terminate ... ", (long)pthread_self());
 
     return;
 }

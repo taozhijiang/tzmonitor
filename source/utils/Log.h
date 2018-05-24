@@ -6,6 +6,8 @@
 #include <stdarg.h>
 #include <cstddef>
 
+#include <boost/current_function.hpp>
+
 // LOG_EMERG   0   system is unusable
 // LOG_ALERT   1   action must be taken immediately
 // LOG_CRIT    2   critical conditions

@@ -65,9 +65,7 @@ void TCPConnAsync::do_read_head() {
         return;
     }
 
-    std::stringstream output;
-    output << "strand read read_until ... in " << boost::this_thread::get_id();
-    log_debug(output.str().c_str());
+    log_debug("strand read read_until ... in thread %#lx", (long)pthread_self());
 
     set_ops_cancel_timeout();
     async_read_until(*sock_ptr_, request_,
@@ -221,9 +219,7 @@ void TCPConnAsync::do_read_body() {
 
     size_t len = ::atoi(http_parser_.find_request_header(http_proto::header_options::content_length).c_str());
 
-    std::stringstream output;
-    output << "strand read async_read exactly... in " << boost::this_thread::get_id();
-    log_debug(output.str().c_str());
+    log_debug("strand read async_read exactly... in thread %#lx", (long)pthread_self());
 
     set_ops_cancel_timeout();
     async_read(*sock_ptr_, buffer(p_buffer_->data() + r_size_, len - r_size_),
@@ -303,9 +299,7 @@ void TCPConnAsync::do_write() override {
     SAFE_ASSERT(w_size_);
     SAFE_ASSERT(w_pos_ < w_size_);
 
-    std::stringstream output;
-    output << "strand write async_write exactly... in " << boost::this_thread::get_id();
-    log_debug(output.str().c_str());
+    log_debug("strand write async_write exactly... in thread thread %#lx", (long)pthread_self());
 
     set_ops_cancel_timeout();
     async_write(*sock_ptr_, buffer(p_write_->data() + w_pos_, w_size_ - w_pos_),

@@ -117,7 +117,7 @@ static std::string build_sql(const event_cond_t& cond, time_t& start_time) {
     }
 
     std::string sql = ss.str();
-    log_debug("query str: %s", sql.c_str());
+    log_info("query str: %s", sql.c_str());
 
     return sql;
 }

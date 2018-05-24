@@ -54,7 +54,7 @@ SqlConn::~SqlConn() {
     conn_.reset();
     stmt_.reset();
 
-    log_info("Destruct Connection %ld OK!", get_uuid());
+    log_info("Destroy Sql Connection %ld OK!", get_uuid());
 }
 
 bool SqlConn::sqlconn_execute(const string& sql) {

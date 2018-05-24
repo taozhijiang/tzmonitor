@@ -213,7 +213,7 @@ void EventHandler::run() {
                 SAFE_ASSERT(flag_info[it->first].count != 0);
 
                 stat.name = events_name;
-                stat.flag = iter->first;
+                stat.flag = it->first;
                 stat.count = flag_info[it->first].count;
                 stat.value_sum = flag_info[it->first].value_sum;
                 stat.value_avg = flag_info[it->first].value_avg;

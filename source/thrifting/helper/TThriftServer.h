@@ -88,9 +88,7 @@ private:
     // defer thread avoid blocking main
     void run() {
 
-        std::stringstream ss_id;
-        ss_id << std::this_thread::get_id();
-        log_notice("ThrifServer %s is running...", ss_id.str().c_str());
+        log_notice("ThrifServer %#lx is running...", (long)pthread_self());
 
         SAFE_ASSERT(server_impl_);
 

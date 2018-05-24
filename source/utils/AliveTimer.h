@@ -7,6 +7,10 @@
 
 #include "Log.h"
 
+// 其实支持使用了Operation Cancel机制之后，这里的AliveTimer显得有些多余了；
+// 而且特殊情况：Operation Cancel在定时中还持有智能指针，但是AliveTimer这边已经将其注销了，然后在
+//              连接真正析构的时候，再注册AliveTimer就会发现该连接找不到了
+
 template<typename T>
 class AliveItem {
 public:
@@ -64,7 +68,7 @@ public:
 
     bool init(ExpiredHandler func) {
         if (initialized_) {
-            log_err("This AliveTimer %s already initialized, please check!", alive_name_.c_str());
+            log_err("AliveTimer %s already initialized so we will skip, please check!", alive_name_.c_str());
             return true;
         }
 
@@ -76,7 +80,7 @@ public:
 
     bool init(ExpiredHandler func, time_t time_out, time_t time_linger) {
         if (initialized_) {
-            log_err("This AliveTimer %s already initialized, please check!", alive_name_.c_str());
+            log_err("AliveTimer %s already initialized so we will skip, please check!", alive_name_.c_str());
             return true;
         }
 
@@ -101,19 +105,19 @@ public:
 
         typename BucketContainer::iterator iter = bucket_items_.find(ptr.get());
         if (iter == bucket_items_.end()) {
-            log_err("touched item %p not found!", ptr.get());
+            log_err("bucket item %p not found!", ptr.get());
             SAFE_ASSERT(false);
             return false;
         }
 
         time_t before = iter->second->get_expire_time();
         if (tm - before < time_linger_){
-            log_debug("Linger optimize: %ld, %ld", tm, before);
+            log_debug("item %p linger optimize: %ld - %ld = %ld", ptr.get(), tm, before, tm - before);
             return true;
         }
 
         if (time_items_.find(before) == time_items_.end()){
-            log_err("bucket tm: %ld not found, critical error!", before);
+            log_err("time slot: %ld not found, critical error!", before);
             SAFE_ASSERT(false);
             return false;
         }
@@ -126,7 +130,7 @@ public:
         iter->second->set_expire_time(tm);
         time_items_[tm].insert(iter->second);
         time_items_[before].erase(iter->second);
-        log_debug("touched: %p, %ld -> %ld", ptr.get(), before, tm);
+        log_debug("touched item %p, from %ld -> %ld", ptr.get(), before, tm);
         return true;
     }
 
@@ -139,14 +143,14 @@ public:
         std::lock_guard<std::mutex> lock(lock_);
         typename BucketContainer::iterator iter = bucket_items_.find(ptr.get());
         if (iter != bucket_items_.end()) {
-            log_err("insert item already exists: @ %ld, %p", iter->second->get_expire_time(),
-                           iter->second->get_raw_ptr());
+            log_err("insert item %p already exists at time slot %ld",
+                    iter->second->get_raw_ptr(), iter->second->get_expire_time());
             return false;
         }
 
         active_item_ptr alive_item = std::make_shared<AliveItem<T> >(tm, ptr);
         if (!alive_item){
-            log_err("create AliveItem failed!");
+            log_err("create AliveItem object failed!");
             return false;
         }
 
@@ -157,7 +161,7 @@ public:
         }
         time_items_[tm].insert(alive_item);
 
-        log_debug("inserted: %p, %ld", ptr.get(), tm);
+        log_debug("inserted item %p, time slot %ld", ptr.get(), tm);
         return true;
     }
 
@@ -179,7 +183,7 @@ public:
     bool clean_up() {
 
         if (!initialized_) {
-            log_err("not initialized, please check ...");
+            log_err("AliveTimer not initialized, please check ...");
             return false;
         }
 
@@ -212,11 +216,11 @@ public:
                 for (; it != iter->second.end(); ++it) {
                     T* p = (*it)->get_raw_ptr();
                     if (bucket_items_.find(p) == bucket_items_.end()) {
-                        log_err("bucket item: %p not found, critical error!", p);
+                        log_err("bucket item %p not found, critical error!", p);
                         SAFE_ASSERT(false);
                     }
 
-                    log_debug("bucket item remove: %p, %ld", p, (*it)->get_expire_time());
+                    log_debug("bucket item remove: %p, time slot %ld", p, (*it)->get_expire_time());
                     bucket_items_.erase(p);
                     std::weak_ptr<T> weak_item = (*it)->get_weak_ptr();
                     if (std::shared_ptr<T> ptr = weak_item.lock()) {
@@ -256,7 +260,8 @@ public:
         for (iter = time_items_.begin() ; iter != time_items_.end(); ++ iter) {
             total_count += iter->second.size();
         }
-        log_debug("current alived hashed count:%ld, timed_count: %ld", bucket_items_.size(), total_count);
+        log_debug("current alived hashed count:%ld, timed_count: %ld, need check timed_bucket: %d",
+                        bucket_items_.size(), total_count, static_cast<int>(time_items_.size()));
         if (bucket_items_.size() != total_count) {
             log_err("mismatch item count, bug count:%ld, timed_count: %ld", bucket_items_.size(), total_count);
             SAFE_ASSERT(false);
@@ -276,9 +281,8 @@ private:
         do {
             auto bucket_iter = bucket_items_.find(p);
             if (bucket_iter == bucket_items_.end()) {
-                log_err("bucket item: %p not found, critical error!", p);
-                SAFE_ASSERT(false);
-                break;
+                log_notice("bucket item %p not found, may already try released before!", p);
+                return;
             }
 
             active_item = bucket_iter->second;
@@ -289,7 +293,7 @@ private:
 
             auto time_iter = time_items_.find(active_item->get_expire_time());
             if (time_iter == time_items_.end()) {
-                log_err("time slot: %ld not found, critical error!", active_item->get_expire_time());
+                log_err("time slot %ld not found, critical error!", active_item->get_expire_time());
                 SAFE_ASSERT(false);
                 bucket_items_.erase(bucket_iter);  // remove it anyway
                 break;
@@ -304,7 +308,7 @@ private:
                 break;
             }
 
-            log_debug("bucket item remove: %p, %ld", p, active_item->get_expire_time());
+            log_debug("bucket item remove: %p, time slot %ld", p, active_item->get_expire_time());
             bucket_items_.erase(bucket_iter);
             time_set.erase(time_item_iter);
 

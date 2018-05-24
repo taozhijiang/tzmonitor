@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(thrift_event_submit)
     tz_thrift::result_t result {};
     std::vector<tz_thrift::ev_data_t> data {};
     tz_thrift::ev_data_t item {};
-    item.name = "callt";
+    item.name = "callevent2";
     item.msgid = 1;
     item.value = 100;
     item.flag = "T";
@@ -53,8 +53,8 @@ BOOST_AUTO_TEST_CASE(thrift_event_submit)
     data.push_back(item);
 
     req.version = "1.0.0";
-    req.host = "centos3";
-    req.serv = "service2";
+    req.host = "centos";
+    req.serv = "tibank_service";
     req.entity_idx = "1";
     req.time = ::time(NULL);
     req.data = data;
