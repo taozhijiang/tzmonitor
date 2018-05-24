@@ -273,13 +273,13 @@ size_t ThreadPool::get_thread_pool_size() {
 ThreadPool::ThreadPool(uint8_t thread_num) {
 
     if (thread_num == 0 || thread_num > kMaxiumThreadPoolSize ){
-        log_err("Invalid thread_number %d,, CRITICAL !!!", thread_num);
+        log_err("Invalid thread_number %d, CRITICAL !!!", thread_num);
         ::abort();
     }
 
     impl_ptr_.reset(new Impl(thread_num));
     if (!impl_ptr_) {
-        log_err("Init create thread pool failed, CRITICAL!!!!");
+        log_err("create thread pool impl failed, CRITICAL!!!!");
         ::abort();
     }
 }

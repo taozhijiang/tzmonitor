@@ -1,8 +1,9 @@
 cmake_minimum_required (VERSION 2.8.11)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 
+set (EXTRA_CMD "cp -fr ${PROJECT_SOURCE_DIR}/source/thrifting/biz/TzMonitorThriftClientHelper.h ${PROJECT_SOURCE_DIR}/include/client/ ")
+exec_program(${EXTRA_CMD})
 
-include_directories( ${PROJECT_SOURCE_DIR}/include/ )
 
 aux_source_directory(gen-cpp DIR_LIB_SRCS)
 aux_source_directory(helper  DIR_LIB_SRCS)

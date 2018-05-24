@@ -17,18 +17,18 @@ const int TimeoutErr = -10007;
 const int OffServiceErr = -10008;
 const int DenialOfServiceErr = -10009;
 
-
+// DatabaseErr
 const int DatabasePoolErr = -20001;
 const int DatabaseExecErr = -20002;
 const int DatabaseResultErr = -20003;
 
 const int RedisPoolErr = -30001;
 
+
 const int MQPoolErr = -40001;
 
-// DatabaseErr
-
 // ThriftErr
+const int ThriftErr = -50001;
 
 
 }
