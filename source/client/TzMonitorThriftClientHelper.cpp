@@ -1,7 +1,11 @@
-#include "../helper/TThriftTypes.h"
-#include "../helper/TThriftClient.h"
+#include <boost/noncopyable.hpp>
 
-#include "TzMonitorService.h"
+#include <thrifting/helper/TThriftTypes.h>
+#include <thrifting/helper/TThriftClient.h>
+
+#include <thrifting/biz/TzMonitorService.h>
+
+#include "include/TzMonitor.h"
 #include "TzMonitorThriftClientHelper.h"
 
 
@@ -14,6 +18,14 @@ public:
     int thrift_event_submit(const event_report_t& report) {
 
         do {
+
+            if (report.version.empty() || report.host.empty() ||
+                report.serv.empty() || report.entity_idx.empty() ||
+                report.time <= 0 )
+            {
+                LOG("thrift submit param check error!");
+                return ErrorDef::ParamErr;
+            }
 
             tz_thrift::ev_report_t req {};
             std::vector<tz_thrift::ev_data_t> orders {};
@@ -47,6 +59,7 @@ public:
 
         } while (0);
 
+        LOG("Call ThriftService TzMonitorClient::ev_submit @ %s:%d failed!", ip_.c_str(), port_);
         return ErrorDef::ThriftErr;
     }
 
@@ -54,6 +67,13 @@ public:
     int thrift_event_query(const event_cond_t& cond, event_query_t& resp_info) {
 
         do {
+
+            if (cond.version.empty() || cond.name.empty() ||
+                cond.interval_sec <= 0 )
+            {
+                LOG("thrift query param check error!");
+                return ErrorDef::ParamErr;
+            }
 
             tz_thrift::ev_query_request_t req {};
             req.version = cond.version;
@@ -74,6 +94,15 @@ public:
                                         &TzMonitorClient::ev_query, std::ref(resp), std::cref(req));
 
             if (ret_code == 0 && resp.result.code == 0 && resp.result.desc == "OK") {
+
+                // empty string equals
+                if (resp.version != req.version || resp.name != req.name ||
+                    resp.host != req.host || resp.serv != req.serv ||
+                    resp.entity_idx != req.entity_idx || resp.flag != req.flag )
+                {
+                    LOG("thrift return does not match request param.");
+                    return ErrorDef::CheckErr;
+                }
 
                 resp_info.version = resp.version;
                 resp_info.time = resp.time;
@@ -118,6 +147,7 @@ public:
 
         } while (0);
 
+        LOG("Call ThriftService TzMonitorClient::ev_query @ %s:%d failed!", ip_.c_str(), port_);
         return ErrorDef::ThriftErr;
     }
 
@@ -133,7 +163,7 @@ private:
 TzMonitorThriftClientHelper::TzMonitorThriftClientHelper(const std::string& ip, uint16_t port) {
     impl_ptr_.reset(new Impl(ip, port));
      if (!impl_ptr_) {
-         log_err("create impl failed, CRITICAL!!!!");
+         LOG("create impl failed, CRITICAL!!!!");
          ::abort();
      }
 }

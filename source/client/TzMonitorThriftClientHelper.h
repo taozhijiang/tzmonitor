@@ -1,5 +1,5 @@
-#ifndef __TZ_MONITOR_CLIENT_HELPER_H__
-#define __TZ_MONITOR_CLIENT_HELPER_H__
+#ifndef __TZ_MONITOR_THRIFT_CLIENT_HELPER_H__
+#define __TZ_MONITOR_THRIFT_CLIENT_HELPER_H__
 
 // 产生一个编译防火墙，让客户端不用依赖于Thrift的各种头文件，只需要单独的头文件和库连接就可以了
 
@@ -8,7 +8,8 @@
 
 #include <memory>
 
-#include "EventTypes.h"
+#include <EventTypes.h>
+
 
 class TzMonitorThriftClientHelper {
 public:
@@ -24,4 +25,4 @@ private:
     std::unique_ptr<Impl> impl_ptr_;
 };
 
-#endif // __TZ_MONITOR_CLIENT_HELPER_H__
+#endif // __TZ_MONITOR_THRIFT_CLIENT_HELPER_H__

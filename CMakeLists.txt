@@ -23,6 +23,7 @@ aux_source_directory( source/ DIR_SRCS )
 
 include_directories( include/
                      source/
+                     source/client/include
                      /usr/include/mysql )
 
 add_subdirectory( source/json )
@@ -32,6 +33,7 @@ add_subdirectory( source/httpd )
 add_subdirectory( source/module )
 add_subdirectory( source/thrifting )
 add_subdirectory( source/core)
+add_subdirectory( source/client)
 
 
 link_directories( /usr/lib64/mysql/

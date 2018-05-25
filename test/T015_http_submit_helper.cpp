@@ -1,4 +1,4 @@
-#define BOOST_TEST_MODULE thrift_event_submit_helper
+#define BOOST_TEST_MODULE http_event_submit_helper
 
 #include <boost/test/unit_test.hpp>
 
@@ -12,13 +12,13 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
-#include <client/TzMonitorThriftClientHelper.h>
-#include <EventTypes.h>
+#include <client/TzMonitorHttpClientHelper.h>
+#include <client/include/EventTypes.h>
 
 // 类似namespace的保护
-BOOST_AUTO_TEST_SUITE(thrift_event_submit_helper)
+BOOST_AUTO_TEST_SUITE(http_event_submit_helper)
 
-BOOST_AUTO_TEST_CASE(thrift_event_submit_helper)
+BOOST_AUTO_TEST_CASE(http_event_submit_helper)
 {
     std::string config_file = "../tzmonitor.conf";
     if (!sys_config_init(config_file)) {
@@ -26,9 +26,14 @@ BOOST_AUTO_TEST_CASE(thrift_event_submit_helper)
     }
 
     int listen_port = 0;
-    if (!get_config_value("thrift.listen_port", listen_port) ){
+    if (!get_config_value("http.listen_port", listen_port) ){
         BOOST_CHECK(false);
     }
+
+    std::stringstream ss;
+    ss << "http://127.0.0.1:" << listen_port << "/";
+    std::string sUrl = ss.str();
+
 
     event_report_t report {};
     report.version = "1.0.0";
@@ -44,8 +49,8 @@ BOOST_AUTO_TEST_CASE(thrift_event_submit_helper)
     };
     report.data = data;
 
-    TzMonitorThriftClientHelper client("127.0.0.1", listen_port);
-    int ret = client.thrift_event_submit(report);
+    TzMonitorHttpClientHelper client(sUrl);
+    int ret = client.http_event_submit(report);
 
     if (ret == 0) {
         BOOST_CHECK(true);

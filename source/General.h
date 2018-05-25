@@ -57,9 +57,12 @@ typedef std::weak_ptr<ip::tcp::socket>      SocketWeakPtr;
 typedef boost::asio::posix::stream_descriptor asio_fd;
 typedef std::shared_ptr<boost::asio::posix::stream_descriptor> asio_fd_shared_ptr;
 
+#ifndef _DEFINE_GET_POINTER_MARKER_
+#define _DEFINE_GET_POINTER_MARKER_
 template<class T>
 T * get_pointer(std::shared_ptr<T> const& p) {
     return p.get();
 }
+#endif // _DEFINE_GET_POINTER_MARKER_
 
 #endif // _TZ_GENERAL_H_

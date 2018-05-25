@@ -142,6 +142,116 @@ static std::string sha512(const std::string &input, std::size_t iterations = 1) 
 
     return hash;
 }
+
+static std::string char_to_hex(char c) noexcept {
+
+    std::string result;
+    char first, second;
+
+    first =  static_cast<char>((c & 0xF0) / 16);
+    first += static_cast<char>(first > 9 ? 'A' - 10 : '0');
+    second =  c & 0x0F;
+    second += static_cast<char>(second > 9 ? 'A' - 10 : '0');
+
+    result.append(1, first); result.append(1, second);
+    return result;
+}
+
+
+static char hex_to_char(char first, char second) noexcept {
+    int digit;
+
+    digit = (first >= 'A' ? ((first & 0xDF) - 'A') + 10 : (first - '0'));
+    digit *= 16;
+    digit += (second >= 'A' ? ((second & 0xDF) - 'A') + 10 : (second - '0'));
+    return static_cast<char>(digit);
+}
+
+static std::string url_encode(const std::string& src) noexcept {
+
+    std::string result;
+    for(std::string::const_iterator iter = src.begin(); iter != src.end(); ++iter) {
+        switch(*iter) {
+            case ' ':
+                result.append(1, '+');
+                break;
+
+            // alnum
+            case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G':
+            case 'H': case 'I': case 'J': case 'K': case 'L': case 'M': case 'N':
+            case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T': case 'U':
+            case 'V': case 'W': case 'X': case 'Y': case 'Z':
+            case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g':
+            case 'h': case 'i': case 'j': case 'k': case 'l': case 'm': case 'n':
+            case 'o': case 'p': case 'q': case 'r': case 's': case 't': case 'u':
+            case 'v': case 'w': case 'x': case 'y': case 'z':
+            case '0': case '1': case '2': case '3': case '4': case '5': case '6':
+            case '7': case '8': case '9':
+            // mark
+            case '-': case '_': case '.': case '!': case '~': case '*': case '\'':
+            case '(': case ')':
+                result.append(1, *iter);
+                break;
+
+            // escape
+            default:
+                result.append(1, '%');
+                result.append(char_to_hex(*iter));
+                break;
+        }
+    }
+
+    return result;
+}
+
+static std::string url_decode(const std::string& src) noexcept {
+
+    std::string result;
+    char c;
+
+    for(std::string::const_iterator iter = src.begin(); iter != src.end(); ++iter) {
+        switch(*iter) {
+            case '+':
+                result.append(1, ' ');
+                break;
+
+            case '%':
+                // Don't assume well-formed input
+                if(std::distance(iter, src.end()) >= 2 && std::isxdigit(*(iter + 1)) && std::isxdigit(*(iter + 2))) {
+                    c = *(++iter);
+                    result.append(1, hex_to_char(c, *(++iter)));
+                }
+                // Just pass the % through untouched
+                else {
+                    result.append(1, '%');
+                }
+                break;
+
+            default:
+                result.append(1, *iter);
+                break;
+        }
+    }
+
+    return result;
+}
+
+
+static std::string hex_string(const char *data, size_t len) noexcept {
+
+    static const char *hexmap = "0123456789ABCDEF";
+    std::string result(len * 2, ' ');
+
+    for (size_t i = 0; i < len; ++i) {
+        result[2 * i]     = hexmap[(data[i] & 0xF0) >> 4];
+        result[2 * i + 1] = hexmap[ data[i] & 0x0F];
+    }
+
+    return result;
+}
+
+
+
 };
 
 #endif /* _TZ_CRYPTO_UTIL_H_ */

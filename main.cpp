@@ -12,7 +12,6 @@ void backtrace_init();
 #include <utils/Utils.h>
 #include <utils/Log.h>
 #include <utils/SslSetup.h>
-#include <utils/HttpUtil.h>
 
 struct tm service_start{};
 std::string TZ_VERSION;
@@ -125,7 +124,6 @@ int main(int argc, char* argv[]) {
     log_info("Service start at %s", ::asctime(&service_start));
 
     (void)Manager::instance(); // create object first!
-    HttpUtil::InitHttpEnvironment();
 
     create_process_pid();
     init_signal_handle();

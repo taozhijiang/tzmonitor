@@ -179,9 +179,14 @@ int get_ev_query_handler(const HttpParser& http_parser, std::string& response, s
          // build request json
         Json::Value root;
         root["version"] = "1.0.0";
-        if(!cond.name.empty()) root["name"] = cond.name;
-        if(!cond.flag.empty()) root["flag"] = cond.flag;
+        root["name"] = cond.name;
         root["time"] = convert_to_string(stat.time);
+        root["interval_sec"] = convert_to_string(cond.interval_sec);
+
+        if(!cond.host.empty()) root["host"] = cond.host;
+        if(!cond.serv.empty()) root["serv"] = cond.serv;
+        if(!cond.entity_idx.empty()) root["entity_idx"] = cond.entity_idx;
+        if(!cond.flag.empty()) root["flag"] = cond.flag;
 
         Json::Value summary;
         Json::FastWriter fast_writer;
@@ -190,7 +195,7 @@ int get_ev_query_handler(const HttpParser& http_parser, std::string& response, s
         summary["value_sum"] = convert_to_string(stat.summary.value_sum);
         summary["value_avg"] = convert_to_string(stat.summary.value_avg);
         summary["value_std"] = convert_to_string(stat.summary.value_std);
-        root["summray"] = fast_writer.write(summary);
+        root["summary"] = fast_writer.write(summary);
 
         if (cond.groupby != GroupType::kGroupNone) {
             Json::Value ordersJson;
@@ -210,6 +215,7 @@ int get_ev_query_handler(const HttpParser& http_parser, std::string& response, s
 
                 ordersJson.append(orderjson);
             }
+
             root["info"] = fast_writer.write(ordersJson);
         }
 
