@@ -64,6 +64,7 @@ struct ev_query_response_t {
 
     10:optional string name;         // 如果请求条件约束，则原样返回校验
     11:optional string flag;         // 如果请求条件约束，则原样返回校验
+    12:optional i64    interval_sec;
 
     15:optional ev_info_t summary;
     16:optional list<ev_info_t> info;

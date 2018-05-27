@@ -82,6 +82,7 @@ void TzMonitorHandler::ev_query (tz_thrift::ev_query_response_t& resp, const tz_
 
         resp.__set_version("1.0.0");
         resp.__set_time(stat.time);
+        resp.__set_interval_sec(cond.interval_sec);
 
         // 总览统计数据
         tz_thrift::ev_info_t summary_item {};

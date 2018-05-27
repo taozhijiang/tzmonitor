@@ -22,8 +22,9 @@ BOOST_AUTO_TEST_CASE(pingA)
         BOOST_CHECK(false);
     }
 
+    std::string serv_addr;
     int listen_port = 0;
-    if (!get_config_value("thrift.listen_port", listen_port) ){
+    if (!get_config_value("thrift.serv_addr", serv_addr) || !get_config_value("thrift.listen_port", listen_port) ){
         BOOST_CHECK(false);
     }
 
@@ -31,7 +32,7 @@ BOOST_AUTO_TEST_CASE(pingA)
     req.__set_msg("TTTZZZ");
 
     tz_thrift::result_t result;
-    int ret = TThriftClient::call_service<TzMonitorClient>("127.0.0.1", static_cast<uint16_t>(listen_port),
+    int ret = TThriftClient::call_service<TzMonitorClient>(serv_addr, static_cast<uint16_t>(listen_port),
                                                            &TzMonitorClient::ping_test, std::ref(result), std::cref(req));
 
     if (ret == 0 && result.code == 0 && result.desc == "OK") {

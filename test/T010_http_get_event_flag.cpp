@@ -25,13 +25,14 @@ BOOST_AUTO_TEST_CASE(http_get_event_flag)
         BOOST_CHECK(false);
     }
 
+    std::string serv_addr;
     int listen_port = 0;
-    if (!get_config_value("http.listen_port", listen_port) ){
+    if (!get_config_value("http.serv_addr", serv_addr) || !get_config_value("http.listen_port", listen_port) ){
         BOOST_CHECK(false);
     }
 
     std::stringstream ss;
-    ss << "http://127.0.0.1:" << listen_port << "/ev_query?";
+    ss << "http://" << serv_addr << ":" << listen_port << "/ev_query?";
     ss << "groupby=flag&version=1.0.0&interval_sec=300&name=callsrvtime";
     std::string sUrl = ss.str();
 

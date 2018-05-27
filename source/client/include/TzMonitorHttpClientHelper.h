@@ -6,7 +6,7 @@
 
 #include <memory>
 
-#include <EventTypes.h>
+#include "EventTypes.h"
 
 class TzMonitorHttpClientHelper {
 public:

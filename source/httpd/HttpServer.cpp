@@ -84,13 +84,14 @@ bool HttpServer::init() {
         conf_.http_service_speed_ = 0;
     }
 
-    if (conf_.http_service_speed_ && (helper::register_timer_task( std::bind(&HttpConf::feed_http_service_token, &conf_), 5*1000, true, true) == 0) ) {
+    if (conf_.http_service_speed_ &&
+        (helper::register_timer_task( std::bind(&HttpConf::feed_http_service_token, &conf_), 5*1000, true, true) == 0) )
+    {
         log_err("register http token feed task failed!");
         return false;
     }
     log_debug("http service enabled: %s, speed: %ld", conf_.http_service_enabled_ ? "true" : "false",
               conf_.http_service_speed_);
-
 
 
     if (!io_service_threads_.init_threads(std::bind(&HttpServer::io_service_run, shared_from_this(), std::placeholders::_1))) {

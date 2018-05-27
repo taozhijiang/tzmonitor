@@ -142,6 +142,7 @@ public:
             resp_info.version = root["version"].asString();
             resp_info.time = ::atoll(root["time"].asString().c_str());
             resp_info.name = root["name"].asString();
+            resp_info.interval_sec = ::atoll(root["interval_sec"].asString().c_str());
 
             if(root["host"].isString())
                 resp_info.host = root["host"].asString();
@@ -153,6 +154,7 @@ public:
                 resp_info.flag = root["flag"].asString();
 
             if (resp_info.version != cond.version || resp_info.name != cond.name ||
+                resp_info.interval_sec != cond.interval_sec ||
                 resp_info.host != cond.host || resp_info.serv != cond.serv ||
                 resp_info.entity_idx != cond.entity_idx || resp_info.flag != cond.flag )
             {

@@ -1,6 +1,8 @@
 #ifndef _TZ_EVENT_TYPES_H__
 #define _TZ_EVENT_TYPES_H__
 
+#include <memory>
+
 //
 // 注意，这边的定义都是和thrift中对应的，因为考虑到效率和optional参数存取的问题，
 // 没有直接使用thrift产生的结构信息
@@ -26,6 +28,8 @@ struct event_report_t {
 
     std::vector<event_data_t> data;    // 事件不必相同，但是必须同一个time
 };
+
+typedef struct std::shared_ptr<event_report_t> event_report_ptr_t;
 
 
 // 查询条件信息
@@ -67,6 +71,7 @@ struct event_info_t {
 struct event_query_t {
     std::string version;
     time_t      time;
+    time_t      interval_sec;
 
     // 如果请求参数有，则原样返回，否则不返回
     std::string host;

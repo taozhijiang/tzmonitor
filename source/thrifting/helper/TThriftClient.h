@@ -11,7 +11,6 @@
 #include <boost/make_shared.hpp>
 
 #include "TThriftTypes.h"
-#include <utils/Log.h>
 
 #include "../biz/TzMonitorService.h"
 
@@ -77,7 +76,7 @@ public:
 
             ret = client;
         } catch (...) {
-            log_err("Exception caught when create client: %s:%d", ip.c_str(), port);
+            fprintf(stderr, "Exception caught when create client: %s:%d", ip.c_str(), port);
         }
 
         return ret;

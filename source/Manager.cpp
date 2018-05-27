@@ -106,9 +106,9 @@ bool Manager::init() {
     RedisData::instance().init();
 
     // Web
-    std::string listen_addr;
+    std::string bind_addr;
     int listen_port = 0;
-    if (!get_config_value("http.listen_addr", listen_addr) || !get_config_value("http.listen_port", listen_port) ){
+    if (!get_config_value("http.bind_addr", bind_addr) || !get_config_value("http.listen_port", listen_port) ){
         log_err("Error, get value error");
         return false;
     }
@@ -118,8 +118,8 @@ bool Manager::init() {
         thread_pool_size = 8;
         log_info("Using default thread_pool size: 8");
     }
-    log_info("listen at: %s:%d, thread_pool: %d", listen_addr.c_str(), listen_port, thread_pool_size);
-    http_server_ptr_.reset(new HttpServer(listen_addr, static_cast<unsigned short>(listen_port), thread_pool_size));
+    log_info("listen at: %s:%d, thread_pool: %d", bind_addr.c_str(), listen_port, thread_pool_size);
+    http_server_ptr_.reset(new HttpServer(bind_addr, static_cast<unsigned short>(listen_port), thread_pool_size));
     if (!http_server_ptr_ || !http_server_ptr_->init()) {
         log_err("Init HttpServer failed!");
         return false;

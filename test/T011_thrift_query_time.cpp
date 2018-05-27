@@ -27,8 +27,9 @@ BOOST_AUTO_TEST_CASE(thrift_event_query_time)
         BOOST_CHECK(false);
     }
 
+    std::string serv_addr;
     int listen_port = 0;
-    if (!get_config_value("thrift.listen_port", listen_port) ){
+    if (!get_config_value("thrift.serv_addr", serv_addr) || !get_config_value("thrift.listen_port", listen_port) ){
         BOOST_CHECK(false);
     }
 
@@ -39,7 +40,7 @@ BOOST_AUTO_TEST_CASE(thrift_event_query_time)
     req.__set_groupby("time");
 
     tz_thrift::ev_query_response_t resp {};
-    int ret = TThriftClient::call_service<TzMonitorClient>("127.0.0.1", static_cast<uint16_t>(listen_port),
+    int ret = TThriftClient::call_service<TzMonitorClient>(serv_addr, static_cast<uint16_t>(listen_port),
                                                            &TzMonitorClient::ev_query, std::ref(resp), std::cref(req));
 
     if (ret == 0 && resp.result.code == 0 && resp.result.desc == "OK") {

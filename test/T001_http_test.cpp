@@ -21,13 +21,14 @@ BOOST_AUTO_TEST_CASE(httpget)
         BOOST_CHECK(false);
     }
 
+    std::string serv_addr;
     int listen_port = 0;
-    if (!get_config_value("http.listen_port", listen_port) ){
+    if (!get_config_value("http.serv_addr", serv_addr) || !get_config_value("http.listen_port", listen_port) ){
         BOOST_CHECK(false);
     }
 
     std::stringstream ss;
-    ss << "http://127.0.0.1:" << listen_port << "/test";
+    ss << "http://" << serv_addr << ":" << listen_port << "/test";
 
     std::string sUrl = ss.str();
     HttpUtil::HttpClient client;

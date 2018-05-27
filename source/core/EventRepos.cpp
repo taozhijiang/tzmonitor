@@ -164,6 +164,9 @@ static void calc_event_info(std::vector<event_data_t>& data,
     }
 }
 
+static int stateless_process_event(events_ptr_t event, event_insert_t copy_stat) {
+    return ErrorDef::NotImplmented;
+}
 
 // process thread
 //
@@ -173,7 +176,7 @@ static void calc_event_info(std::vector<event_data_t>& data,
 
 void EventHandler::run() {
 
-    log_info("EventHandler thread begin to run ...");
+    log_info("EventHandler thread %#lx begin to run ...", (long)pthread_self());
 
     event_insert_t stat {};
     stat.host = host_;

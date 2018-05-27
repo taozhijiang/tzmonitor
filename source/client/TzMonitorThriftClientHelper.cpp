@@ -97,6 +97,7 @@ public:
 
                 // empty string equals
                 if (resp.version != req.version || resp.name != req.name ||
+                    resp.interval_sec != req.interval_sec ||
                     resp.host != req.host || resp.serv != req.serv ||
                     resp.entity_idx != req.entity_idx || resp.flag != req.flag )
                 {

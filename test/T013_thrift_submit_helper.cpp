@@ -25,8 +25,9 @@ BOOST_AUTO_TEST_CASE(thrift_event_submit_helper)
         BOOST_CHECK(false);
     }
 
+    std::string serv_addr;
     int listen_port = 0;
-    if (!get_config_value("thrift.listen_port", listen_port) ){
+    if (!get_config_value("thrift.serv_addr", serv_addr) || !get_config_value("thrift.listen_port", listen_port) ){
         BOOST_CHECK(false);
     }
 
@@ -44,7 +45,7 @@ BOOST_AUTO_TEST_CASE(thrift_event_submit_helper)
     };
     report.data = data;
 
-    TzMonitorThriftClientHelper client("127.0.0.1", listen_port);
+    TzMonitorThriftClientHelper client(serv_addr, listen_port);
     int ret = client.thrift_event_submit(report);
 
     if (ret == 0) {
