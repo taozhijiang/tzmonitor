@@ -1,6 +1,7 @@
 #ifndef _TZ_EQUEUE_H_
 #define _TZ_EQUEUE_H_
 
+#include <vector>
 #include <deque>
 
 #include <mutex>
@@ -33,6 +34,30 @@ public:
         T t = items_.front();
         items_.pop_front();
         return t;
+    }
+
+    size_t POP(std::vector<T>& vec, size_t max_count, uint64_t msec) {
+        std::unique_lock<std::mutex> lock(lock_);
+        
+        while (items_.empty()) {
+            if (!item_notify_.wait_for(lock, std::chrono::milliseconds(msec))){
+                goto check;
+            }
+        }
+check:
+        if (items_.empty()) {
+            return 0;
+        }
+        
+        size_t ret_count = 0;
+        do {
+            T t = items_.front();
+            items_.pop_front();
+            vec.emplace_back(t);
+            ++ ret_count;
+        } while ( ret_count < max_count && !items_.empty());
+
+        return ret_count;
     }
 
     bool POP(T& t, uint64_t msec) {

@@ -19,7 +19,7 @@ int main(int arcg, char* argv[]) {
         client->report_event("event2", 200, "flag_F");
         client->report_event("event2", 200, "flag_F");
         client->report_event("event2", 200, "flag_F");
-        ::usleep(5);
+        ::usleep(1);
     }
 
     std::cout << "dummy test done!" << std::endl;
