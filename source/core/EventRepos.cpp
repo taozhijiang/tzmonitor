@@ -141,6 +141,18 @@ static void calc_event_info(std::vector<event_data_t>& data,
         log_err("mismatch size, may contain duplicate items: %d - %d",
                 static_cast<int>(ids.size()), static_cast<int>(data.size()));
 
+#if 0
+        for(size_t i=0; i<data.size(); ++i) {
+            for(size_t j=i+1; j<data.size(); ++j) {
+                if (data[i].msgid == data[j].msgid) {
+                    log_err("found dumpicate message: %lu - %lu, (%ld %ld %s), (%ld %ld %s"), i, j,
+                            data[i].msgid, data[i].value, data[i].flag.c_str(),
+                            data[j].msgid, data[j].value, data[j].flag.c_str());
+                }
+            }
+        }
+#endif
+
         size_t expected_size = ids.size();
         // 进行去重复
         std::vector<event_data_t> new_data;

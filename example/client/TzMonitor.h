@@ -149,7 +149,10 @@ public:
         if (now != current_time_) {
             current_time_ = now;
             msgid_ = 0;
+            item.msgid = ++ msgid_; // 新时间，新起点
         }
+        current_slot_.emplace_back(item);
+
 
         while (submit_queue_.SIZE() > 2 * max_submit_item_size_) {
             std::vector<event_report_ptr_t> reports;
@@ -161,8 +164,6 @@ public:
             std::function<void()> func = std::bind(&TzMonitorClient::run_once_task, shared_from_this(), reports);
             task_helper_->add_task(func);
         }
-
-        current_slot_.emplace_back(item);
         return 0;
     }
 

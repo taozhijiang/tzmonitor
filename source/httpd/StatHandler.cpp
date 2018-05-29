@@ -58,11 +58,11 @@ int IndexStatHandler::print_items() override {
 
         ss_ << "<tr>" << std::endl;
         ss_ << "<td>" << i << ". " << name << "</td>" << std::endl;
-        ss_ << va_format("<td><a href=\"/stat?name=%s&interval_sec=60\">1min</a></td>",    name.c_str()) << std::endl;
-        ss_ << va_format("<td><a href=\"/stat?name=%s&interval_sec=600\">10min</a></td>",  name.c_str()) << std::endl;
-        ss_ << va_format("<td><a href=\"/stat?name=%s&interval_sec=1800\">30min</a></td>", name.c_str()) << std::endl;
-        ss_ << va_format("<td><a href=\"/stat?name=%s&interval_sec=3600\">1hour</a></td>", name.c_str()) << std::endl;
-        ss_ << va_format("<td><a href=\"/stat?name=%s&interval_sec=86400\">1day</a></td>", name.c_str()) << std::endl;
+        ss_ << va_format("<td><a href=\"/stat?version=1.0.0&name=%s&interval_sec=60\">1min</a></td>",    name.c_str()) << std::endl;
+        ss_ << va_format("<td><a href=\"/stat?version=1.0.0&name=%s&interval_sec=600\">10min</a></td>",  name.c_str()) << std::endl;
+        ss_ << va_format("<td><a href=\"/stat?version=1.0.0&name=%s&interval_sec=1800\">30min</a></td>", name.c_str()) << std::endl;
+        ss_ << va_format("<td><a href=\"/stat?version=1.0.0&name=%s&interval_sec=3600\">1hour</a></td>", name.c_str()) << std::endl;
+        ss_ << va_format("<td><a href=\"/stat?version=1.0.0&name=%s&interval_sec=86400\">1day</a></td>", name.c_str()) << std::endl;
         ss_ << "</tr>" << std::endl;
     }
 
@@ -93,24 +93,60 @@ static inline std::string time_to_datetime(const time_t& tt) {
 
 void EventStatHandler::print_head() override {
 
-    if (!http_parser_.get_request_uri_param("name", cond_.name)) {
-        log_err("required param name not found.");
-        return;
+    // required
+    std::string value;
+
+    if (http_parser_.get_request_uri_param("version", value)) {
+        cond_.version = value;
     }
 
-    std::string time;
+    if (http_parser_.get_request_uri_param("name", value)) {
+        cond_.name = value;
+    }
+
     cond_.interval_sec = 60; // default 1min
-    if (http_parser_.get_request_uri_param("interval_sec", time)) {
-        time_t n_time = ::atoll(time.c_str());
-        if (n_time > 0) {
-            cond_.interval_sec = n_time;
+    if (http_parser_.get_request_uri_param("interval_sec", value)) {
+        cond_.interval_sec = ::atoll(value.c_str());
+        if (cond_.interval_sec <= 0) {
+            cond_.interval_sec = 60; // default 1min
         }
     }
 
-    log_debug("query %s - %ld status.", cond_.name.c_str(), cond_.interval_sec);
+    if (cond_.version.empty() || cond_.name.empty() || cond_.interval_sec <= 0) {
+        log_err("required param missing...");
+        ss_ << "<h3 align=\"center\">Param Error</h3>";
+        return;
+    }
 
     ss_ << "<h3 align=\"center\">" << "监测事件名称：" << cond_.name<< ", 时长："
-        << cond_.interval_sec << " sec </h2>" << std::endl;
+        << cond_.interval_sec << " sec" << std::endl;
+
+    // optional
+    if (http_parser_.get_request_uri_param("start", value)) {
+        cond_.start = ::atoll(value.c_str());
+        ss_ << ", 开始时间：" << cond_.start;
+    }
+
+    if (http_parser_.get_request_uri_param("host", value)) {
+        cond_.host = value;
+        ss_ << ", 主机：" << cond_.host;
+    }
+
+    if (http_parser_.get_request_uri_param("serv", value)) {
+        cond_.serv = value;
+        ss_ << ", 服务名：" << cond_.serv;
+    }
+
+    if (http_parser_.get_request_uri_param("entity_idx", value)) {
+        cond_.entity_idx = value;
+        ss_ << ", 服务Idx：" << cond_.entity_idx;
+    }
+
+    if (http_parser_.get_request_uri_param("flag", value)) {
+        cond_.flag = value;
+        ss_ << ", Flag：" << cond_.flag;
+    }
+    ss_ << "</h3>" << std::endl;
 
     ss_ << "<tr style=\"font-weight:bold; font-style:italic;\">" << std::endl;
 
