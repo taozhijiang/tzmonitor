@@ -18,6 +18,7 @@
 
 #include <libconfig.h++>
 
+#include "Log.h"
 #include "EQueue.h"
 #include "TzMonitorHttpClientHelper.h"
 #include "TzMonitorThriftClientHelper.h"
@@ -30,8 +31,6 @@ T * get_pointer(std::shared_ptr<T> const& p) {
     return p.get();
 }
 #endif // _DEFINE_GET_POINTER_MARKER_
-
-#define LOG printf
 
 namespace TzMonitor {
 
@@ -51,18 +50,18 @@ public:
         try {
             cfg.readFile(cfgFile.c_str());
         } catch(libconfig::FileIOException &fioex) {
-            LOG("I/O error while reading file.");
+            log_err("I/O error while reading file.");
             return false;
         } catch(libconfig::ParseException &pex) {
-            LOG("Parse error at %d - %s", pex.getLine(), pex.getError());
+            log_err("Parse error at %d - %s", pex.getLine(), pex.getError());
             return false;
         }
 
         std::string thrift_serv_addr;
         int thrift_listen_port = 0;
         if (!cfg.lookupValue("thrift.serv_addr", thrift_serv_addr) ||
-            !cfg.lookupValue("thrift.listen_port", thrift_listen_port) ){
-            LOG("get thrift config failed.");
+            !cfg.lookupValue("thrift.listen_port", thrift_listen_port) ) {
+            log_err("get thrift config failed.");
         } else {
             thrift_agent_ = std::make_shared<TzMonitorThriftClientHelper>(thrift_serv_addr, thrift_listen_port);
         }
@@ -70,8 +69,8 @@ public:
         std::string http_serv_addr;
         int http_listen_port = 0;
         if (!cfg.lookupValue("http.serv_addr", http_serv_addr) ||
-            !cfg.lookupValue("http.listen_port", http_listen_port) ){
-            LOG("get http config failed.");
+            !cfg.lookupValue("http.listen_port", http_listen_port) ) {
+            log_err("get http config failed.");
         } else {
             std::stringstream ss;
             ss << "http://" << http_serv_addr << ":" << http_listen_port << "/";
@@ -79,39 +78,40 @@ public:
         }
 
         if (!thrift_agent_ && !http_agent_) {
-            LOG("not available agent found!");
+            log_err("not available agent found!");
             return false;
         }
 
-        if (!cfg.lookupValue("core.max_submit_item_size", max_submit_item_size_)
-            || max_submit_item_size_ <= 0 ) {
-            LOG("find core.max_submit_item_size failed, set default to 2000");
-            max_submit_item_size_ = 2000;
+        if (!cfg.lookupValue("core.max_submit_item_size", max_submit_item_size_) ||
+            max_submit_item_size_ <= 0 ) {
+            log_info("find core.max_submit_item_size failed, set default to 500");
+            max_submit_item_size_ = 500;
         }
 
-        if (!cfg.lookupValue("core.max_submit_queue_size", max_submit_queue_size_)
-            || max_submit_queue_size_ <= 0 ) {
-            LOG("find core.max_submit_queue_size failed, set default to 5");
+        if (!cfg.lookupValue("core.max_submit_queue_size", max_submit_queue_size_) ||
+            max_submit_queue_size_ <= 0 ) {
+            log_info("find core.max_submit_queue_size failed, set default to 5");
             max_submit_queue_size_ = 5;
         }
 
         thread_run_.reset(new std::thread(std::bind(&TzMonitorClient::run, shared_from_this())));
         if (!thread_run_){
-            LOG("create run work thread failed! ");
+            log_err("create run work thread failed! ");
             return false;
         }
-        
-        if (!cfg.lookupValue("core.max_submit_task_size", max_submit_task_size_)
-            || max_submit_task_size_ <= 0 ) {
-            LOG("find core.max_submit_task_size failed, set default to 5");
+
+        if (!cfg.lookupValue("core.max_submit_task_size", max_submit_task_size_) ||
+            max_submit_task_size_ <= 0 ) {
+            log_info("find core.max_submit_task_size failed, set default to 5");
             max_submit_task_size_ = 5;
         }
         task_helper_ = std::make_shared<TinyTask>(max_submit_task_size_);
         if (!task_helper_ || !task_helper_->init()){
-            LOG("create task_helper work thread failed! ");
+            log_err("create task_helper work thread failed! ");
             return false;
         }
-        
+
+        log_info("TzMonitorClient init ok!");
         return true;
     }
 
@@ -183,7 +183,7 @@ private:
                 if (ret_code == 0) {
                     break;
                 } else {
-                    LOG("Thrift report submit return code: %d", ret_code);
+                    log_info("Thrift report submit return code: %d", ret_code);
                     // false through http
                 }
             }
@@ -193,22 +193,22 @@ private:
                 if (ret_code == 0) {
                     break;
                 } else {
-                    LOG("Http report submit return code: %d", ret_code);
+                    log_info("Http report submit return code: %d", ret_code);
                 }
             }
 
             // Error:
-            LOG("BAD, reprot failed!");
+            log_err("BAD, reprot failed!");
             ret_code = -2;
 
         } while (0);
 
         return ret_code;
     }
-    
+
     void run() {
 
-        LOG("TzMonitorClient submit thread %#lx begin to run ...", (long)pthread_self());
+        log_debug("TzMonitorClient submit thread %#lx begin to run ...", (long)pthread_self());
 
         while (true) {
 
@@ -220,10 +220,10 @@ private:
             do_report(report_ptr);
         }
     }
-    
+
     void run_once_task(std::vector<event_report_ptr_t> reports) {
 
-        LOG("TzMonitorClient run_once_task thread %#lx begin to run ...", (long)pthread_self());
+        log_debug("TzMonitorClient run_once_task thread %#lx begin to run ...", (long)pthread_self());
 
         for(auto iter = reports.begin(); iter != reports.end(); ++iter) {
             do_report(*iter);
@@ -252,7 +252,7 @@ private:
 
     // 自带锁保护
     EQueue<event_report_ptr_t> submit_queue_;
-    
+
     std::shared_ptr<TinyTask> task_helper_;
 };
 

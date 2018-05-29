@@ -12,7 +12,7 @@
 
 #include <boost/noncopyable.hpp>
 
-#define LOG printf
+#include "Log.h"
 
 typedef std::function<void()> TaskRunnable;
 
@@ -23,27 +23,28 @@ public:
     explicit TinyTask(uint8_t max_spawn_task):
        max_spawn_task_(max_spawn_task){
        }
-       
+
     ~TinyTask() {}
 
     bool init(){
         thread_run_.reset(new std::thread(std::bind(&TinyTask::run, shared_from_this())));
         if (!thread_run_){
-            LOG("create run work thread failed! ");
+            log_err("create run work thread failed! ");
             return false;
         }
-        
+
         return true;
     }
-    
+
     void add_task(const TaskRunnable& func) {
         tasks_.PUSH(func);
     }
-    
+
 private:
     void run() {
-        
-        LOG("TinyTask thread %#lx begin to run ...", (long)pthread_self());
+
+        log_debug("TinyTask thread %#lx begin to run ...", (long)pthread_self());
+
         while (true) {
 
             std::vector<TaskRunnable> task;
@@ -51,17 +52,18 @@ private:
             if( !count ){
                 continue;
             }
-            
+
             std::vector<std::thread> thread_group;
             for(size_t i=0; i<task.size(); ++i) {
                 thread_group.emplace_back(std::thread(task[i]));
             }
-                        
+
             for(size_t i=0; i<task.size(); ++i) {
                 if(thread_group[i].joinable())
                     thread_group[i].join();
             }
-            LOG("count %d task process done!", static_cast<int>(task.size()));
+
+            log_debug("count %d task process done!", static_cast<int>(task.size()));
         }
     }
 

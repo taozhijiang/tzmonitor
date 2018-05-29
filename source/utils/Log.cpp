@@ -1,7 +1,6 @@
 #include "General.h"
 #include "Log.h"
 
-#include <algorithm>
 #include <vector>
 #include <boost/algorithm/string.hpp>
 
@@ -19,7 +18,7 @@ bool Log::init(int log_level) {
 void Log::log_api(int priority, const char *file, int line, const char *func, const char *msg, ...) {
 
     char buf[MAX_LOG_BUF_SIZE + 2] = {0, };
-    int n = snprintf(buf, MAX_LOG_BUF_SIZE, "[%s:%d][%s][%#lx]-- ", file, line, func, (long)pthread_self());
+    int n = snprintf(buf, MAX_LOG_BUF_SIZE, "[%s:%d][%s][%#lx] -- ", file, line, func, (long)pthread_self());
 
     va_list arg_ptr;
     va_start(arg_ptr, msg);

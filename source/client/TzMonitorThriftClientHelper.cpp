@@ -20,10 +20,8 @@ public:
         do {
 
             if (report.version.empty() || report.host.empty() ||
-                report.serv.empty() || report.entity_idx.empty() ||
-                report.time <= 0 )
-            {
-                LOG("thrift submit param check error!");
+                report.serv.empty() || report.entity_idx.empty() || report.time <= 0 ){
+                log_err("thrift submit param check error!");
                 return ErrorDef::ParamErr;
             }
 
@@ -59,7 +57,7 @@ public:
 
         } while (0);
 
-        LOG("Call ThriftService TzMonitorClient::ev_submit @ %s:%d failed!", ip_.c_str(), port_);
+        log_err("Call ThriftService TzMonitorClient::ev_submit @ %s:%d failed!", ip_.c_str(), port_);
         return ErrorDef::ThriftErr;
     }
 
@@ -68,10 +66,8 @@ public:
 
         do {
 
-            if (cond.version.empty() || cond.name.empty() ||
-                cond.interval_sec <= 0 )
-            {
-                LOG("thrift query param check error!");
+            if (cond.version.empty() || cond.name.empty() ||  cond.interval_sec <= 0 ) {
+                log_err("thrift query param check error!");
                 return ErrorDef::ParamErr;
             }
 
@@ -101,7 +97,7 @@ public:
                     resp.host != req.host || resp.serv != req.serv ||
                     resp.entity_idx != req.entity_idx || resp.flag != req.flag )
                 {
-                    LOG("thrift return does not match request param.");
+                    log_err("thrift return does not match request param.");
                     return ErrorDef::CheckErr;
                 }
 
@@ -148,7 +144,7 @@ public:
 
         } while (0);
 
-        LOG("Call ThriftService TzMonitorClient::ev_query @ %s:%d failed!", ip_.c_str(), port_);
+        log_err("Call ThriftService TzMonitorClient::ev_query @ %s:%d failed!", ip_.c_str(), port_);
         return ErrorDef::ThriftErr;
     }
 
@@ -164,7 +160,7 @@ private:
 TzMonitorThriftClientHelper::TzMonitorThriftClientHelper(const std::string& ip, uint16_t port) {
     impl_ptr_.reset(new Impl(ip, port));
      if (!impl_ptr_) {
-         LOG("create impl failed, CRITICAL!!!!");
+         log_crit("create impl failed, CRITICAL!!!!");
          ::abort();
      }
 }

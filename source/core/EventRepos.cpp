@@ -31,7 +31,7 @@ bool EventHandler::init() {
     if (!get_config_value("core.max_process_queue_size", max_process_queue_size_) ||
         max_process_queue_size_ <= 0 )
     {
-        LOG("find core.max_process_queue_size failed, set default to 5");
+        log_err("find core.max_process_queue_size failed, set default to 5");
         max_process_queue_size_ = 5;
     }
 
@@ -219,7 +219,7 @@ static int stateless_process_event(events_ptr_t event, event_insert_t copy_stat)
 
 void EventHandler::run_once_task(std::vector<events_ptr_t> events) {
 
-    LOG("TzMonitorEventHandler run_once_task thread %#lx begin to run ...", (long)pthread_self());
+    log_debug("TzMonitorEventHandler run_once_task thread %#lx begin to run ...", (long)pthread_self());
 
     for(auto iter = events.begin(); iter != events.end(); ++iter) {
 
@@ -305,14 +305,13 @@ bool EventRepos::init() {
     log_info("We will use database %s, with table_prefix %s.", EventSql::database.c_str(), EventSql::table_prefix.c_str());
 
     if (!get_config_value("core.max_process_task_size", max_process_task_size_) ||
-        max_process_task_size_ <= 0 )
-    {
-         LOG("find core.max_process_task_size failed, set default to 10");
+        max_process_task_size_ <= 0 ) {
+         log_info("find core.max_process_task_size failed, set default to 10");
          max_process_task_size_ = 10;
     }
     task_helper_ = std::make_shared<TinyTask>(max_process_task_size_);
     if (!task_helper_ || !task_helper_->init()){
-        LOG("create task_helper work thread failed! ");
+        log_err("create task_helper work thread failed! ");
         return false;
     }
 

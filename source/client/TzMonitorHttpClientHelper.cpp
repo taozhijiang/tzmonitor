@@ -33,7 +33,7 @@ public:
                 report.serv.empty() || report.entity_idx.empty() ||
                 report.time <= 0 )
             {
-                LOG("thrift submit param check error!");
+                log_err("thrift submit param check error!");
                 ret_code = ErrorDef::ParamErr;
                 break;
             }
@@ -70,7 +70,7 @@ public:
             std::string sUrl = service_url_ + "/ev_submit";
             if (client.PostByHttp(sUrl, postData) == 0) {
                 std::string rdata = client.GetData();
-                LOG("post_submit url: %s, return: %s", sUrl.c_str(), rdata.c_str());
+                log_err("post_submit url: %s, return: %s", sUrl.c_str(), rdata.c_str());
                 return ErrorDef::OK;
             }
 
@@ -85,10 +85,8 @@ public:
 
         do {
 
-            if (cond.version.empty() || cond.name.empty() ||
-                cond.interval_sec <= 0 )
-            {
-                LOG("thrift query param check error!");
+            if (cond.version.empty() || cond.name.empty() || cond.interval_sec <= 0 ) {
+                log_err("thrift query param check error!");
                 ret_code = ErrorDef::ParamErr;
                 break;
             }
@@ -107,33 +105,32 @@ public:
             std::string sUrl = service_url_ + "/ev_query";
             std::string sCallUrl;
             if (HttpUtil::generate_url(sUrl, map_params, sCallUrl) != 0) {
-                LOG("Generate call url failed!");
+                log_err("Generate call url failed!");
                 ret_code = ErrorDef::Error;
                 break;
             }
 
             HttpUtil::HttpClient client;
             if (client.GetByHttp(sCallUrl) != 0 ) {
-                LOG("get http error, url: %s", sCallUrl.c_str());
+                log_err("get http error, url: %s", sCallUrl.c_str());
                 ret_code = ErrorDef::HttpErr;
                 break;
             }
 
             std::string rdata = client.GetData();
-            LOG("request url: %s, return: %s", sCallUrl.c_str(), rdata.c_str());
+            log_err("request url: %s, return: %s", sCallUrl.c_str(), rdata.c_str());
 
             Json::Value root;
             Json::Reader reader;
             if (!reader.parse(rdata, root) || root.isNull()) {
-                LOG("parse error: %s", rdata.c_str());
+                log_err("parse error: %s", rdata.c_str());
                 ret_code = ErrorDef::Error;
                 break;
             }
 
             if (!root["version"].isString() || !root["time"].isString() ||
-                !root["name"].isString() || !root["summary"].isString())
-            {
-                LOG("required param is missing.");
+                !root["name"].isString() || !root["summary"].isString()) {
+                log_err("required param is missing.");
                 ret_code = ErrorDef::CheckErr;
                 break;
             }
@@ -158,7 +155,7 @@ public:
                 resp_info.host != cond.host || resp_info.serv != cond.serv ||
                 resp_info.entity_idx != cond.entity_idx || resp_info.flag != cond.flag )
             {
-                LOG("http return does not match request param.");
+                log_err("http return does not match request param.");
                 ret_code = ErrorDef::CheckErr;
                 break;
             }
@@ -166,7 +163,7 @@ public:
             Json::Value summary;
             std::string strSummary = root["summary"].asString();
             if (!reader.parse(strSummary, summary) || summary.isNull()) {
-                LOG("parse error: %s", strSummary.c_str());
+                log_err("parse error: %s", strSummary.c_str());
                 ret_code = ErrorDef::Error;
                 break;
             }
@@ -182,13 +179,13 @@ public:
 
             std::string strInfo = root["info"].asString();
             if(strInfo.length() < 10) {
-                LOG("May detail info list is empty: %s", strInfo.c_str());
+                log_err("May detail info list is empty: %s", strInfo.c_str());
                 break;  // Good, no error;
             }
 
             Json::Value infoList;
             if (!reader.parse(strInfo, infoList) || !infoList.isArray()) {
-                LOG("parse error for: %s", strInfo.c_str());
+                log_err("parse error for: %s", strInfo.c_str());
                 ret_code = ErrorDef::Error;
                 break;
             }
@@ -198,7 +195,7 @@ public:
                 if (!infoList[i]["count"].isString() || !infoList[i]["value_sum"].isString() ||
                     !infoList[i]["value_avg"].isString() || !infoList[i]["value_std"].isString() )
                 {
-                    LOG("Check error!");
+                    log_err("Check error!");
                     continue;
                 }
 
@@ -238,7 +235,7 @@ private:
 TzMonitorHttpClientHelper::TzMonitorHttpClientHelper(const std::string& service_url) {
     impl_ptr_.reset(new Impl(service_url));
      if (!impl_ptr_) {
-         LOG("create impl failed, CRITICAL!!!!");
+         log_crit("create impl failed, CRITICAL!!!!");
          ::abort();
      }
 }
