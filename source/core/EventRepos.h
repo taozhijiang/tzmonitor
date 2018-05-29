@@ -9,6 +9,7 @@
 #include <boost/noncopyable.hpp>
 
 #include <utils/EQueue.h>
+#include <utils/TinyTask.h>
 #include <utils/Log.h>
 
 #include "EventItem.h"
@@ -32,6 +33,7 @@ public:
 
 private:
     void run();
+    void run_once_task(std::vector<events_ptr_t> events);
 
     // should be called with lock already hold
     int do_add_event(time_t ev_time, const std::vector<event_data_t>& data);
@@ -50,6 +52,8 @@ private:
 
     int64_t check_timer_id_;
     void check_timer_run();
+
+    int max_process_queue_size_;
 };
 
 
@@ -70,6 +74,10 @@ public:
 
     time_t get_event_linger() {
         return config_.event_linger_;
+    }
+
+    void add_task(const TaskRunnable& func) {
+        task_helper_->add_task(func);
     }
 
 private:
@@ -124,6 +132,9 @@ private:
     std::map<std::string, std::shared_ptr<EventHandler>> handlers_;
 
     EventReposConfig config_;
+
+    int max_process_task_size_;
+    std::shared_ptr<TinyTask> task_helper_;
 
 private:
     EventRepos(){}

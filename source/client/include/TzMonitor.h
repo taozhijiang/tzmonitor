@@ -61,7 +61,7 @@ public:
         std::string thrift_serv_addr;
         int thrift_listen_port = 0;
         if (!cfg.lookupValue("thrift.serv_addr", thrift_serv_addr) ||
-            !cfg.lookupValue("thrift.listen_port", thrift_listen_port) ){
+            !cfg.lookupValue("thrift.listen_port", thrift_listen_port) ) {
             LOG("get thrift config failed.");
         } else {
             thrift_agent_ = std::make_shared<TzMonitorThriftClientHelper>(thrift_serv_addr, thrift_listen_port);
@@ -70,7 +70,7 @@ public:
         std::string http_serv_addr;
         int http_listen_port = 0;
         if (!cfg.lookupValue("http.serv_addr", http_serv_addr) ||
-            !cfg.lookupValue("http.listen_port", http_listen_port) ){
+            !cfg.lookupValue("http.listen_port", http_listen_port) ) {
             LOG("get http config failed.");
         } else {
             std::stringstream ss;
@@ -83,14 +83,14 @@ public:
             return false;
         }
 
-        if (!cfg.lookupValue("core.max_submit_item_size", max_submit_item_size_)
-            || max_submit_item_size_ <= 0 ) {
-            LOG("find core.max_submit_item_size failed, set default to 2000");
-            max_submit_item_size_ = 2000;
+        if (!cfg.lookupValue("core.max_submit_item_size", max_submit_item_size_) ||
+            max_submit_item_size_ <= 0 ) {
+            LOG("find core.max_submit_item_size failed, set default to 500");
+            max_submit_item_size_ = 500;
         }
 
-        if (!cfg.lookupValue("core.max_submit_queue_size", max_submit_queue_size_)
-            || max_submit_queue_size_ <= 0 ) {
+        if (!cfg.lookupValue("core.max_submit_queue_size", max_submit_queue_size_) ||
+            max_submit_queue_size_ <= 0 ) {
             LOG("find core.max_submit_queue_size failed, set default to 5");
             max_submit_queue_size_ = 5;
         }
@@ -101,8 +101,8 @@ public:
             return false;
         }
 
-        if (!cfg.lookupValue("core.max_submit_task_size", max_submit_task_size_)
-            || max_submit_task_size_ <= 0 ) {
+        if (!cfg.lookupValue("core.max_submit_task_size", max_submit_task_size_) ||
+            max_submit_task_size_ <= 0 ) {
             LOG("find core.max_submit_task_size failed, set default to 5");
             max_submit_task_size_ = 5;
         }

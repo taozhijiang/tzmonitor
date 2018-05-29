@@ -11,12 +11,12 @@
 // EventHandler
 
 bool EventHandler::init() {
+
     if (identity_.empty()) {
         return false;
     }
 
-    check_timer_id_ =
-        helper::register_timer_task(std::bind(&EventHandler::check_timer_run, shared_from_this()), 500, true, true);
+    check_timer_id_ = helper::register_timer_task(std::bind(&EventHandler::check_timer_run, shared_from_this()), 500, true, true);
     if (check_timer_id_ == 0) {
         log_err("Register check_timer failed! ");
         return false;
@@ -27,6 +27,14 @@ bool EventHandler::init() {
         log_err("create work thread failed! ");
         return false;
     }
+
+    if (!get_config_value("core.max_process_queue_size", max_process_queue_size_) ||
+        max_process_queue_size_ <= 0 )
+    {
+        LOG("find core.max_process_queue_size failed, set default to 5");
+        max_process_queue_size_ = 5;
+    }
+
 
     return true;
 }
@@ -165,7 +173,64 @@ static void calc_event_info(std::vector<event_data_t>& data,
 }
 
 static int stateless_process_event(events_ptr_t event, event_insert_t copy_stat) {
-    return ErrorDef::NotImplmented;
+
+    auto& event_slot = event->data;
+
+    // process event
+    for (auto iter = event_slot.begin(); iter != event_slot.end(); ++iter) {
+        auto& events_name = iter->first;
+        auto& events_info = iter->second;
+        log_debug("process event %s, count %d", events_name.c_str(), static_cast<int>(events_info.size()));
+
+        std::map<std::string, stat_info_t> flag_info;
+        calc_event_info(events_info, flag_info);
+
+        // log_debug("process reuslt for event: %s", events_name.c_str());
+        for (auto it = flag_info.begin(); it != flag_info.end(); ++it) {
+            log_debug("flag %s, count %d, value %ld", it->first.c_str(),
+                      static_cast<int>(flag_info[it->first].count), flag_info[it->first].value_sum);
+
+
+            SAFE_ASSERT(flag_info[it->first].count != 0);
+
+            copy_stat.name = events_name;
+            copy_stat.flag = it->first;
+            copy_stat.count = flag_info[it->first].count;
+            copy_stat.value_sum = flag_info[it->first].value_sum;
+            copy_stat.value_avg = flag_info[it->first].value_avg;
+            copy_stat.value_std = flag_info[it->first].value_std;
+
+            if (EventSql::insert_ev_stat(copy_stat) != ErrorDef::OK) {
+                log_err("store for (%s, %s, %s) - %ld name:%s, flag:%s failed!",
+                        copy_stat.host.c_str(), copy_stat.serv.c_str(), copy_stat.entity_idx.c_str(),
+                        copy_stat.time, copy_stat.name.c_str(), copy_stat.flag.c_str());
+            } else {
+                log_debug("store for (%s, %s, %s) - %ld name:%s, flag:%s ok!",
+                        copy_stat.host.c_str(), copy_stat.serv.c_str(), copy_stat.entity_idx.c_str(),
+                        copy_stat.time, copy_stat.name.c_str(), copy_stat.flag.c_str());
+            }
+        }
+    }
+
+    return ErrorDef::OK;
+}
+
+
+
+void EventHandler::run_once_task(std::vector<events_ptr_t> events) {
+
+    LOG("TzMonitorEventHandler run_once_task thread %#lx begin to run ...", (long)pthread_self());
+
+    for(auto iter = events.begin(); iter != events.end(); ++iter) {
+
+        event_insert_t stat {};
+        stat.host = host_;
+        stat.serv = serv_;
+        stat.entity_idx = entity_idx_;
+        stat.time = (*iter)->time;
+
+        stateless_process_event(*iter, stat);
+    }
 }
 
 // process thread
@@ -185,6 +250,17 @@ void EventHandler::run() {
 
     while (true) {
 
+        while (process_queue_.SIZE() > 2 * max_process_queue_size_) {
+            std::vector<events_ptr_t> ev_inserts;
+            size_t ret = process_queue_.POP(ev_inserts, max_process_queue_size_, 5000);
+            if (!ret) {
+                break;
+            }
+
+            std::function<void()> func = std::bind(&EventHandler::run_once_task, shared_from_this(), ev_inserts);
+            EventRepos::instance().add_task(func);
+        }
+
         events_ptr_t event;
         if( !process_queue_.POP(event, 5000) ){
             continue;
@@ -194,44 +270,9 @@ void EventHandler::run() {
         stat.serv = serv_;
         stat.entity_idx = entity_idx_;
         stat.time = event->time;
-        auto& event_slot = event->data;
 
-        // TODO 线程优化
-
-        // process event
-        for (auto iter = event_slot.begin(); iter != event_slot.end(); ++iter) {
-            auto& events_name = iter->first;
-            auto& events_info = iter->second;
-            log_debug("process event %s, count %d", events_name.c_str(), static_cast<int>(events_info.size()));
-
-            std::map<std::string, stat_info_t> flag_info;
-            calc_event_info(events_info, flag_info);
-
-            // log_debug("process reuslt for event: %s", events_name.c_str());
-            for (auto it = flag_info.begin(); it != flag_info.end(); ++it) {
-                log_debug("flag %s, count %d, value %ld", it->first.c_str(),
-                          static_cast<int>(flag_info[it->first].count), flag_info[it->first].value_sum);
-
-
-                SAFE_ASSERT(flag_info[it->first].count != 0);
-
-                stat.name = events_name;
-                stat.flag = it->first;
-                stat.count = flag_info[it->first].count;
-                stat.value_sum = flag_info[it->first].value_sum;
-                stat.value_avg = flag_info[it->first].value_avg;
-                stat.value_std = flag_info[it->first].value_std;
-
-                if (EventSql::insert_ev_stat(stat) != ErrorDef::OK) {
-                    log_err("store for %s-%ld name:%s, flag:%s failed!", identity_.c_str(), stat.time,
-                            stat.name.c_str(), stat.flag.c_str());
-                } else {
-                    log_debug("store for %s-%ld name:%s, flag:%s ok!", identity_.c_str(), stat.time,
-                            stat.name.c_str(), stat.flag.c_str());
-                }
-            }
-        }
-
+        // do actual handle
+        stateless_process_event(event, stat);
     }
 }
 
@@ -262,6 +303,18 @@ bool EventRepos::init() {
         return false;
     }
     log_info("We will use database %s, with table_prefix %s.", EventSql::database.c_str(), EventSql::table_prefix.c_str());
+
+    if (!get_config_value("core.max_process_task_size", max_process_task_size_) ||
+        max_process_task_size_ <= 0 )
+    {
+         LOG("find core.max_process_task_size failed, set default to 10");
+         max_process_task_size_ = 10;
+    }
+    task_helper_ = std::make_shared<TinyTask>(max_process_task_size_);
+    if (!task_helper_ || !task_helper_->init()){
+        LOG("create task_helper work thread failed! ");
+        return false;
+    }
 
     return true;
 }
@@ -296,3 +349,4 @@ int EventRepos::get_event(const event_cond_t& cond, event_query_t& stat) {
     }
     return EventSql::query_ev_stat(cond, stat);
 }
+

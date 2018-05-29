@@ -56,12 +56,11 @@ private:
             for(size_t i=0; i<task.size(); ++i) {
                 thread_group.emplace_back(std::thread(task[i]));
             }
-            
+                        
             for(size_t i=0; i<task.size(); ++i) {
                 if(thread_group[i].joinable())
                     thread_group[i].join();
             }
-            
             LOG("count %d task process done!", static_cast<int>(task.size()));
         }
     }
