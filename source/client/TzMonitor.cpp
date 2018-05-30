@@ -37,11 +37,12 @@ public:
         host_(host), serv_(serv), entity_idx_(entity_idx),
         msgid_(0), current_time_(0) {
         }
-        
+
     ~Impl() {}
-    
+
     bool init(const std::string& cfgFile);
     int report_event(const std::string& name, int64_t value, std::string flag = "T");
+    int retrieve_stat(const event_cond_t& cond, event_query_t& stat);
 
 private:
     int do_report(event_report_ptr_t report_ptr) {
@@ -234,6 +235,38 @@ int TzMonitorClient::Impl::report_event(const std::string& name, int64_t value, 
     return 0;
 }
 
+int TzMonitorClient::Impl::retrieve_stat(const event_cond_t& cond, event_query_t& stat) {
+
+    int ret_code = 0;
+
+    do {
+
+        if (thrift_agent_) {
+            ret_code = thrift_agent_->thrift_event_query(cond, stat);
+            if (ret_code == 0) {
+                break;
+            } else {
+                log_info("Thrift query return code: %d", ret_code);
+                // false through http
+            }
+        }
+
+        if (http_agent_) {
+            ret_code = http_agent_->http_event_query(cond, stat);
+            if (ret_code == 0) {
+                break;
+            } else {
+                log_info("Http query return code: %d", ret_code);
+            }
+        }
+
+        // Error:
+        log_err("BAD, reprot failed!");
+    } while (0);
+
+    return ret_code;
+}
+
 void TzMonitorClient::Impl::run() {
 
     log_debug("TzMonitorClient submit thread %#lx begin to run ...", (long)pthread_self());
@@ -277,6 +310,85 @@ bool TzMonitorClient::init(const std::string& cfgFile) {
 
 int TzMonitorClient::report_event(const std::string& name, int64_t value, std::string flag ) {
     return impl_ptr_->report_event(name, value, flag);
+}
+
+int TzMonitorClient::retrieve_stat(const event_cond_t& cond, event_query_t& stat) {
+    return impl_ptr_->retrieve_stat(cond, stat);
+}
+
+
+int TzMonitorClient::retrieve_stat(const std::string& name, int64_t& count, int64_t& avg, time_t intervel_sec) {
+
+    event_cond_t cond {};
+    cond.version =  "1.0.0";
+    cond.name = name;
+    cond.interval_sec = intervel_sec;
+    cond.groupby = GroupType::kGroupNone;
+
+    event_query_t stat {};
+    if (impl_ptr_->retrieve_stat(cond, stat) != 0) {
+        return -1;
+    }
+
+    count = stat.summary.count;
+    avg = stat.summary.value_avg;
+
+    return 0;
+}
+
+int TzMonitorClient::retrieve_stat(const std::string& name, const std::string& flag, int64_t& count, int64_t& avg, time_t intervel_sec) {
+
+    event_cond_t cond {};
+    cond.version =  "1.0.0";
+    cond.name = name;
+    cond.flag = flag;
+    cond.interval_sec = intervel_sec;
+    cond.groupby = GroupType::kGroupNone;
+
+    event_query_t stat {};
+    if (impl_ptr_->retrieve_stat(cond, stat) != 0) {
+        return -1;
+    }
+
+    count = stat.summary.count;
+    avg = stat.summary.value_avg;
+
+    return 0;
+}
+
+int TzMonitorClient::retrieve_stat_flag(const std::string& name, event_query_t& stat, time_t intervel_sec) {
+
+    event_cond_t cond {};
+    cond.version =  "1.0.0";
+    cond.name = name;
+    cond.interval_sec = intervel_sec;
+    cond.groupby = GroupType::kGroupbyFlag;
+
+    return impl_ptr_->retrieve_stat(cond, stat);
+}
+
+int TzMonitorClient::retrieve_stat_time(const std::string& name, event_query_t& stat, time_t intervel_sec) {
+
+    event_cond_t cond {};
+    cond.version =  "1.0.0";
+    cond.name = name;
+    cond.interval_sec = intervel_sec;
+    cond.groupby = GroupType::kGroupbyTime;
+
+    return impl_ptr_->retrieve_stat(cond, stat);
+}
+
+
+int TzMonitorClient::retrieve_stat_time(const std::string& name, const std::string& flag, event_query_t& stat, time_t intervel_sec) {
+
+    event_cond_t cond {};
+    cond.version =  "1.0.0";
+    cond.name = name;
+    cond.flag = flag;
+    cond.interval_sec = intervel_sec;
+    cond.groupby = GroupType::kGroupbyTime;
+
+    return impl_ptr_->retrieve_stat(cond, stat);
 }
 
 

@@ -46,6 +46,7 @@ BOOST_AUTO_TEST_CASE(thrift_event_query_time)
     if (ret == 0 && resp.result.code == 0 && resp.result.desc == "OK") {
         std::cerr << "real_start: " << resp.time << std::endl;
 
+        BOOST_CHECK(resp.summary.count > 0);
         std::cerr << "summray> :";
         std::cerr << " count: "     << resp.summary.count;
         std::cerr << " value_sum: " << resp.summary.value_sum;
@@ -55,6 +56,8 @@ BOOST_AUTO_TEST_CASE(thrift_event_query_time)
 
         int i = 0;
         for (auto iter = resp.info.begin(); iter != resp.info.end(); ++iter) {
+
+            BOOST_CHECK(iter->count > 0);
             std::cerr << i++ ;
             std::cerr << "> time: "       << iter->time;
             std::cerr << " count: "     << iter->count;

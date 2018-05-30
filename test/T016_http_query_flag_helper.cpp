@@ -38,7 +38,7 @@ BOOST_AUTO_TEST_CASE(http_event_query_flag_helper)
 
     event_cond_t cond {};
     cond.version = "1.0.0";
-    cond.name = "callevent3";
+    cond.name = "callevent1";
     cond.interval_sec = 300;
     cond.groupby = GroupType::kGroupbyFlag;
 
@@ -49,6 +49,7 @@ BOOST_AUTO_TEST_CASE(http_event_query_flag_helper)
     if (ret == 0) {
         std::cerr << "real_start: " << result.time << std::endl;
 
+        BOOST_CHECK(result.summary.count > 0);
         std::cerr << "summray> :";
         std::cerr << " count: "     << result.summary.count;
         std::cerr << " value_sum: " << result.summary.value_sum;
@@ -58,6 +59,8 @@ BOOST_AUTO_TEST_CASE(http_event_query_flag_helper)
 
         int i = 0;
         for (auto iter = result.info.begin(); iter != result.info.end(); ++iter) {
+
+            BOOST_CHECK(iter->count > 0);
             std::cerr << i++ ;
             std::cerr << "> flag: "       << iter->flag;
             std::cerr << " count: "     << iter->count;

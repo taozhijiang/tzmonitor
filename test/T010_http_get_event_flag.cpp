@@ -43,6 +43,7 @@ BOOST_AUTO_TEST_CASE(http_get_event_flag)
 
     std::string rdata = client.GetData();
     std::cerr  << "Response:" << rdata << std::endl;
+    BOOST_CHECK(rdata.size() > 100);
 
     BOOST_CHECK(true);
 }

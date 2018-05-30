@@ -2,6 +2,8 @@
 #define _TZ_EVENT_TYPES_H__
 
 #include <memory>
+#include <vector>
+#include <string>
 
 //
 // 注意，这边的定义都是和thrift中对应的，因为考虑到效率和optional参数存取的问题，

@@ -34,14 +34,14 @@ BOOST_AUTO_TEST_CASE(thrift_event_submit_helper)
     event_report_t report {};
     report.version = "1.0.0";
     report.host = "centos";
-    report.serv = "tibank_service";
+    report.serv = "testservice";
     report.entity_idx = "1";
     report.time = ::time(NULL);
 
     std::vector<event_data_t> data = {
-        {"callevent3", 1, 20, "3T" },
-        {"callevent3", 2, 800, "3T" },
-        {"callevent3", 3, 50, "3F" },
+        {"callevent1", 13001, 20, "3T" },
+        {"callevent1", 13002, 800, "3T" },
+        {"callevent2", 13003, 50, "3F" },
     };
     report.data = data;
 

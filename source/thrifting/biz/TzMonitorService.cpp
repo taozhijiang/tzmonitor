@@ -63,7 +63,6 @@ void TzMonitorHandler::ev_query (tz_thrift::ev_query_response_t& resp, const tz_
         cond.flag = req.flag;
         cond.start = req.start;
         cond.interval_sec = req.interval_sec;
-
         cond.groupby = GroupType::kGroupNone;
         if (boost::iequals(req.groupby, "time")) {
             cond.groupby = GroupType::kGroupbyTime;

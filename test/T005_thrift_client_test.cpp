@@ -2,6 +2,7 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <iostream>
 #include <string>
 #include <functional>
 
@@ -36,6 +37,7 @@ BOOST_AUTO_TEST_CASE(pingA)
                                                            &TzMonitorClient::ping_test, std::ref(result), std::cref(req));
 
     if (ret == 0 && result.code == 0 && result.desc == "OK") {
+        std::cerr << "server return OK" << std::endl;
         BOOST_CHECK(true);
         return;
     }
@@ -70,6 +72,7 @@ BOOST_AUTO_TEST_CASE(pingB)
     int ret = TThriftClient::call_service<TzMonitorClient>(*client, &TzMonitorClient::ping_test, std::ref(result), std::cref(req));
 
     if (ret == 0 && result.code == 0 && result.desc == "OK") {
+        std::cerr << "server return OK" << std::endl;
         BOOST_CHECK(true);
         return;
     }

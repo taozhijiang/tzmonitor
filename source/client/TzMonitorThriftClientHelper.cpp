@@ -81,10 +81,10 @@ public:
             } else if (cond.groupby == GroupType::kGroupbyFlag) {
                 req.__set_groupby("flag");
             }
-            req.__set_host(req.host);
-            req.__set_serv(req.serv);
-            req.__set_entity_idx(req.entity_idx);
-            req.__set_flag(req.flag);
+            req.__set_host(cond.host);
+            req.__set_serv(cond.serv);
+            req.__set_entity_idx(cond.entity_idx);
+            req.__set_flag(cond.flag);
 
             tz_thrift::ev_query_response_t resp {};
             int ret_code = TThriftClient::call_service<TzMonitorClient>(ip_, static_cast<uint16_t>(port_),
