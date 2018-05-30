@@ -2,8 +2,9 @@
 
 #include <thrifting/helper/TThriftTypes.h>
 #include <thrifting/helper/TThriftClient.h>
-
 #include <thrifting/biz/TzMonitorService.h>
+
+#include <utils/Log.h>
 
 #include "include/TzMonitor.h"
 #include "TzMonitorThriftClientHelper.h"

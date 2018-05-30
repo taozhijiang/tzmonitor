@@ -27,7 +27,7 @@ int main(int arcg, char* argv[]) {
         ::usleep(1);
     }
 
-    log_info("TzMonitor client test done ");
+    std::cout << "TzMonitor client test done" << std::endl;
 
     return 0;
 }

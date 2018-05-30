@@ -12,7 +12,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
-#include <client/include/TzMonitorThriftClientHelper.h>
+#include <client/TzMonitorThriftClientHelper.h>
 #include <EventTypes.h>
 
 // 类似namespace的保护

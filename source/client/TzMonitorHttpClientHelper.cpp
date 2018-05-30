@@ -6,6 +6,7 @@
 
 #include <boost/noncopyable.hpp>
 
+#include <utils/Log.h>
 #include <utils/Utils.h>
 #include <utils/HttpUtil.h>
 #include <json/json.h>
@@ -70,7 +71,7 @@ public:
             std::string sUrl = service_url_ + "/ev_submit";
             if (client.PostByHttp(sUrl, postData) == 0) {
                 std::string rdata = client.GetData();
-                log_err("post_submit url: %s, return: %s", sUrl.c_str(), rdata.c_str());
+                log_debug("post_submit url: %s, return: %s", sUrl.c_str(), rdata.c_str());
                 return ErrorDef::OK;
             }
 
