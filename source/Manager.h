@@ -54,6 +54,8 @@ public:
     std::shared_ptr<ConnPool<SqlConn, SqlConnPoolHelper>> sql_pool_ptr_;
     std::shared_ptr<ConnPool<RedisConn, RedisConnPoolHelper>> redis_pool_ptr_;
 
+//    std::shared_ptr<TzMonitorService<TThreadedHelper>>    monitor_service_ptr_;
+//    std::shared_ptr<TzMonitorService<TThreadPoolHelper>>  monitor_service_ptr_;
     std::shared_ptr<TzMonitorService<TNonblockingHelper>> monitor_service_ptr_;
 };
 

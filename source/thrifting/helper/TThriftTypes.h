@@ -20,9 +20,11 @@ typedef protocol::TProtocolFactory          ProtocolFactory;
 typedef protocol::TBinaryProtocolFactory    ProtocolTypeFactory;
 typedef protocol::TBinaryProtocol           ProtocolType;
 
+// Nonblock必须使用该类型，需要封装数据包长度信息
 typedef transport::TFramedTransportFactory  TransportTypeFactory;
 typedef transport::TFramedTransport         TransportType;
 
 typedef concurrency::PosixThreadFactory     ThreadTypeFactory;
+
 
 #endif // __TTHRIFT_TYPES_H__

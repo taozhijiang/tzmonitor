@@ -4,11 +4,9 @@
 #include "General.h"
 
 // Thrift严重依赖于boost库，所以这里的智能指针也适用boost的版本
-
 #include <boost/make_shared.hpp>
 
 #include <utils/Log.h>
-
 #include "TThriftTypes.h"
 
 

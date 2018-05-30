@@ -133,7 +133,14 @@ bool Manager::init() {
         log_err("Error, get value error");
         return false;
     }
+
+    // TThreaded
+//    monitor_service_ptr_.reset(new TzMonitorService<TThreadedHelper>(thrift_port));
+    // TThreadPool
+//    monitor_service_ptr_.reset(new TzMonitorService<TThreadPoolHelper>(thrift_port, thrift_thread_size));
+    // TNonblocking
     monitor_service_ptr_.reset(new TzMonitorService<TNonblockingHelper>(thrift_port, thrift_thread_size, thrift_io_thread_size));
+
     if (!monitor_service_ptr_ || !monitor_service_ptr_->init()) {
         log_err("Init MonitorService failed!");
         return false;
