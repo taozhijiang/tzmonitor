@@ -52,8 +52,8 @@ public:
             server_->stop();
 
             threads_->stop();
-            threads_->join();
-
+            // threads_->join();
+			
             threads_.reset();
             server_.reset();
 
@@ -84,9 +84,13 @@ private:
             // 业务处理接口
             boost::shared_ptr<ServiceHandler> handler = boost::make_shared<ServiceHandler>();
             boost::shared_ptr<TProcessor> processor = boost::make_shared<ServiceProcessor>(handler);
+			
+			// Socket网络层
+			// if SSL, consider transport::TNonblockingSSLServerSocket
+            boost::shared_ptr<transport::TNonblockingServerTransport> tSocket = boost::make_shared<transport::TNonblockingServerSocket>(port_);
 
             // Server层次
-            boost::shared_ptr<server::TNonblockingServer> serverPtr = boost::make_shared<server::TNonblockingServer>(processor,  protocolFactory, port_, threads_);
+            boost::shared_ptr<server::TNonblockingServer> serverPtr = boost::make_shared<server::TNonblockingServer>(processor,  protocolFactory, tSocket, threads_);
             serverPtr->setNumIOThreads(io_thread_sz_);
             server_ = serverPtr;
 

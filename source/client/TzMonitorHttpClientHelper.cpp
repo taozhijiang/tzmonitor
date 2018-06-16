@@ -192,7 +192,9 @@ public:
             }
 
             std::vector<event_info_t> info;
-            for (size_t i = 0; i < infoList.size(); i++) {
+			
+			// jsoncpp的bug，只能使用int或者Json::Value::ArrayIndex，不能使用size_t作为索引
+            for (int i = 0; i < infoList.size(); i++) {  
                 if (!infoList[i]["count"].isString() || !infoList[i]["value_sum"].isString() ||
                     !infoList[i]["value_avg"].isString() || !infoList[i]["value_std"].isString() )
                 {

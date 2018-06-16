@@ -266,7 +266,7 @@ int post_ev_submit_handler(const HttpParser& http_parser, const std::string& pos
         events.entity_idx = root["entity_idx"].asString();
         events.data.clear();
 
-        for (size_t i = 0; i < eventList.size(); i++) {
+        for (int i = 0; i < eventList.size(); i++) {
             if (!eventList[i]["name"].isString() || !eventList[i]["msgid"].isString() ||
                 !eventList[i]["value"].isString() || !eventList[i]["flag"].isString()) {
                 log_err("event data error!");

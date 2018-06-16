@@ -7,6 +7,7 @@
 #include <thrift/protocol/TBinaryProtocol.h>
 #include <thrift/transport/TServerSocket.h>
 #include <thrift/transport/TBufferTransports.h>
+#include <thrift/transport/TNonblockingServerSocket.h>
 
 #include <thrift/server/TThreadedServer.h>
 #include <thrift/server/TThreadPoolServer.h>

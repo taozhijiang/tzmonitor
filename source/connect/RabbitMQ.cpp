@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <vector>
 #include <map>
+#include <boost/algorithm/string.hpp>
 
 #include "RabbitMQ.h"
 
@@ -42,8 +43,8 @@ std::string RabbitMQHelper::brokerVersion() {
         return std::string();
 
     std::string version_string(
-        static_cast<char *>(version_entry->value.value.bytes.bytes),
-        version_entry->value.value.bytes.len);
+      static_cast<char *>(version_entry->value.value.bytes.bytes),
+      version_entry->value.value.bytes.len);
 
     return version_string;
 }
@@ -51,31 +52,31 @@ std::string RabbitMQHelper::brokerVersion() {
 // class RabbitChannel
 
 amqp_channel_t RabbitMQHelper::createChannel() {
-    amqp_channel_t t;
-    if ( (t = getChannelId()) <= 0) {
-        LOG_API("getChannelId failed!");
-        return -1;
-    }
+	amqp_channel_t t;
+	if ( (t = getChannelId()) <= 0) {
+		LOG_API("getChannelId failed!");
+		return -1;
+	}
 
     std::shared_ptr<RabbitChannel> pChannel;
-    pChannel.reset(new RabbitChannel(t, *this));
-    if (!pChannel || pChannel->initChannel() < 0) {
-        freeChannelId(t);
-        return -1;
-    }
+	pChannel.reset(new RabbitChannel(t, *this));
+	if (!pChannel || pChannel->initChannel() < 0) {
+		freeChannelId(t);
+		return -1;
+	}
 
-    channels_[t] = pChannel;	// insert it!!
-    LOG_API("created channel: %d", t);
-    return t;
+	channels_[t] = pChannel;	// insert it!!
+	LOG_API("created channel: %d", t);
+	return t;
 }
 
 int RabbitMQHelper::closeChannel(amqp_channel_t channel){
     std::map<amqp_channel_t, std::shared_ptr<RabbitChannel> >::iterator it;
 
-    it = channels_.find(channel);
-    if (it == channels_.end()) {
-        return -1;
-    }
+	it = channels_.find(channel);
+	if (it == channels_.end()) {
+		return -1;
+	}
 
     it->second->closeChannel();
     return 0;
@@ -84,21 +85,21 @@ int RabbitMQHelper::closeChannel(amqp_channel_t channel){
 int RabbitMQHelper::freeChannel(amqp_channel_t channel) {
     std::map<amqp_channel_t, std::shared_ptr<RabbitChannel> >::iterator it;
 
-    it = channels_.find(channel);
-    if (it == channels_.end()) {
-        return -1;
-    }
+	it = channels_.find(channel);
+	if (it == channels_.end()) {
+		return -1;
+	}
 
-    channels_.erase(channel); // auto call closeChannel()
-    freeChannelId(channel);
+	channels_.erase(channel); // auto call closeChannel()
+	freeChannelId(channel);
 
-    return 0;
+	return 0;
 }
 
 bool RabbitMQHelper::isChannelOpen(amqp_channel_t channel) {
     std::map<amqp_channel_t, std::shared_ptr<RabbitChannel> >::iterator it;
-    it = channels_.find(channel);
-    if (it == channels_.end())
+	it = channels_.find(channel);
+	if (it == channels_.end())
         return false;
 
     return it->second->isChannelOpen();
@@ -106,7 +107,7 @@ bool RabbitMQHelper::isChannelOpen(amqp_channel_t channel) {
 
 void RabbitMQHelper::closeConnection() {
 
-    if (!is_connected_)
+	if (!is_connected_)
         return;
 
     is_connected_ = false;
@@ -122,16 +123,16 @@ void RabbitMQHelper::closeConnection() {
             it->second->closeChannel();
     }
 
-    channels_.clear();
+	channels_.clear();
     LOG_API("Connection is closing...");
 
-    amqp_connection_close(connection_, AMQP_REPLY_SUCCESS);
-    amqp_destroy_connection(connection_); //atomatically free resources
+	amqp_connection_close(connection_, AMQP_REPLY_SUCCESS);
+	amqp_destroy_connection(connection_); //atomatically free resources
 }
 
 int RabbitMQHelper::checkAndRepairChannel(amqp_channel_t& channel,
                                           RabbitChannelSetupFunc func, void* pArg){
-    if (isConnectionOpen() && isChannelOpen(channel))
+	if (isConnectionOpen() && isChannelOpen(channel))
         return 0;
 
     if (!isConnectionOpen()) {
@@ -160,14 +161,14 @@ int RabbitMQHelper::checkAndRepairChannel(amqp_channel_t& channel,
 }
 
 bool RabbitMQHelper::setupChannel(amqp_channel_t channel, RabbitChannelSetupFunc func, void* pArg){
-    if (!isChannelOpen(channel))
+	if (!isChannelOpen(channel))
         return false;
 
     return func(channelInstance(channel), pArg);
 }
 
 int RabbitMQHelper::basicRecover(amqp_channel_t channel, const std::string &consumer) {
-    if (!isChannelOpen(channel))
+	if (!isChannelOpen(channel))
         return -1;
 
     return channelInstance(channel)->basicRecover(consumer);
@@ -176,7 +177,7 @@ int RabbitMQHelper::basicRecover(amqp_channel_t channel, const std::string &cons
 int RabbitMQHelper::basicPublish(amqp_channel_t channel, const std::string &exchange_name,
                                  const std::string &routing_key, bool mandatory, bool immediate,
                                  const std::string &message) {
-    if (!isChannelOpen(channel))
+	if (!isChannelOpen(channel))
         return -1;
 
     return channelInstance(channel)->basicPublish(exchange_name, routing_key, mandatory, immediate, message);
@@ -541,7 +542,7 @@ int RabbitChannel::basicAck(uint64_t delivery_tag, bool multiple /* = false */ )
     if (retCode == 0)
         return 0;
 
-    closeConnection();
+	closeConnection();
     return -1;
 }
 
@@ -709,14 +710,14 @@ int RabbitChannel::basicPublish(const std::string &exchange_name,
                 amqp_destroy_message(&message_dummy);
         }
         LOG_API("basic.return called!");
-        goto connection_err;
+		goto connection_err;
     } else {
         LOG_API("Unexpeced method.id: %d", frame.payload.method.id);
-        goto connection_err;
+		goto connection_err;
     }
 
 connection_err:
-    closeConnection();
+	closeConnection();
     return -1;
 }
 
@@ -1022,6 +1023,122 @@ bool RabbitMQHelper::doConnect() {
 
     is_connected_ = false;
     return false;
+}
+
+// connect: amqp://tibank:%s@127.0.0.1:5672/tibank_host; ...
+// passwd:  1234
+bool mq_parse_connect_uris(const std::string& uris, const std::string& passwd, std::vector<std::string>& conn_vec) {
+    
+	std::vector<std::string> vec;
+    boost::split(vec, uris, boost::is_any_of(";"));
+    for (std::vector<std::string>::iterator it = vec.begin(); it != vec.cend(); ++it){
+        std::string tmp = boost::trim_copy(*it);
+        if (tmp.empty())
+            continue;
+		
+        char connBuf[2048] = { 0, };
+        snprintf(connBuf, sizeof(connBuf), tmp.c_str(), passwd.c_str());
+        conn_vec.push_back(connBuf);
+    }
+
+    if (conn_vec.empty()) {
+        LOG_API("Invalid or empty MQ connect url");
+        return false;
+    }
+	
+	return true;
+}
+
+
+// 默认的生产者、消费者的通道配置函数
+bool mq_setup_channel_consume_default(RabbitChannelPtr pChannel, void* pArg) {
+
+    if (!pChannel) {
+        LOG_API("RabbitChannelPtr nullptr!");
+        return false;
+    }
+
+    if (!pArg) {
+        LOG_API("Empty pArg!");
+        return false;
+    }
+
+    rabbitmq_character_t* p_rabbitmq = static_cast<rabbitmq_character_t *>(pArg);
+    if (pChannel->declareExchange(p_rabbitmq->exchange_name_, "direct", false/*passive*/, true/*durable*/, false/*auto_delete*/) < 0) {
+        LOG_API("declareExchange %s Error!", p_rabbitmq->exchange_name_.c_str());
+        return false;
+    }
+
+    uint32_t msg_cnt = 0;
+    uint32_t cons_cnt = 0;
+    if (pChannel->declareQueue(p_rabbitmq->queue_name_, msg_cnt, cons_cnt, false/*passive*/, true/*durable*/, false/*exclusive*/, false/*auto_delete*/) < 0) {
+        LOG_API("Declare Queue %s Failed!", p_rabbitmq->queue_name_.c_str());
+        return false;
+    }
+
+    LOG_API("Broker report info: msg_cnt->%d, cons_cnt->%d", msg_cnt, cons_cnt);
+
+    // 路邮键 paybill
+    if (pChannel->bindQueue(p_rabbitmq->queue_name_, p_rabbitmq->exchange_name_, p_rabbitmq->route_key_)) {
+        LOG_API("bindExchange Error!");
+        return false;
+    }
+
+    if (pChannel->basicQos(1, true) < 0) {
+        LOG_API("basicQos Failed!");
+        return false;
+    }
+
+    if (pChannel->basicConsume(p_rabbitmq->queue_name_, "*", false/*no_local*/, false/*no_ack*/, false/*exclusive*/) < 0) {
+        LOG_API("BasicConosume queue %s Failed!", p_rabbitmq->queue_name_.c_str());
+        return false;
+    }
+
+    LOG_API("RabbitMQHandler init ok!");
+    return true;
+}
+
+
+bool mq_setup_channel_publish_default(RabbitChannelPtr pChannel, void* pArg) {
+
+    if (!pChannel) {
+        LOG_API("RabbitChannelPtr nullptr!");
+        return false;
+    }
+
+    if (!pArg) {
+        LOG_API("Empty pArg!");
+        return false;
+    }
+
+    rabbitmq_character_t* p_rabbitmq = static_cast<rabbitmq_character_t *>(pArg);
+    if (pChannel->declareExchange(p_rabbitmq->exchange_name_, "direct", false/*passive*/, true/*durable*/, false/*auto_delete*/) < 0) {
+        LOG_API("declareExchange %s Error!", p_rabbitmq->exchange_name_.c_str());
+        return false;
+    }
+
+    uint32_t msg_cnt = 0;
+    uint32_t cons_cnt = 0;
+    if (pChannel->declareQueue(p_rabbitmq->queue_name_, msg_cnt, cons_cnt, false/*passive*/, true/*durable*/, false/*exclusive*/, false/*auto_delete*/) < 0) {
+        LOG_API("Declare Queue %s Failed!", p_rabbitmq->queue_name_.c_str());
+        return false;
+    }
+
+    LOG_API("Broker report info: msg_cnt->%d, cons_cnt->%d", msg_cnt, cons_cnt);
+
+    // 路邮键 paybill
+    if (pChannel->bindQueue(p_rabbitmq->queue_name_, p_rabbitmq->exchange_name_, p_rabbitmq->route_key_)) {
+        LOG_API("bindExchange Error!");
+        return false;
+    }
+
+    if (pChannel->setConfirmSelect() < 0) {
+        std::cout << "Setting publish confirm failed!" << std::endl;
+        return false;
+    }
+
+    LOG_API("PbiRabbitMQHandler init ok!");
+    return true;
 }
 
 
