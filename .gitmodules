@@ -1,0 +1,3 @@
+[submodule "xtra_rhel6.x"]
+	path = xtra_rhel6.x
+	url = git@github.com:taozhijiang/xtra_rhel6.x.git

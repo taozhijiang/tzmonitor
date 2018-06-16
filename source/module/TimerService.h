@@ -1,7 +1,7 @@
 #ifndef __TZ_TIMER_SERVICE__
 #define __TZ_TIMER_SERVICE__
 
-#include <event.h>
+#include <event2/event.h>
 
 #include <thread>
 #include <boost/noncopyable.hpp>
@@ -15,18 +15,18 @@ typedef std::function<void ()> TimerEventCallable;
 
 
 struct TimerTask {
-    TimerTask(TimerEventCallable func, struct timeval tv,
+    TimerTask(struct event* ev_timer, TimerEventCallable func, struct timeval tv,
               bool persist, bool fast):
-        persist_(persist), fast_(fast),
-        tv_(tv), func_(func), dead_(false) {
+		 ev_timer_(ev_timer), func_(func), 
+         persist_(persist), fast_(fast), tv_(tv), dead_(false) {
     }
 
-    struct event ev_timer_;
-    bool persist_;
-    bool fast_;
-
-    struct timeval tv_;
+    struct event* ev_timer_;
     TimerEventCallable func_;
+	
+	bool persist_;
+    bool fast_;
+    struct timeval tv_;
 
     bool dead_; // 等待被清理，一般是单次触发完成，
                 // 或者显式调用取消事件接口
