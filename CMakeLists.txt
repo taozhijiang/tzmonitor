@@ -3,7 +3,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x " )
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wconversion -Woverloaded-virtual -Wpointer-arith -Wshadow -Wwrite-strings -march=native " )
 
 # if what to see debug in verbose mode
-#add_definitions(-DCMAKE_VERBOSE_MAKEFILE=true)
+# cmake -DCMAKE_VERBOSE_MAKEFILE=true ../
 
 set(CMAKE_BUILD_TYPE DEBUG)
 #set(CMAKE_BUILD_TYPE RELEASE)
@@ -27,7 +27,7 @@ aux_source_directory( source/ DIR_SRCS )
 include_directories( include/
                      source/
                      source/client/include
-					 ../xtra_rhel6.x/include
+					 xtra_rhel6.x/include
                      /usr/include/mysql )
 
 add_subdirectory( source/utils )
@@ -41,18 +41,18 @@ add_subdirectory( source/client)
 IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
     message("DEBUG MODE, using debug librarys ... ")
 	link_directories( /usr/lib64/mysql/
-				  ${PROJECT_SOURCE_DIR}/../xtra_rhel6.x/libs/debug
-				  ${PROJECT_SOURCE_DIR}/../xtra_rhel6.x/libs/debug/boost
-				  ${PROJECT_SOURCE_DIR}/../xtra_rhel6.x/libs/debug/event2
-				  ${PROJECT_SOURCE_DIR}/../xtra_rhel6.x/libs/debug/thrift
+				  ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/libs/debug
+				  ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/libs/debug/boost
+				  ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/libs/debug/event2
+				  ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/libs/debug/thrift
 				)
 ELSE(CMAKE_BUILD_TYPE MATCHES DEBUG)
     message("RELEASE MODE, using release librarys ... ")
 	link_directories( /usr/lib64/mysql/
-				  ${PROJECT_SOURCE_DIR}/../xtra_rhel6.x/libs/release
-				  ${PROJECT_SOURCE_DIR}/../xtra_rhel6.x/libs/release/boost
-				  ${PROJECT_SOURCE_DIR}/../xtra_rhel6.x/libs/release/event2
-				  ${PROJECT_SOURCE_DIR}/../xtra_rhel6.x/libs/release/thrift
+				  ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/libs/release
+				  ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/libs/release/boost
+				  ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/libs/release/event2
+				  ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/libs/release/thrift
 				)
 ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 
@@ -68,7 +68,7 @@ add_executable( tzmonitor main.cpp build_version.cpp ${DIR_SRCS} )
 # ld iconv ?
 
 set (EXTRA_LIBS ${EXTRA_LIBS} core httpd utils connect module thrifting jsoncpp tinyxml)
-set (EXTRA_LIBS ${EXTRA_LIBS} rabbitmq ssl curl event config++)
+set (EXTRA_LIBS ${EXTRA_LIBS} rabbitmq ssl curl event_core config++)
 set (EXTRA_LIBS ${EXTRA_LIBS} pthread hiredis)
 set (EXTRA_LIBS ${EXTRA_LIBS} boost_system boost_thread boost_date_time boost_regex)
 set (EXTRA_LIBS ${EXTRA_LIBS} mysqlcppconn)

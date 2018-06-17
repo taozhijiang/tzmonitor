@@ -19,9 +19,9 @@ bool TimerService::init() {
     //event_config_set_flag(cfg, EVENT_BASE_FLAG_PRECISE_TIMER);
     //event_base_new(void); 为根据系统选择最快最合适的类型
     ev_base_ = event_base_new_with_config(cfg);
-	event_config_free(cfg);
-		
-	if (!ev_base_) {
+    event_config_free(cfg);
+
+    if (!ev_base_) {
         log_err("Creating event_base failed!");
         return false;
     }
@@ -57,12 +57,12 @@ void TimerService::timer_cb (int fd, short what, void *arg) {
 
     TimerTaskPtr task_ptr = find_task(reinterpret_cast<int64_t>(arg));
     if (!task_ptr) {
-		log_err("Task %ld not found, just return.", reinterpret_cast<int64_t>(arg));
+        log_err("Task %ld not found, just return.", reinterpret_cast<int64_t>(arg));
         return;
     }
-	
-	// 肯定是串行的，主线程只有一个，所以不会有竞争条件
-    if (task_ptr->fast_) { 
+
+    // 肯定是串行的，主线程只有一个，所以不会有竞争条件
+    if (task_ptr->fast_) {
         task_ptr->func_();
         if (!task_ptr->persist_) {
             event_free(task_ptr->ev_timer_);
@@ -81,8 +81,8 @@ void TimerService::timer_cb (int fd, short what, void *arg) {
 void TimerService::timer_run() {
 
     //event_base_dispatch(base); //进入事件循环直到没有pending的事件就返回
-	//EVLOOP_ONCE　阻塞直到有event激活，执行回调函数后返回
-	//EVLOOP_NONBLOCK 非阻塞类型，立即检查event激活，如果有运行最高优先级的那一类，完毕后退出循环
+    //EVLOOP_ONCE　阻塞直到有event激活，执行回调函数后返回
+    //EVLOOP_NONBLOCK 非阻塞类型，立即检查event激活，如果有运行最高优先级的那一类，完毕后退出循环
 
     event_base_loop(ev_base_, 0);
     log_err("event_base_loop terminating here... ");
@@ -127,7 +127,7 @@ void TimerService::timer_defer_run(ThreadObjPtr ptr){
 }
 
 int TimerService::start_timer(){
-	
+
     timer_thread_ = std::thread(std::bind(&TimerService::timer_run, this));
 
     if (! timer_defer_.init_threads(std::bind(&TimerService::timer_defer_run, this, std::placeholders::_1))) {
@@ -166,25 +166,26 @@ int TimerService::join() {
 int64_t TimerService::register_timer_task(TimerEventCallable func, int64_t msec,
                                           bool persist, bool fast) {
 
-	struct event *ev_timer;
-    struct timeval tv = { 0, 0 }; 
+    struct event *ev_timer;
+    struct timeval tv = { 0, 0 };
     tv.tv_usec = (msec % 1000) * 1000;
     tv.tv_sec = msec / 1000;
 
-	if(persist) {
-		ev_timer = event_new(ev_base_, -1, EV_PERSIST, c_timer_cb, &tv);
-	} else {
-		ev_timer = event_new(ev_base_, -1, 0, c_timer_cb, &tv);
-	}
-	
-	if (!ev_timer) {
-		log_err("create ev_timer failed!");
-        return 0;
-    }
-	
     TimerTaskPtr task_ptr = std::make_shared<TimerTask>(ev_timer, func, tv, persist, fast);
     if (!task_ptr) {
-		log_err("create TimerTask failed!");
+        log_err("create TimerTask failed!");
+        return 0;
+    }
+    int64_t task_idx = reinterpret_cast<int64_t>(task_ptr.get());
+
+    if(persist) {
+        ev_timer = event_new(ev_base_, -1, EV_PERSIST, c_timer_cb, (void*)task_idx);
+    } else {
+        ev_timer = event_new(ev_base_, -1, 0, c_timer_cb, (void*)task_idx);
+    }
+
+    if (!ev_timer) {
+        log_err("create ev_timer failed!");
         return 0;
     }
 
@@ -192,11 +193,11 @@ int64_t TimerService::register_timer_task(TimerEventCallable func, int64_t msec,
     event_add(ev_timer, &tv);
     add_task(task_ptr);
 
-    return reinterpret_cast<int64_t>(task_ptr.get());
+    return task_idx;
 }
 
 bool TimerService::revoke_timer_task(int64_t index) {
-	
+
     TimerTaskPtr ret;
 
     std::lock_guard<std::mutex> lock(tasks_lock_);
@@ -208,7 +209,7 @@ bool TimerService::revoke_timer_task(int64_t index) {
 }
 
 TimerTaskPtr TimerService::find_task(int64_t index) {
-	
+
     TimerTaskPtr ret;
 
     std::lock_guard<std::mutex> lock(tasks_lock_);
@@ -221,19 +222,19 @@ TimerTaskPtr TimerService::find_task(int64_t index) {
 }
 
 int TimerService::add_task(TimerTaskPtr task_ptr) {
-	
+
     if (!task_ptr)
         return -1;
 
-    int64_t index = reinterpret_cast<int64_t>(task_ptr.get());
+    int64_t task_idx = reinterpret_cast<int64_t>(task_ptr.get());
     std::lock_guard<std::mutex> lock(tasks_lock_);
-    std::map<int64_t, TimerTaskPtr>::iterator it = tasks_.find(index);
+    std::map<int64_t, TimerTaskPtr>::iterator it = tasks_.find(task_idx);
     if (it != tasks_.end()) {
-        log_err("The timer task already found: %ld", reinterpret_cast<int64_t>(task_ptr.get()));
+        log_err("The timer task already found: %ld", task_idx);
         return -1;
     }
 
-    tasks_[reinterpret_cast<int64_t>(task_ptr.get())] = task_ptr; // add here
+    tasks_[task_idx] = task_ptr; // add here
 
     return 0;
 }
