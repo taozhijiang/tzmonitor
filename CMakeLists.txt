@@ -10,9 +10,12 @@ set(CMAKE_BUILD_TYPE DEBUG)
 set(CMAKE_CXX_FLAGS_DEBUG   "$ENV{CXXFLAGS} -O0 -g")
 set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O2 ")
 
-set (TZ_VERSION_MAJOR 0)
+# 是否编译unit_test，因为single-header模式，所以速度比较慢
+set(TZ_BUILD_UNIT_TEST TRUE)
+
+set (TZ_VERSION_MAJOR 1)
 set (TZ_VERSION_MINOR 0)
-set (TZ_VERSION_PATCH 1)
+set (TZ_VERSION_PATCH 0)
 configure_file (
   "include/config.h.in"
   "../include/config.h" )
@@ -76,8 +79,8 @@ set (EXTRA_LIBS ${EXTRA_LIBS} libthriftnb.a libthriftz.a libthrift.a )
 
 target_link_libraries( tzmonitor ${EXTRA_LIBS} )
 
-IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
-    message("DEBUG MODE, build unit_test ... ")
+IF(TZ_BUILD_UNIT_TEST)
+    message("build unit_test ... ")
 	
 	# unit_test part
 	enable_testing()
@@ -89,7 +92,7 @@ IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 		add_boost_test( ${test_source_file} ${EXTRA_LIBS} )
 	endforeach(test_source_file)
 
-ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
+ENDIF(TZ_BUILD_UNIT_TEST)
 
 # /usr/local/bin/
 install (TARGETS tzmonitor DESTINATION bin )

@@ -1,6 +1,5 @@
 #define BOOST_TEST_MODULE http_event_submit_helper
-
-#include <boost/test/unit_test.hpp>
+#include <boost/test/included/unit_test.hpp>
 
 #include "General.h"
 

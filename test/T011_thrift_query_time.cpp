@@ -1,6 +1,5 @@
 #define BOOST_TEST_MODULE thrift_event_query_time
-
-#include <boost/test/unit_test.hpp>
+#include <boost/test/included/unit_test.hpp>
 
 #include "General.h"
 

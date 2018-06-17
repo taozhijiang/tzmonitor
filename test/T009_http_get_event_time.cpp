@@ -1,6 +1,5 @@
 #define BOOST_TEST_MODULE http_get_event_time_
-
-#include <boost/test/unit_test.hpp>
+#include <boost/test/included/unit_test.hpp>
 
 #include "General.h"
 
