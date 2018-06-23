@@ -44,8 +44,6 @@ std::shared_ptr<TimerService> request_timer_service();
 int64_t register_timer_task(TimerEventCallable func, int64_t msec, bool persist = true, bool fast = true);
 int64_t revoke_timer_task(int64_t index);
 
-const std::string& request_http_docu_root();
-const std::vector<std::string>& request_http_docu_index();
 
 } // namespace
 

@@ -11,7 +11,7 @@ set(CMAKE_CXX_FLAGS_DEBUG   "$ENV{CXXFLAGS} -O0 -g")
 set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O2 ")
 
 # 是否编译unit_test，因为single-header模式，所以速度比较慢
-set(TZ_BUILD_UNIT_TEST TRUE)
+# set(TZ_BUILD_UNIT_TEST TRUE)
 
 set (TZ_VERSION_MAJOR 1)
 set (TZ_VERSION_MINOR 0)
@@ -35,7 +35,7 @@ include_directories( include/
 
 add_subdirectory( source/utils )
 add_subdirectory( source/connect )
-add_subdirectory( source/httpd )
+add_subdirectory( source/tzhttpd )
 add_subdirectory( source/module )
 add_subdirectory( source/thrifting )
 add_subdirectory( source/core)
@@ -70,7 +70,7 @@ add_executable( tzmonitor main.cpp build_version.cpp ${DIR_SRCS} )
 
 # ld iconv ?
 
-set (EXTRA_LIBS ${EXTRA_LIBS} core httpd utils connect module thrifting jsoncpp tinyxml)
+set (EXTRA_LIBS ${EXTRA_LIBS} core tzhttpd utils connect module thrifting jsoncpp tinyxml)
 set (EXTRA_LIBS ${EXTRA_LIBS} rabbitmq ssl curl event_core config++)
 set (EXTRA_LIBS ${EXTRA_LIBS} pthread hiredis)
 set (EXTRA_LIBS ${EXTRA_LIBS} boost_system boost_thread boost_date_time boost_regex)

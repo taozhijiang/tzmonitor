@@ -5,7 +5,9 @@
 #include <map>
 #include <vector>
 
+namespace tzhttpd {
 class HttpServer;
+}
 
 class TimerService;
 
@@ -50,7 +52,7 @@ private:
 
 public:
     std::shared_ptr<TimerService> timer_service_ptr_;
-    std::shared_ptr<HttpServer> http_server_ptr_;
+    std::shared_ptr<tzhttpd::HttpServer> http_server_ptr_;
     std::shared_ptr<ConnPool<SqlConn, SqlConnPoolHelper>> sql_pool_ptr_;
     std::shared_ptr<ConnPool<RedisConn, RedisConnPoolHelper>> redis_pool_ptr_;
 
