@@ -8,7 +8,7 @@ function(add_boost_test SOURCE_FILE_NAME)
 
     add_executable(${TEST_EXECUTABLE_NAME} ${SOURCE_FILE_NAME})
     target_link_libraries(${TEST_EXECUTABLE_NAME} tzmonitor_client
-                          ${DEPENDENCY_LIB} boost_unit_test_framework )
+                          ${DEPENDENCY_LIB})
     set_target_properties(${TEST_EXECUTABLE_NAME} PROPERTIES
                           RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_CURRENT_SOURCE_DIR}/test_bin)
 

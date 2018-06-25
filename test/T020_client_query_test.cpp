@@ -1,6 +1,5 @@
 #define BOOST_TEST_MODULE client_query_test
-
-#include <boost/test/unit_test.hpp>
+#include <boost/test/included/unit_test.hpp>
 
 #include <iostream>
 #include <client/include/TzMonitor.h>

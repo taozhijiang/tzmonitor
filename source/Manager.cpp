@@ -6,7 +6,7 @@
 
 #include <connect/SqlConn.h>
 #include <connect/RedisConn.h>
-#include <httpd/HttpServer.h>
+#include <tzhttpd/HttpServer.h>
 
 #include <module/TimerService.h>
 #include <module/RedisData.h>
@@ -22,6 +22,7 @@
 #include <utils/Utils.h>
 
 #include <core/EventRepos.h>
+#include <core/StatHandler.h>
 
 #include "Helper.h"
 #include "Manager.h"
@@ -106,24 +107,15 @@ bool Manager::init() {
     RedisData::instance().init();
 
     // Web
-    std::string bind_addr;
-    int listen_port = 0;
-    if (!get_config_value("http.bind_addr", bind_addr) || !get_config_value("http.listen_port", listen_port) ){
-        log_err("Error, get value error");
-        return false;
-    }
-
-    int thread_pool_size = 0;
-    if (!get_config_value("http.thread_pool_size", thread_pool_size)) {
-        thread_pool_size = 8;
-        log_info("Using default thread_pool size: 8");
-    }
-    log_info("listen at: %s:%d, thread_pool: %d", bind_addr.c_str(), listen_port, thread_pool_size);
-    http_server_ptr_.reset(new HttpServer(bind_addr, static_cast<unsigned short>(listen_port), thread_pool_size));
+    http_server_ptr_.reset(new tzhttpd::HttpServer("tzmonitor.conf", "tzmonitor"));
     if (!http_server_ptr_ || !http_server_ptr_->init()) {
         log_err("Init HttpServer failed!");
         return false;
     }
+
+    http_server_ptr_->register_http_get_handler("/", tzhttpd::http_handler::index_http_get_handler);
+    http_server_ptr_->register_http_get_handler("^/stat/$", tzhttpd::http_handler::event_stat_http_get_handler);
+    http_server_ptr_->register_http_post_handler("^/ev_submit/$", tzhttpd::http_handler::post_ev_submit_handler);
 
     // Thrift
     int thrift_port, thrift_thread_size, thrift_io_thread_size;

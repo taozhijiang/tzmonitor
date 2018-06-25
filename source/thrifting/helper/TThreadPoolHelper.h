@@ -55,7 +55,7 @@ public:
             server_->stop();
 
             threads_->stop();
-            threads_->join();
+            // threads_->join();
 
             threads_.reset();
             server_.reset();

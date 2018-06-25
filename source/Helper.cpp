@@ -12,7 +12,7 @@
 
 #include <module/TimerService.h>
 
-#include <httpd/HttpServer.h>
+#include <tzhttpd/HttpServer.h>
 
 namespace helper {
 
@@ -56,14 +56,5 @@ int64_t revoke_timer_task(int64_t index) {
     return Manager::instance().timer_service_ptr_->revoke_timer_task(index);
 }
 
-const std::string& request_http_docu_root() {
-    SAFE_ASSERT(Manager::instance().http_server_ptr_);
-    return Manager::instance().http_server_ptr_->document_root();
-}
-
-const std::vector<std::string>& request_http_docu_index() {
-    SAFE_ASSERT(Manager::instance().http_server_ptr_);
-    return Manager::instance().http_server_ptr_->document_index();
-}
 
 } // end namespace

@@ -1,0 +1,6 @@
+[submodule "xtra_rhel6.x"]
+	path = xtra_rhel6.x
+	url = https://github.com/taozhijiang/xtra_rhel6.x.git
+[submodule "source/tzhttpd"]
+	path = source/tzhttpd
+	url = https://github.com/taozhijiang/tzhttpd.git

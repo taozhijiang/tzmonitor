@@ -1,6 +1,5 @@
 #define BOOST_TEST_MODULE http_get_event_time_
-
-#include <boost/test/unit_test.hpp>
+#include <boost/test/included/unit_test.hpp>
 
 #include "General.h"
 
@@ -32,7 +31,7 @@ BOOST_AUTO_TEST_CASE(http_get_event_time)
     }
 
     std::stringstream ss;
-    ss << "http://" << serv_addr << ":" << listen_port << "/ev_query?";
+    ss << "http://" << serv_addr << ":" << listen_port << "/cgi-bin/ev_query.cgi?";
     ss << "groupby=time&version=1.0.0&interval_sec=300&name=callsrvtime";
     std::string sUrl = ss.str();
 

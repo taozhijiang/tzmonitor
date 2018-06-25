@@ -22,17 +22,17 @@ static void interrupted_callback(int signal){
     switch(signal) {
 
     case SIGQUIT:
-            log_info("Graceful stop tibank service ... ");
+            log_info("Graceful stop tzmonitor service ... ");
             Manager::instance().service_graceful();
-            log_info("Graceful stop tibank done!"); // main join all
+            log_info("Graceful stop tzmonitor done!"); // main join all
             ::sleep(1);
             ::exit(0);
             break;
 
     case SIGTERM:
-            log_info("Immediately shutdown tibank service ... ");
+            log_info("Immediately shutdown tzmonitor service ... ");
             Manager::instance().service_terminate();
-            log_info("Immediately shutdown tibank service done! ");
+            log_info("Immediately shutdown tzmonitor service done! ");
             ::sleep(1);
             ::exit(0);
             break;
