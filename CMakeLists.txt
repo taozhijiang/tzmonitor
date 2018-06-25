@@ -22,15 +22,26 @@ configure_file (
 
 # mysqlcppconn如果使用C开发会在释放的时候段错误
 
+IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
+    message("DEBUG MODE, using debug libraries ... ")
+    set(BUILD_TYPE_STR "debug")
+ELSE(CMAKE_BUILD_TYPE MATCHES DEBUG)
+    message("RELEASE MODE, using release libraries ... ")
+    set(BUILD_TYPE_STR "release")
+ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
+
+# 选择Thrift的版本
+# set (THRIFT_VERSION "0.9.2")
+set (THRIFT_VERSION "0.11.0")
 set (THRIFT_GEN_CMD "cd ${PROJECT_SOURCE_DIR}/source/thrifting/source && rm -fr ../gen-cpp && mkdir -p ../gen-cpp && make ")
 exec_program(${THRIFT_GEN_CMD})
 
 aux_source_directory( source/ DIR_SRCS )
-
-include_directories( include/
-                     source/
-                     source/client/include
-					 xtra_rhel6.x/include
+include_directories( ${PROJECT_SOURCE_DIR}/include/
+                     ${PROJECT_SOURCE_DIR}/source/
+                     ${PROJECT_SOURCE_DIR}/source/client/include
+                     ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/include
+                     ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/include/thrift-${THRIFT_VERSION}/
                      /usr/include/mysql )
 
 add_subdirectory( source/utils )
@@ -43,23 +54,13 @@ add_subdirectory( source/client)
 
 add_subdirectory( source/cgi-handler/event )
 
-IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
-    message("DEBUG MODE, using debug librarys ... ")
-	link_directories( /usr/lib64/mysql/
-				  ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/libs/debug
-				  ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/libs/debug/boost
-				  ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/libs/debug/event2
-				  ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/libs/debug/thrift
-				)
-ELSE(CMAKE_BUILD_TYPE MATCHES DEBUG)
-    message("RELEASE MODE, using release librarys ... ")
-	link_directories( /usr/lib64/mysql/
-				  ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/libs/release
-				  ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/libs/release/boost
-				  ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/libs/release/event2
-				  ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/libs/release/thrift
-				)
-ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
+
+link_directories( /usr/lib64/mysql/
+    ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/libs/${BUILD_TYPE_STR}
+    ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/libs/${BUILD_TYPE_STR}/boost
+    ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/libs/${BUILD_TYPE_STR}/event2
+    ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/libs/${BUILD_TYPE_STR}/thrift-${THRIFT_VERSION}
+)
 
 # local temp generated file
 exec_program( "export BUILD_VAR=`git log -1 --pretty=%H` && echo 'const char *build_commit_version = \"VCS: Commit:' $BUILD_VAR '\";' > build_version.cpp ")
