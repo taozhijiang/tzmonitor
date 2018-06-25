@@ -61,7 +61,7 @@ public:
 
     bool init() {
 
-#ifndef BOOST_TEST_MODULE
+#if !defined(BOOST_TEST_MODULE) && !(TZHTTPD_CGI_SO_MODULE)
         conn_pool_stats_timer_id_ = helper::register_timer_task(
                 std::bind(&ConnPool::show_conn_pool_stats, this->shared_from_this()), 60 * 1000/* 60s */, true, true);
         if (conn_pool_stats_timer_id_ == 0) {
@@ -80,7 +80,7 @@ public:
             }
         }
 
-#endif // BOOST_TEST_MODULE
+#endif // BOOST_TEST_MODULE , TZHTTPD_CGI_SO_MODULE
 
         return true;
     }

@@ -31,7 +31,7 @@ BOOST_AUTO_TEST_CASE(http_get_event_flag)
     }
 
     std::stringstream ss;
-    ss << "http://" << serv_addr << ":" << listen_port << "/ev_query?";
+    ss << "http://" << serv_addr << ":" << listen_port << "/cgi-bin/ev_query.cgi?";
     ss << "groupby=flag&version=1.0.0&interval_sec=300&name=callsrvtime";
     std::string sUrl = ss.str();
 

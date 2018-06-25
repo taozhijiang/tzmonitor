@@ -41,6 +41,8 @@ add_subdirectory( source/thrifting )
 add_subdirectory( source/core)
 add_subdirectory( source/client)
 
+add_subdirectory( source/cgi-handler/event )
+
 IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
     message("DEBUG MODE, using debug librarys ... ")
 	link_directories( /usr/lib64/mysql/
