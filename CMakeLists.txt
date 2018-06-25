@@ -13,7 +13,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O2 ")
 # 是否编译unit_test，因为single-header模式，所以速度比较慢
 # set(TZ_BUILD_UNIT_TEST TRUE)
 
-set (TZ_VERSION_MAJOR 1)
+set (TZ_VERSION_MAJOR 2)
 set (TZ_VERSION_MINOR 0)
 set (TZ_VERSION_PATCH 0)
 configure_file (
