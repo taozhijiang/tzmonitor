@@ -104,14 +104,23 @@ add_executable( tzmonitor main.cpp build_version.cpp ${DIR_SRCS} )
 
 # ld iconv ?
 
-set (EXTRA_LIBS ${EXTRA_LIBS} core tzhttpd utils connect module thrifting jsoncpp tinyxml)
+set (WHOLE_LIBS core thrifting utils connect module jsoncpp tinyxml)
+set (WHOLE_LIBS ${WHOLE_LIBS} libthriftz.a libthrift.a )
+
+set (EXTRA_LIBS ${EXTRA_LIBS} tzhttpd)
 set (EXTRA_LIBS ${EXTRA_LIBS} rabbitmq ssl curl event_core config++)
 set (EXTRA_LIBS ${EXTRA_LIBS} pthread hiredis)
 set (EXTRA_LIBS ${EXTRA_LIBS} boost_system boost_thread boost_date_time boost_regex)
 set (EXTRA_LIBS ${EXTRA_LIBS} mysqlcppconn)
-set (EXTRA_LIBS ${EXTRA_LIBS} libthriftnb.a libthriftz.a libthrift.a )
+set (EXTRA_LIBS ${EXTRA_LIBS} libthriftnb.a)
 
-target_link_libraries( tzmonitor ${EXTRA_LIBS} )
+
+
+# 某些库需要静态全连接，否则主服务没使用但是so使用，会报符号没有找到
+target_link_libraries( tzmonitor 
+    -Wl,--whole-archive ${WHOLE_LIBS} -Wl,--no-whole-archive
+    ${EXTRA_LIBS}
+)
 
 IF(TZ_BUILD_UNIT_TEST)
     message("build unit_test ... ")
