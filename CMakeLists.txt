@@ -9,8 +9,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x " )
 # if what to see debug in verbose mode
 # cmake -DCMAKE_VERBOSE_MAKEFILE=true ../
 
-set(CMAKE_BUILD_TYPE DEBUG)
-#set(CMAKE_BUILD_TYPE RELEASE)
+#set(CMAKE_BUILD_TYPE DEBUG)
+set(CMAKE_BUILD_TYPE RELEASE)
 set(CMAKE_CXX_FLAGS_DEBUG   "$ENV{CXXFLAGS} -O0 -g")
 set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O2 ")
 
@@ -21,6 +21,9 @@ ELSEIF(CMAKE_BUILD_TYPE MATCHES RELEASE)
 ELSE(CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(FATAL_ERROR "Unknown BUILD_TYPE ... ")
 ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
+
+# tzhttpd 的日志融入到现有的syslog中，否则就打印到标准输出
+add_definitions( -DTZHTTPD_USING_SYSLOG )
 
 
 set(CMAKE_BUILD_VERSION V1) # libevent  & thrift-0.9.2

@@ -20,7 +20,7 @@
 
 static const std::size_t MAX_LOG_BUF_SIZE = (16*1024 -2);
 
-#ifndef TZMONITOR_CLIENT
+#if !defined(TZMONITOR_CLIENT) && !defined(BOOST_TEST_MODULE)
 
 // man 3 syslog
 #include <syslog.h>
@@ -50,7 +50,7 @@ public:
 #define log_info(...)  Log::instance().log_api( LOG_INFO, __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
 #define log_debug(...)  Log::instance().log_api( LOG_DEBUG, __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
 
-#else
+#else  // TZMONITOR_CLIENT, BOOST_TEST_MODULE
 
 static void log_api(const char* priority, const char *file, int line, const char *func, const char *msg, ...) {
 
@@ -80,7 +80,7 @@ static void log_api(const char* priority, const char *file, int line, const char
 #define log_debug(...)   log_api( "DEBUG", __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
 
 
-#endif // TZMONITOR_CLIENT
+#endif // TZMONITOR_CLIENT, BOOST_TEST_MODULE
 
 
 #endif // _TZ_LOG_H_

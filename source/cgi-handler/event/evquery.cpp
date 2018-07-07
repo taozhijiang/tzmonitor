@@ -7,18 +7,22 @@
 #include <core/EventTypes.h>
 #include <tzhttpd/HttpProto.h>
 #include <tzhttpd/CgiHelper.h>
+#include <tzhttpd/Log.h>
+
+#include <tzhttpd/StrUtil.h>
+using tzhttpd::StrUtil;
 
 #include "ErrorDef.h"
 
 // TODO: read from config file
-time_t event_linger_ = 5;
-std::string database_ = "bankpay";
-std::string table_prefix_ = "t_tzmonitor_";
+time_t event_linger_        = 5;
+std::string database_       = "bankpay";
+std::string table_prefix_   = "t_tzmonitor_";
 
 std::string mysql_hostname_ = "127.0.0.1";
 int mysql_port_ = 3306;
 std::string mysql_username_ = "root";
-std::string mysql_passwd_ = "1234";
+std::string mysql_passwd_   = "1234";
 std::string mysql_database_ = "bankpay";
 //
 
@@ -28,18 +32,7 @@ std::shared_ptr<ConnPool<SqlConn, SqlConnPoolHelper>> sql_pool_ptr_;
 
 static std::string build_sql(const event_cond_t& cond, time_t& start_time);
 static int query_ev_stat(const event_cond_t& cond, event_query_t& stat);
-int ev_query_handler(const std::string& request, std::string& response);
-
-#include <boost/lexical_cast.hpp>
-template <typename T>
-std::string convert_to_string(const T& arg) {
-    try {
-        return boost::lexical_cast<std::string>(arg);
-    }
-    catch(boost::bad_lexical_cast& e) {
-        return "";
-    }
-}
+int ev_query_handler(const std::string& request, std::string& response, std::string& add_header);
 
 static std::string get_table_suffix(time_t time_sec) {
     struct tm now_time;
@@ -62,7 +55,7 @@ int module_init() {
                              mysql_username_, mysql_passwd_, mysql_database_);
     sql_pool_ptr_.reset(new ConnPool<SqlConn, SqlConnPoolHelper>("MySQLPool", 60, helper, 60 /*60s*/));
     if (!sql_pool_ptr_ || !sql_pool_ptr_->init()) {
-        printf("Init SqlConnPool failed!");
+        tzhttpd::log_err("Init SqlConnPool failed!");
         return -1;
     }
 
@@ -74,14 +67,19 @@ int module_exit() {
 }
 
 
-int cgi_get_handler(const msg_t* param, msg_t* rsp) {
+int cgi_get_handler(const msg_t* param, msg_t* rsp, msg_t* rsp_header) {
     std::string request = std::string(param->data, param->len);
     std::string response;
+    std::string add_header;
 
-    int ret_code = ev_query_handler(request, response);
+    int ret_code = ev_query_handler(request, response, add_header);
 
     if(!response.empty()) {
         fill_msg(rsp, response.c_str(), response.size());
+    }
+
+    if (!add_header.empty()) {
+        fill_msg(rsp_header, add_header.c_str(), add_header.size());
     }
 
     return ret_code;
@@ -94,23 +92,25 @@ int cgi_get_handler(const msg_t* param, msg_t* rsp) {
 
 
 
-int ev_query_handler(const std::string& request, std::string& response) {
+int ev_query_handler(const std::string& request, std::string& response, std::string& add_header) {
 
     do {
 
         event_cond_t cond {};
+        tzhttpd::log_debug("recv request: %s", request.c_str());
 
         {
             Json::Value root;
             Json::Reader reader;
             if (!reader.parse(request, root) || root.isNull()) {
-                printf("parse error: %s", request.c_str());
+                tzhttpd::log_err("parse error: %s", request.c_str());
                 break;
             }
 
             // required
-            if (!root["version"].isString() || !root["name"].isString() || !root["interval_sec"].isString() ) {
-                printf("required param is missing.");
+            if (!root["version"].isString() || !root["name"].isString() ||
+                !root["interval_sec"].isString() ) {
+                tzhttpd::log_err("required param is missing.");
                 break;
             }
 
@@ -125,7 +125,7 @@ int ev_query_handler(const std::string& request, std::string& response) {
             cond.interval_sec = ::atoll(map_param["interval_sec"].c_str());
 
             if (cond.version.empty() || cond.name.empty() || cond.interval_sec <= 0) {
-                printf("required param missing...");
+                tzhttpd::log_err("required param missing...");
                 break;
             }
 
@@ -164,7 +164,7 @@ int ev_query_handler(const std::string& request, std::string& response) {
 
         event_query_t stat{};
         if (query_ev_stat(cond, stat) != ErrorDef::OK) {
-            printf("call get_event detail failed!");
+            tzhttpd::log_err("call get_event detail failed!");
             break;
         }
 
@@ -174,8 +174,8 @@ int ev_query_handler(const std::string& request, std::string& response) {
             Json::Value root;
             root["version"] = "1.0.0";
             root["name"] = cond.name;
-            root["time"] = convert_to_string(stat.time);
-            root["interval_sec"] = convert_to_string(cond.interval_sec);
+            root["time"] = StrUtil::convert_to_string(stat.time);
+            root["interval_sec"] = StrUtil::convert_to_string(cond.interval_sec);
 
             if(!cond.host.empty()) root["host"] = cond.host;
             if(!cond.serv.empty()) root["serv"] = cond.serv;
@@ -185,10 +185,10 @@ int ev_query_handler(const std::string& request, std::string& response) {
             Json::Value summary;
             Json::FastWriter fast_writer;
 
-            summary["count"] = convert_to_string(stat.summary.count);
-            summary["value_sum"] = convert_to_string(stat.summary.value_sum);
-            summary["value_avg"] = convert_to_string(stat.summary.value_avg);
-            summary["value_std"] = convert_to_string(stat.summary.value_std);
+            summary["count"] = StrUtil::convert_to_string(stat.summary.count);
+            summary["value_sum"] = StrUtil::convert_to_string(stat.summary.value_sum);
+            summary["value_avg"] = StrUtil::convert_to_string(stat.summary.value_avg);
+            summary["value_std"] = StrUtil::convert_to_string(stat.summary.value_std);
             root["summary"] = fast_writer.write(summary);
 
             if (cond.groupby != GroupType::kGroupNone) {
@@ -197,15 +197,15 @@ int ev_query_handler(const std::string& request, std::string& response) {
                     Json::Value orderjson{};
 
                     if (cond.groupby == GroupType::kGroupbyTime) {
-                        orderjson["time"] = convert_to_string(iter->time);
+                        orderjson["time"] = StrUtil::convert_to_string(iter->time);
                     } else if (cond.groupby == GroupType::kGroupbyFlag) {
-                        orderjson["flag"] = convert_to_string(iter->flag);
+                        orderjson["flag"] = StrUtil::convert_to_string(iter->flag);
                     }
 
-                    orderjson["count"] = convert_to_string(iter->count);
-                    orderjson["value_sum"] = convert_to_string(iter->value_sum);
-                    orderjson["value_avg"] = convert_to_string(iter->value_avg);
-                    orderjson["value_std"] = convert_to_string(iter->value_std);
+                    orderjson["count"] = StrUtil::convert_to_string(iter->count);
+                    orderjson["value_sum"] = StrUtil::convert_to_string(iter->value_sum);
+                    orderjson["value_avg"] = StrUtil::convert_to_string(iter->value_avg);
+                    orderjson["value_std"] = StrUtil::convert_to_string(iter->value_std);
 
                     ordersJson.append(orderjson);
                 }
@@ -214,13 +214,18 @@ int ev_query_handler(const std::string& request, std::string& response) {
             }
 
             response = fast_writer.write(root);
+            tzhttpd::log_debug("response: %s", response.c_str());
         }
+
+        add_header = {"Content-Type: text/html; charset=utf-8"};
 
         return ErrorDef::OK;
 
     } while (0);
 
     response = tzhttpd::http_proto::content_error;
+    add_header = {"Content-Type: text/html; charset=utf-8"};
+
     return ErrorDef::Error;
 }
 

@@ -19,9 +19,12 @@ extern std::string http_server_version;
 static std::string null_string = "";
 
 
-int index_http_get_handler(const HttpParser& http_parser, std::string& response, string& status_line);
-int event_stat_http_get_handler(const HttpParser& http_parser, std::string& response, string& status_line);
-int post_ev_submit_handler(const HttpParser& http_parser, const std::string& post_data, std::string& response, string& status_line);
+int index_http_get_handler(const HttpParser& http_parser,
+                           std::string& response, string& status_line, std::vector<std::string>& add_header );
+int event_stat_http_get_handler(const HttpParser& http_parser,
+                                std::string& response, string& status_line, std::vector<std::string>& add_header);
+int post_ev_submit_handler(const HttpParser& http_parser, const std::string& post_data,
+                           std::string& response, string& status_line, std::vector<std::string>& add_header);
 
 class StatHandler {
 public:
