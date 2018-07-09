@@ -49,7 +49,7 @@ public:
         bool cli_enabled;
         if (!cfg.lookupValue("core.cli_enabled", cli_enabled)) {
             log_err("find core.enabled failed");
-            ret_code -=1;
+            ret_code --;
         } else {
             if (cli_enabled != cli_enabled_) {
                 log_alert("===> update cli_enabled: from %s to %s",
@@ -61,7 +61,7 @@ public:
         int cli_submit_queue_size;
         if (!cfg.lookupValue("core.cli_submit_queue_size", cli_submit_queue_size) || cli_submit_queue_size < 0) {
             log_err("find core.cli_submit_queue_size failed");
-            ret_code -=1;
+            ret_code --;
         } else {
             if (cli_submit_queue_size != cli_submit_queue_size_) {
                 log_alert("===> update cli_submit_queue_size: from %d to %d",

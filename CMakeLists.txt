@@ -135,7 +135,7 @@ IF(TZ_BUILD_UNIT_TEST)
 	file(GLOB UNIT_TEST_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} test/*.cpp)
 
 	foreach(test_source_file ${UNIT_TEST_SRCS})
-		add_boost_test( ${test_source_file} ${EXTRA_LIBS} )
+        add_boost_test( ${test_source_file} ${WHOLE_LIBS} ${EXTRA_LIBS} )
 	endforeach(test_source_file)
 
 ENDIF(TZ_BUILD_UNIT_TEST)
