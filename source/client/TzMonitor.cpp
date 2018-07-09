@@ -9,8 +9,6 @@
 #include <thread>
 #include <functional>
 
-#include <libconfig.h++>
-
 #ifndef _DEFINE_GET_POINTER_MARKER_
 #define _DEFINE_GET_POINTER_MARKER_
 template<class T>
@@ -44,7 +42,39 @@ public:
     int report_event(const std::string& name, int64_t value, std::string flag = "T");
     int retrieve_stat(const event_cond_t& cond, event_query_t& stat);
 
+    int update_run_cfg(const libconfig::Config& cfg) {
+
+        int ret_code = 0;
+
+        bool cli_enabled;
+        if (!cfg.lookupValue("core.cli_enabled", cli_enabled)) {
+            log_err("find core.enabled failed");
+            ret_code -=1;
+        } else {
+            if (cli_enabled != cli_enabled_) {
+                log_alert("===> update cli_enabled: from %s to %s",
+                      cli_enabled_ ? "true": "false", cli_enabled ? "true": "false" );
+                cli_enabled_ = cli_enabled;
+            }
+        }
+
+        int cli_submit_queue_size;
+        if (!cfg.lookupValue("core.cli_submit_queue_size", cli_submit_queue_size) || cli_submit_queue_size < 0) {
+            log_err("find core.cli_submit_queue_size failed");
+            ret_code -=1;
+        } else {
+            if (cli_submit_queue_size != cli_submit_queue_size_) {
+                log_alert("===> update cli_submit_queue_size: from %d to %d",
+                          cli_submit_queue_size_, cli_submit_queue_size);
+                cli_submit_queue_size_ = cli_submit_queue_size;
+            }
+        }
+
+        return ret_code;
+    }
+
 private:
+
     int do_report(event_report_ptr_t report_ptr) {
 
         int ret_code = 0;
@@ -87,9 +117,12 @@ private:
     std::string serv_;
     std::string entity_idx_;
 
-    int max_submit_item_size_;
-    int max_submit_queue_size_;
-    int max_submit_task_size_;
+    bool cli_enabled_;
+    int cli_submit_queue_size_;
+
+    int cli_item_size_per_submit_;
+    int cli_il_submit_queue_size_;
+    int cli_ob_submit_task_size_;
 
     // 默认开启一个，当发现待提交队列过长的时候，自动开辟future任务
     thread_ptr thread_run_;
@@ -150,16 +183,27 @@ bool TzMonitorClient::Impl::init(const std::string& cfgFile) {
         return false;
     }
 
-    if (!cfg.lookupValue("core.max_submit_item_size", max_submit_item_size_) ||
-        max_submit_item_size_ <= 0 ) {
-        log_info("find core.max_submit_item_size failed, set default to 500");
-        max_submit_item_size_ = 500;
+    if (!cfg.lookupValue("core.cli_enabled", cli_enabled_)) {
+        log_info("find core.enabled failed, set default to true");
+        cli_enabled_ = true;
     }
 
-    if (!cfg.lookupValue("core.max_submit_queue_size", max_submit_queue_size_) ||
-        max_submit_queue_size_ <= 0 ) {
-        log_info("find core.max_submit_queue_size failed, set default to 5");
-        max_submit_queue_size_ = 5;
+    if (!cfg.lookupValue("core.cli_submit_queue_size", cli_submit_queue_size_) ||
+        cli_submit_queue_size_ < 0 ) {
+        log_info("find core.cli_submit_queue_size failed, set default to 0");
+        cli_item_size_per_submit_ = 0;
+    }
+
+    if (!cfg.lookupValue("core.cli_item_size_per_submit", cli_item_size_per_submit_) ||
+        cli_item_size_per_submit_ <= 0 ) {
+        log_info("find core.cli_item_size_per_submit failed, set default to 500");
+        cli_item_size_per_submit_ = 500;
+    }
+
+    if (!cfg.lookupValue("core.cli_il_submit_queue_size", cli_il_submit_queue_size_) ||
+        cli_il_submit_queue_size_ <= 0 ) {
+        log_info("find core.cli_il_submit_queue_size failed, set default to 5");
+        cli_il_submit_queue_size_ = 5;
     }
 
     thread_run_.reset(new std::thread(std::bind(&TzMonitorClient::Impl::run, shared_from_this())));
@@ -168,12 +212,12 @@ bool TzMonitorClient::Impl::init(const std::string& cfgFile) {
         return false;
     }
 
-    if (!cfg.lookupValue("core.max_submit_task_size", max_submit_task_size_) ||
-        max_submit_task_size_ <= 0 ) {
-        log_info("find core.max_submit_task_size failed, set default to 5");
-        max_submit_task_size_ = 5;
+    if (!cfg.lookupValue("core.cli_ob_submit_task_size", cli_ob_submit_task_size_) ||
+        cli_ob_submit_task_size_ <= 0 ) {
+        log_info("find core.cli_ob_submit_task_size failed, set default to 5");
+        cli_ob_submit_task_size_ = 5;
     }
-    task_helper_ = std::make_shared<TinyTask>(max_submit_task_size_);
+    task_helper_ = std::make_shared<TinyTask>(cli_ob_submit_task_size_);
     if (!task_helper_ || !task_helper_->init()){
         log_err("create task_helper work thread failed! ");
         return false;
@@ -184,6 +228,10 @@ bool TzMonitorClient::Impl::init(const std::string& cfgFile) {
 }
 
 int TzMonitorClient::Impl::report_event(const std::string& name, int64_t value, std::string flag) {
+
+    if (!cli_enabled_) {
+        return 0;
+    }
 
     std::lock_guard<std::mutex> lock(lock_);
 
@@ -196,9 +244,9 @@ int TzMonitorClient::Impl::report_event(const std::string& name, int64_t value, 
     time_t now = ::time(NULL);
 
     // 因为每一个report都会触发这里的检查，所以不可能过量
-    if (current_slot_.size() >= max_submit_item_size_ || now != current_time_ ) {
+    if (current_slot_.size() >= cli_item_size_per_submit_|| now != current_time_ ) {
 
-        assert(current_slot_.size() <= max_submit_item_size_);
+        assert(current_slot_.size() <= cli_item_size_per_submit_);
 
         if (!current_slot_.empty()) {
             event_report_ptr_t report_ptr = std::make_shared<event_report_t>();
@@ -221,10 +269,13 @@ int TzMonitorClient::Impl::report_event(const std::string& name, int64_t value, 
     }
     current_slot_.emplace_back(item);
 
+    if (cli_submit_queue_size_ != 0) {
+        submit_queue_.SHRINK_FRONT(cli_submit_queue_size_);
+    }
 
-    while (submit_queue_.SIZE() > 2 * max_submit_item_size_) {
+    while (submit_queue_.SIZE() > 2 * cli_item_size_per_submit_) {
         std::vector<event_report_ptr_t> reports;
-        size_t ret = submit_queue_.POP(reports, max_submit_item_size_, 5000);
+        size_t ret = submit_queue_.POP(reports, cli_item_size_per_submit_, 5000);
         if (!ret) {
             break;
         }
@@ -306,6 +357,10 @@ TzMonitorClient::~TzMonitorClient(){}
 
 bool TzMonitorClient::init(const std::string& cfgFile) {
     return impl_ptr_->init(cfgFile);
+}
+
+int TzMonitorClient::update_run_cfg(const libconfig::Config& cfg) {
+    return impl_ptr_->update_run_cfg(cfg);
 }
 
 int TzMonitorClient::report_event(const std::string& name, int64_t value, std::string flag ) {

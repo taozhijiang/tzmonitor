@@ -53,12 +53,16 @@ private:
     int64_t check_timer_id_;
     void check_timer_run();
 
-    int max_process_queue_size_;
+    int srv_il_process_queue_size_;
 };
 
 
 struct EventReposConfig {
+
     time_t event_linger_;
+
+    int srv_il_process_queue_size_;
+    int srv_ob_process_task_size_;
 };
 
 
@@ -133,7 +137,6 @@ private:
 
     EventReposConfig config_;
 
-    int max_process_task_size_;
     std::shared_ptr<TinyTask> task_helper_;
 
 private:

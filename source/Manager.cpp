@@ -9,7 +9,6 @@
 #include <tzhttpd/HttpServer.h>
 
 #include <module/TimerService.h>
-#include <module/RedisData.h>
 
 #include <thrifting/helper/TThreadedHelper.h>
 #include <thrifting/helper/TThreadPoolHelper.h>
@@ -45,7 +44,6 @@ bool Manager::init() {
         return false;
     }
 
-    (void)RedisData::instance();
     (void)EventRepos::instance();
 
     // Timer
@@ -104,7 +102,6 @@ bool Manager::init() {
         return false;
     }
 
-    RedisData::instance().init();
 
     // Web
     http_server_ptr_.reset(new tzhttpd::HttpServer("tzmonitor.conf", "tzmonitor"));

@@ -38,7 +38,7 @@ public:
 
     size_t POP(std::vector<T>& vec, size_t max_count, uint64_t msec) {
         std::unique_lock<std::mutex> lock(lock_);
-        
+
         while (items_.empty()) {
             if (!item_notify_.wait_for(lock, std::chrono::milliseconds(msec))){
                 goto check;
@@ -48,7 +48,7 @@ check:
         if (items_.empty()) {
             return 0;
         }
-        
+
         size_t ret_count = 0;
         do {
             T t = items_.front();
@@ -99,6 +99,19 @@ check:
     bool EMPTY() {
         std::lock_guard<std::mutex> lock(lock_);
         return items_.empty();
+    }
+
+    size_t SHRINK_FRONT(size_t sz) {
+        std::lock_guard<std::mutex> lock(lock_);
+
+        size_t orig_sz = items_.size();
+        if (orig_sz <= sz)
+            return 0;
+
+        auto iter = items_.end() - sz;
+        items_.erase(items_.begin(), iter);
+
+        return orig_sz - items_.size();
     }
 
 private:

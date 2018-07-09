@@ -28,13 +28,13 @@ bool EventHandler::init() {
         return false;
     }
 
-    if (!get_config_value("core.max_process_queue_size", max_process_queue_size_) ||
-        max_process_queue_size_ <= 0 )
+    // 每次新建从配置文件重新取值，保证最新建立的实例是最新的配置
+    if (!get_config_value("core.srv_il_process_queue_size", srv_il_process_queue_size_) ||
+        srv_il_process_queue_size_ <= 0)
     {
-        log_err("find core.max_process_queue_size failed, set default to 5");
-        max_process_queue_size_ = 5;
+        log_err("find core.srv_il_process_queue_size failed, set default to 5");
+        srv_il_process_queue_size_ = 5;
     }
-
 
     return true;
 }
@@ -262,9 +262,9 @@ void EventHandler::run() {
 
     while (true) {
 
-        while (process_queue_.SIZE() > 2 * max_process_queue_size_) {
+        while (process_queue_.SIZE() > 2 * srv_il_process_queue_size_) {
             std::vector<events_ptr_t> ev_inserts;
-            size_t ret = process_queue_.POP(ev_inserts, max_process_queue_size_, 5000);
+            size_t ret = process_queue_.POP(ev_inserts, srv_il_process_queue_size_, 5000);
             if (!ret) {
                 break;
             }
@@ -316,12 +316,18 @@ bool EventRepos::init() {
     }
     log_info("We will use database %s, with table_prefix %s.", EventSql::database.c_str(), EventSql::table_prefix.c_str());
 
-    if (!get_config_value("core.max_process_task_size", max_process_task_size_) ||
-        max_process_task_size_ <= 0 ) {
-         log_info("find core.max_process_task_size failed, set default to 10");
-         max_process_task_size_ = 10;
+    if (!get_config_value("core.srv_il_process_queue_size", config_.srv_il_process_queue_size_) ||
+        config_.srv_il_process_queue_size_ <= 0) {
+         log_info("find core.srv_il_process_queue_size failed, set default to 5");
+         config_.srv_il_process_queue_size_ = 5;
     }
-    task_helper_ = std::make_shared<TinyTask>(max_process_task_size_);
+
+    if (!get_config_value("core.srv_ob_process_task_size", config_.srv_ob_process_task_size_) ||
+        config_.srv_ob_process_task_size_ <= 0) {
+         log_info("find core.srv_ob_process_task_size failed, set default to 10");
+         config_.srv_ob_process_task_size_ = 10;
+    }
+    task_helper_ = std::make_shared<TinyTask>(config_.srv_ob_process_task_size_);
     if (!task_helper_ || !task_helper_->init()){
         log_err("create task_helper work thread failed! ");
         return false;
