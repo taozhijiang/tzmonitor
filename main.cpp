@@ -2,6 +2,7 @@
 void backtrace_init();
 
 #include <boost/format.hpp>
+#include <boost/atomic/atomic.hpp>
 
 #include "config.h"
 
@@ -12,6 +13,7 @@ void backtrace_init();
 #include <utils/Utils.h>
 #include <utils/Log.h>
 #include <utils/SslSetup.h>
+
 
 struct tm service_start{};
 std::string TZ_VERSION;
@@ -122,6 +124,15 @@ int main(int argc, char* argv[]) {
     time_t now = ::time(NULL);
     ::localtime_r(&now, &service_start);
     log_info("Service start at %s", ::asctime(&service_start));
+
+    // test boost::atomic
+    boost::atomic<int> atomic_int;
+    if (atomic_int.is_lock_free()) {
+        log_alert("GOOD, your system atomic is lock_free ...");
+    } else {
+        log_err("BAD, your system atomic is not lock_free, may impact performance ...");
+    }
+
 
     (void)Manager::instance(); // create object first!
 

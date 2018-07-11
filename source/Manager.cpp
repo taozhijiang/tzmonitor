@@ -9,7 +9,6 @@
 #include <tzhttpd/HttpServer.h>
 
 #include <module/TimerService.h>
-#include <module/RedisData.h>
 
 #include <thrifting/helper/TThreadedHelper.h>
 #include <thrifting/helper/TThreadPoolHelper.h>
@@ -45,7 +44,6 @@ bool Manager::init() {
         return false;
     }
 
-    (void)RedisData::instance();
     (void)EventRepos::instance();
 
     // Timer
@@ -104,7 +102,6 @@ bool Manager::init() {
         return false;
     }
 
-    RedisData::instance().init();
 
     // Web
     http_server_ptr_.reset(new tzhttpd::HttpServer("tzmonitor.conf", "tzmonitor"));
@@ -113,9 +110,12 @@ bool Manager::init() {
         return false;
     }
 
-    http_server_ptr_->register_http_get_handler("/", tzhttpd::http_handler::index_http_get_handler);
-    http_server_ptr_->register_http_get_handler("^/stat/$", tzhttpd::http_handler::event_stat_http_get_handler);
-    http_server_ptr_->register_http_post_handler("^/ev_submit/$", tzhttpd::http_handler::post_ev_submit_handler);
+    http_server_ptr_->register_http_get_handler("/",
+                                                tzhttpd::http_handler::index_http_get_handler);
+    http_server_ptr_->register_http_get_handler("^/stat$",
+                                                tzhttpd::http_handler::event_stat_http_get_handler);
+    http_server_ptr_->register_http_post_handler("^/ev_submit$",
+                                                 tzhttpd::http_handler::post_ev_submit_handler);
 
     // Thrift
     int thrift_port, thrift_thread_size, thrift_io_thread_size;

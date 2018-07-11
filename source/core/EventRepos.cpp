@@ -3,6 +3,8 @@
 #include <utils/Log.h>
 #include <utils/Utils.h>
 
+#include <tzhttpd/HttpCfgHelper.h>
+
 #include "Helper.h"
 #include "EventRepos.h"
 
@@ -28,13 +30,13 @@ bool EventHandler::init() {
         return false;
     }
 
-    if (!get_config_value("core.max_process_queue_size", max_process_queue_size_) ||
-        max_process_queue_size_ <= 0 )
+    // 每次新建从配置文件重新取值，保证最新建立的实例是最新的配置
+    if (!get_config_value("core.srv_il_process_queue_size", srv_il_process_queue_size_) ||
+        srv_il_process_queue_size_ <= 0)
     {
-        log_err("find core.max_process_queue_size failed, set default to 5");
-        max_process_queue_size_ = 5;
+        log_err("find core.srv_il_process_queue_size failed, set default to 5");
+        srv_il_process_queue_size_ = 5;
     }
-
 
     return true;
 }
@@ -262,9 +264,9 @@ void EventHandler::run() {
 
     while (true) {
 
-        while (process_queue_.SIZE() > 2 * max_process_queue_size_) {
+        while (process_queue_.SIZE() > 2 * srv_il_process_queue_size_) {
             std::vector<events_ptr_t> ev_inserts;
-            size_t ret = process_queue_.POP(ev_inserts, max_process_queue_size_, 5000);
+            size_t ret = process_queue_.POP(ev_inserts, srv_il_process_queue_size_, 5000);
             if (!ret) {
                 break;
             }
@@ -303,7 +305,7 @@ EventRepos& EventRepos::instance() {
 
 bool EventRepos::init() {
 
-    int event_linger = 0;
+    time_t event_linger = 0;
     if (!get_config_value("core.event_linger", event_linger) || event_linger <= 0) {
         return false;
     }
@@ -316,18 +318,81 @@ bool EventRepos::init() {
     }
     log_info("We will use database %s, with table_prefix %s.", EventSql::database.c_str(), EventSql::table_prefix.c_str());
 
-    if (!get_config_value("core.max_process_task_size", max_process_task_size_) ||
-        max_process_task_size_ <= 0 ) {
-         log_info("find core.max_process_task_size failed, set default to 10");
-         max_process_task_size_ = 10;
+    int value;
+    if (!get_config_value("core.srv_il_process_queue_size", value) || value <= 0) {
+        log_err("find core.srv_il_process_queue_size failed, set default to 5");
+        config_.srv_il_process_queue_size_ = 5;
+    } else {
+        config_.srv_il_process_queue_size_ = value;
     }
-    task_helper_ = std::make_shared<TinyTask>(max_process_task_size_);
+
+    if (!get_config_value("core.srv_ob_process_task_size", value) || value <= 0) {
+        log_err("find core.srv_ob_process_task_size failed, set default to 10");
+        config_.srv_ob_process_task_size_ = 10;
+    } else {
+        config_.srv_ob_process_task_size_ = value;
+    }
+
+    task_helper_ = std::make_shared<TinyTask>(config_.srv_ob_process_task_size_);
     if (!task_helper_ || !task_helper_->init()){
         log_err("create task_helper work thread failed! ");
         return false;
     }
 
+    // config dynamic update
+    if (tzhttpd::HttpCfgHelper::instance().register_cfg_callback(
+            std::bind(&EventRepos::update_run_cfg, this, std::placeholders::_1 )) != 0) {
+        log_err("EventRepos register cfg callback failed!");
+        return false;
+    }
+
     return true;
+}
+
+int EventRepos::update_run_cfg(const libconfig::Config& cfg) {
+
+    log_alert("EventRepos::update_run_cfg called ...");
+
+    int ret_code = 0;
+
+    time_t event_linger;
+    if (!cfg.lookupValue("core.event_linger", event_linger)) {
+        log_err("find core.event_linger failed");
+        ret_code --;
+    } else {
+        if (event_linger != config_.event_linger_) {
+            log_alert("===> update event_linger: from %ld to %ld",
+                      config_.event_linger_.load(), event_linger);
+            config_.event_linger_ = event_linger;
+        }
+    }
+
+    int value;
+    if (!cfg.lookupValue("core.srv_il_process_queue_size", value) || value <= 0) {
+        log_err("find core.srv_il_process_queue_size failed");
+        ret_code --;
+    } else {
+        if (value != config_.srv_il_process_queue_size_) {
+            log_alert("===> update srv_il_process_queue_size: from %ld to %ld",
+                  config_.srv_il_process_queue_size_.load(), value );
+            config_.srv_il_process_queue_size_ = value;
+        }
+    }
+
+    if (!cfg.lookupValue("core.srv_ob_process_task_size", value) || value <= 0) {
+        log_err("find core.srv_ob_process_task_size failed");
+        ret_code --;
+    } else {
+        if (value != config_.srv_ob_process_task_size_) {
+            log_alert("===> update srv_ob_process_task_size: from %ld to %ld",
+                  config_.srv_ob_process_task_size_.load(), value );
+            config_.srv_ob_process_task_size_ = value;
+        }
+    }
+
+
+    log_alert("EventRepos::update_run_cfg called return %d ...", ret_code);
+    return ret_code;
 }
 
 int EventRepos::destory_handlers() {

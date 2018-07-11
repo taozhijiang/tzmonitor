@@ -1,6 +1,8 @@
 #ifndef _TZ_MONITOR_CLIENT_H__
 #define _TZ_MONITOR_CLIENT_H__
 
+#include <libconfig.h++>
+
 #include <memory>
 #include <boost/noncopyable.hpp>
 #include "EventTypes.h"
@@ -20,6 +22,7 @@ public:
     TzMonitorClient(std::string host, std::string serv, std::string entity_idx = "1");
     ~TzMonitorClient();
     bool init(const std::string& cfgFile);
+    int update_run_cfg(const libconfig::Config& cfg);
 
     int report_event(const std::string& name, int64_t value, std::string flag = "T");
 

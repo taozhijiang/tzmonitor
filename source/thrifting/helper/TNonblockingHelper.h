@@ -85,12 +85,27 @@ private:
             boost::shared_ptr<ServiceHandler> handler = boost::make_shared<ServiceHandler>();
             boost::shared_ptr<TProcessor> processor = boost::make_shared<ServiceProcessor>(handler);
 			
+#if defined( BUILD_VERSION_V1 )
+
+            boost::shared_ptr<server::TNonblockingServer> serverPtr 
+                = boost::make_shared<server::TNonblockingServer>(processor,  protocolFactory, port_, threads_);
+
+#elif defined( BUILD_VERSION_V2 )
+
 			// Socket网络层
 			// if SSL, consider transport::TNonblockingSSLServerSocket
-            boost::shared_ptr<transport::TNonblockingServerTransport> tSocket = boost::make_shared<transport::TNonblockingServerSocket>(port_);
+            boost::shared_ptr<transport::TNonblockingServerTransport> tSocket 
+                = boost::make_shared<transport::TNonblockingServerSocket>(port_);
 
             // Server层次
-            boost::shared_ptr<server::TNonblockingServer> serverPtr = boost::make_shared<server::TNonblockingServer>(processor,  protocolFactory, tSocket, threads_);
+            boost::shared_ptr<server::TNonblockingServer> serverPtr 
+                = boost::make_shared<server::TNonblockingServer>(processor,  protocolFactory, tSocket, threads_);
+
+#else
+
+    #error "BUILD_VERSION not specified..."
+
+#endif
             serverPtr->setNumIOThreads(io_thread_sz_);
             server_ = serverPtr;
 

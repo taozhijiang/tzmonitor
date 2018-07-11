@@ -3,10 +3,13 @@
 
 #include "General.h"
 
+#include <libconfig.h++>
+
 #include <deque>
 #include <mutex>
 
 #include <boost/noncopyable.hpp>
+#include <boost/atomic/atomic.hpp>
 
 #include <utils/EQueue.h>
 #include <utils/TinyTask.h>
@@ -53,12 +56,16 @@ private:
     int64_t check_timer_id_;
     void check_timer_run();
 
-    int max_process_queue_size_;
+    int srv_il_process_queue_size_;
 };
 
 
 struct EventReposConfig {
-    time_t event_linger_;
+
+    boost::atomic<time_t> event_linger_;
+
+    boost::atomic<int> srv_il_process_queue_size_;
+    boost::atomic<int> srv_ob_process_task_size_;
 };
 
 
@@ -66,6 +73,7 @@ class EventRepos: public boost::noncopyable {
 public:
     static EventRepos& instance();
     bool init();
+    int update_run_cfg(const libconfig::Config& cfg);
     int destory_handlers();
 
     // forward request to specified handlers
@@ -133,7 +141,6 @@ private:
 
     EventReposConfig config_;
 
-    int max_process_task_size_;
     std::shared_ptr<TinyTask> task_helper_;
 
 private:

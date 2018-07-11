@@ -9,7 +9,10 @@
 
 #include <thrift/transport/TSocket.h>
 #include <thrift/transport/TServerSocket.h>
+
+#if defined(BUILD_VERSION_V2)
 #include <thrift/transport/TNonblockingServerSocket.h>
+#endif
 
 #include <thrift/server/TThreadedServer.h>
 #include <thrift/server/TThreadPoolServer.h>

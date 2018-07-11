@@ -21,36 +21,47 @@ namespace tzhttpd {
 
 namespace http_handler {
 
-int index_http_get_handler(const HttpParser& http_parser, std::string& response, string& status_line) {
+int index_http_get_handler(const HttpParser& http_parser,
+                           std::string& response, string& status_line, std::vector<std::string>& add_header) {
     std::unique_ptr<IndexStatHandler> handler(new IndexStatHandler(http_parser));
     if (handler->fetch_stat(response) == 0) {
         status_line = http_proto::generate_response_status_line(http_parser.get_version(),
                                                                 http_proto::StatusCode::success_ok);
+        add_header = {"Content-Type: text/html; charset=utf-8"};
+
         return 0;
     }
 
     response = http_proto::content_error;
     status_line = http_proto::generate_response_status_line(http_parser.get_version(),
                                                             http_proto::StatusCode::server_error_internal_server_error);
+    add_header = {"Content-Type: text/html; charset=utf-8"};
+
     return -1;
 }
 
-int event_stat_http_get_handler(const HttpParser& http_parser, std::string& response, string& status_line) {
+int event_stat_http_get_handler(const HttpParser& http_parser,
+                                std::string& response, string& status_line, std::vector<std::string>& add_header) {
 
     std::unique_ptr<EventStatHandler> handler(new EventStatHandler(http_parser));
     if (handler->fetch_stat(response) == 0) {
         status_line = http_proto::generate_response_status_line(http_parser.get_version(),
                                                                 http_proto::StatusCode::success_ok);
+        add_header = {"Content-Type: text/html; charset=utf-8"};
+
         return 0;
     }
 
     response = http_proto::content_error;
     status_line = http_proto::generate_response_status_line(http_parser.get_version(),
                                                             http_proto::StatusCode::server_error_internal_server_error);
+    add_header = {"Content-Type: text/html; charset=utf-8"};
+
     return -1;
 }
 
-int post_ev_submit_handler(const HttpParser& http_parser, const std::string& post_data, std::string& response, string& status_line) {
+int post_ev_submit_handler(const HttpParser& http_parser, const std::string& post_data,
+                           std::string& response, string& status_line, std::vector<std::string>& add_header) {
 
     Json::Value root;
     Json::Reader reader;
@@ -104,6 +115,8 @@ int post_ev_submit_handler(const HttpParser& http_parser, const std::string& pos
             response = http_proto::content_ok;
             status_line = http_proto::generate_response_status_line(http_parser.get_version(),
                                                                     http_proto::StatusCode::success_ok);
+            add_header = {"Content-Type: text/html; charset=utf-8"};
+
             return ErrorDef::OK;
         }
 
@@ -112,6 +125,8 @@ int post_ev_submit_handler(const HttpParser& http_parser, const std::string& pos
     response = http_proto::content_error;
     status_line = http_proto::generate_response_status_line(http_parser.get_version(),
                                                             http_proto::StatusCode::server_error_internal_server_error);
+    add_header = {"Content-Type: text/html; charset=utf-8"};
+
     return ErrorDef::Error;
 }
 
