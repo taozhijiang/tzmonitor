@@ -18,38 +18,12 @@ void backtrace_init();
 struct tm service_start{};
 std::string TZ_VERSION;
 
-static void interrupted_callback(int signal){
-    log_err("Signal %d received ...", signal);
-
-    switch(signal) {
-
-    case SIGQUIT:
-            log_info("Graceful stop tzmonitor service ... ");
-            Manager::instance().service_graceful();
-            log_info("Graceful stop tzmonitor done!"); // main join all
-            ::sleep(1);
-            ::exit(0);
-            break;
-
-    case SIGTERM:
-            log_info("Immediately shutdown tzmonitor service ... ");
-            Manager::instance().service_terminate();
-            log_info("Immediately shutdown tzmonitor service done! ");
-            ::sleep(1);
-            ::exit(0);
-            break;
-
-    default:
-            log_err("Unhandled signal: %d", signal);
-            break;
-    }
-}
-
 static void init_signal_handle(){
+
     ::signal(SIGPIPE, SIG_IGN);
 
-    ::signal(SIGQUIT, interrupted_callback);
-    ::signal(SIGTERM, interrupted_callback);
+    ::signal(SIGUSR1, SIG_IGN);
+    ::signal(SIGUSR2, SIG_IGN);
 
     return;
 }

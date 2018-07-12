@@ -111,11 +111,11 @@ bool Manager::init() {
     }
 
     http_server_ptr_->register_http_get_handler("/",
-                                                tzhttpd::http_handler::index_http_get_handler);
+                                                tzhttpd::http_handler::index_http_get_handler, true);
     http_server_ptr_->register_http_get_handler("^/stat$",
-                                                tzhttpd::http_handler::event_stat_http_get_handler);
+                                                tzhttpd::http_handler::event_stat_http_get_handler, true);
     http_server_ptr_->register_http_post_handler("^/ev_submit$",
-                                                 tzhttpd::http_handler::post_ev_submit_handler);
+                                                 tzhttpd::http_handler::post_ev_submit_handler, true);
 
     // Thrift
     int thrift_port, thrift_thread_size, thrift_io_thread_size;
