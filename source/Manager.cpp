@@ -6,6 +6,8 @@
 
 #include <connect/SqlConn.h>
 #include <connect/RedisConn.h>
+
+#include <tzhttpd/CheckPoint.h>
 #include <tzhttpd/HttpServer.h>
 
 #include <module/TimerService.h>
@@ -104,6 +106,10 @@ bool Manager::init() {
 
 
     // Web
+    // default syslog for tzhttpd
+    tzhttpd::set_checkpoint_log_store_func(syslog);
+    tzhttpd::tzhttpd_log_init(7);
+
     http_server_ptr_.reset(new tzhttpd::HttpServer("tzmonitor.conf", "tzmonitor"));
     if (!http_server_ptr_ || !http_server_ptr_->init()) {
         log_err("Init HttpServer failed!");
@@ -127,9 +133,9 @@ bool Manager::init() {
     }
 
     // TThreaded
-//    monitor_service_ptr_.reset(new TzMonitorService<TThreadedHelper>(thrift_port));
+    // monitor_service_ptr_.reset(new TzMonitorService<TThreadedHelper>(thrift_port));
     // TThreadPool
-//    monitor_service_ptr_.reset(new TzMonitorService<TThreadPoolHelper>(thrift_port, thrift_thread_size));
+    // monitor_service_ptr_.reset(new TzMonitorService<TThreadPoolHelper>(thrift_port, thrift_thread_size));
     // TNonblocking
     monitor_service_ptr_.reset(new TzMonitorService<TNonblockingHelper>(thrift_port, thrift_thread_size, thrift_io_thread_size));
 

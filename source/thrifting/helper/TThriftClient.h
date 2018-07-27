@@ -28,12 +28,23 @@ public:
             return -1;
         }
 
-        // std::function<void()> f = std::bind(func, *client, std::forward<Args>(args) ...);
-        // f();
+        try {
+            // std::function<void()> f = std::bind(func, *client, std::forward<Args>(args) ...);
+            // f();
 
-        // 成员函数指针，此处不能使用智能指针
-        std::shared_ptr<ClientHandler> client = *op_client;
-        ((client.get())->*func)(std::forward<Args>(args) ...);
+            // 成员函数指针，此处不能使用智能指针
+            std::shared_ptr<ClientHandler> client = *op_client;
+            ((client.get())->*func)(std::forward<Args>(args) ...);
+
+        } catch (std::exception& e) {
+            fprintf(stderr, "Thrift client call_service exception with %s", e.what());
+            log_err("Thrift client call_service exception with %s", e.what());
+            return -2;
+        } catch (...) {
+            fprintf(stderr, "Thrift client call_service with unknown exception");
+            log_err("Thrift client call_service with unknown exception");
+            return -3;
+        }
 
         return 0;
     }
@@ -44,11 +55,23 @@ public:
             return -1;
         }
 
-        // std::function<void()> f = std::bind(func, *client, std::forward<Args>(args) ...);
-        // f();
+        try {
+            // std::function<void()> f = std::bind(func, *client, std::forward<Args>(args) ...);
+            // f();
 
-        // 成员函数指针，此处不能使用智能指针
-        ((client.get())->*func)(std::forward<Args>(args) ...);
+            // 成员函数指针，此处不能使用智能指针
+            ((client.get())->*func)(std::forward<Args>(args) ...);
+
+        } catch (std::exception& e) {
+            fprintf(stderr, "Thrift client call_service exception with %s", e.what());
+            log_err("Thrift client call_service exception with %s", e.what());
+            return -2;
+        } catch (...) {
+            fprintf(stderr, "Thrift client call_service with unknown exception");
+            log_err("Thrift client call_service with unknown exception");
+            return -3;
+        }
+
         return 0;
     }
 
@@ -75,8 +98,12 @@ public:
             std::shared_ptr<ClientHandler> client (new ClientHandler(protocol));
 
             ret = client;
+        } catch (std::exception& e) {
+            fprintf(stderr, "Create Thrift client exceptions with %s", e.what());
+            log_err("Create Thrift client exceptions with %s", e.what());
         } catch (...) {
             fprintf(stderr, "Exception caught when create client: %s:%d", ip.c_str(), port);
+            log_err("Exception caught when create client: %s:%d", ip.c_str(), port);
         }
 
         return ret;

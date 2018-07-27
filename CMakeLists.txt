@@ -120,7 +120,7 @@ set (EXTRA_LIBS ${EXTRA_LIBS} libthriftnb.a)
 
 
 # 某些库需要静态全连接，否则主服务没使用但是so使用，会报符号没有找到
-target_link_libraries( tzmonitor 
+target_link_libraries( tzmonitor -lrt -rdynamic -ldl
     -Wl,--whole-archive ${WHOLE_LIBS} -Wl,--no-whole-archive
     ${EXTRA_LIBS}
 )

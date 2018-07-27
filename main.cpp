@@ -1,6 +1,7 @@
 #include <signal.h>
 void backtrace_init();
 
+#include <syslog.h>
 #include <boost/format.hpp>
 #include <boost/atomic/atomic.hpp>
 
@@ -54,6 +55,7 @@ static void show_vcs_info () {
 
 // /var/run/[program_invocation_short_name].pid --> root permission
 static int create_process_pid() {
+
     char pid_msg[24];
     char pid_file[PATH_MAX];
 
@@ -89,7 +91,8 @@ int main(int argc, char* argv[]) {
         log_info("Using default log_level LOG_INFO");
     }
 
-    if (!Log::instance().init(log_level)) {
+    set_checkpoint_log_store_func(syslog);
+    if (!log_init(log_level)) {
         std::cerr << "Init syslog failed!" << std::endl;
         return -1;
     }
@@ -107,6 +110,12 @@ int main(int argc, char* argv[]) {
         log_err("BAD, your system atomic is not lock_free, may impact performance ...");
     }
 
+    // SSL 环境设置
+    if (!Ssl_thread_setup()) {
+        log_err("SSL env setup error!");
+        ::exit(1);
+    }
+
 
     (void)Manager::instance(); // create object first!
 
@@ -120,12 +129,6 @@ int main(int argc, char* argv[]) {
             log_err("Manager init error!");
             ::exit(1);
         }
-    }
-
-    // SSL 环境设置
-    if (!Ssl_thread_setup()) {
-        log_err("SSL env setup error!");
-        ::exit(1);
     }
 
     log_debug( "TZMonitor service initialized ok!");

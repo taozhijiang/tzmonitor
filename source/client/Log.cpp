@@ -9,9 +9,13 @@
 #include <boost/algorithm/string.hpp>
 
 #include "General.h"
-#include "Log.h"
+#include <utils/Log.h>
 
+// 这里client和server使用的同一个utils/Log.h头文件，但是
+// client库自己拷贝了一份实现，总体来说是不会冲突的
 
+/////////////////////////////////////
+/////////////////////////////////////
 //
 // define here
 // Log Store
@@ -20,6 +24,8 @@ CP_log_store_func_t checkpoint_log_store_func_impl_ = NULL;
 void set_checkpoint_log_store_func(CP_log_store_func_t func) {
     checkpoint_log_store_func_impl_ = func;
 }
+/////////////////////////////////////
+/////////////////////////////////////
 
 // The use of openlog() is optional; it will automatically be called by syslog() if necessary.
 bool log_init(int log_level) {

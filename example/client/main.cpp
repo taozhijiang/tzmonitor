@@ -1,13 +1,19 @@
 #include <iostream>
+#include <syslog.h>
 
 #include "TzMonitor.h"
 
 int main(int arcg, char* argv[]) {
 
+    ::openlog(program_invocation_short_name, LOG_PID , LOG_LOCAL6);
+    ::setlogmask (LOG_UPTO (7));
+
     auto client = std::make_shared<TzMonitor::TzMonitorClient>("centos", "testservice");
-    if(!client->init("tzmonitor.conf")) {
+    if(!client->init("tzmonitor_client.conf", syslog)) {
         return -1;
     }
+
+    syslog(LOG_NOTICE, "TzMonitor client test start");
 
     while (true) {
         client->report_event("event1", 100, "flag_T");
@@ -24,10 +30,10 @@ int main(int arcg, char* argv[]) {
         client->report_event("event3", 200, "flag_T");
         client->report_event("event3", 100, "flag_F");
 
-        ::usleep(1);
+        ::sleep(1);
     }
 
-    std::cout << "TzMonitor client test done" << std::endl;
+    syslog(LOG_NOTICE, "TzMonitor client test done");
 
     return 0;
 }
