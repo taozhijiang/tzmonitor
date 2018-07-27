@@ -49,29 +49,101 @@ BOOST_AUTO_TEST_CASE(redis_test)
 
     ::srand((unsigned int)::time(NULL));
 
-    std::string redis_test_key1 = "redis_pool_prefix";
-    std::string redis_test_key2 = "test_key_at_initialize";
-    int64_t redis_test_value = ::random();
-    int64_t redis_test_get   = 0;
+    std::string key1 = "nccccc_test_key1";
+    std::string key2 = "nccccc_test_key2";
+    int64_t val1 = 123;
+    std::string val2 = "s123";
+    int64_t val1_r {};
+    std::string val2_r {};
 
-    redisReply_ptr r = conn->exec("hmset %s %s %ld", redis_test_key1.c_str(), redis_test_key2.c_str(), redis_test_value);
-    if (!r || r->type == REDIS_REPLY_ERROR) {
+    conn->Set(key1, val1);
+    conn->Set(key2, val2);
+
+    if(!conn->Exists(key1))
+        BOOST_CHECK(false);
+
+    if(!conn->Exists(key2))
+        BOOST_CHECK(false);
+
+    if (!conn->Get(key1, val1_r) || val1 != val1_r) {
         BOOST_CHECK(false);
     }
 
-    r = conn->exec("hmget %s %s", redis_test_key1.c_str(), redis_test_key2.c_str());
-    if (!r || r->type == REDIS_REPLY_ERROR || r->elements != 1) {
+    if (!conn->Get(key2, val2_r) || val2 != val2_r) {
         BOOST_CHECK(false);
     }
 
-    std::string strNum(r->element[0]->str, r->element[0]->len);
-    redis_test_get = ::atoll(strNum.c_str());
-
-    if (redis_test_value != redis_test_get) {
+    std::vector<std::string> str_key = {key1, key2};
+    std::vector<std::string> str_ret;
+    if (!conn->MGet(str_key, str_ret)) {
         BOOST_CHECK(false);
     }
 
-    std::cerr << "redis value: " << redis_test_get << std::endl;
+    if (str_ret.size() != str_key.size() ||
+        str_ret[0] != "123" || str_ret[1] != val2) {
+        BOOST_CHECK(false);
+    }
+
+    conn->Del(key1);
+    if(conn->Exists(key1))
+        BOOST_CHECK(false);
+
+
+    conn->Set(key1, 100);
+    conn->Incr(key1);
+
+    {
+        auto ret = conn->IncrBy(key1, 4);
+        if (!ret || *ret != 105 ) {
+            BOOST_CHECK(false);
+        }
+
+        auto ret2 = conn->DecrBy(key1, 4);
+        if (!ret2 || *ret2 != 101 ) {
+            BOOST_CHECK(false);
+        }
+
+        auto ret3 = conn->Decr(key1);
+        if (!ret3 || *ret3 != 100 ) {
+            BOOST_CHECK(false);
+        }
+    }
+
+
+    std::string hkey = "nccc_hash_set";
+    conn->HSet(hkey, key1, val1);
+    conn->HSet(hkey, key2, val2);
+
+    val1_r = 0; val2_r = "";
+    if(!conn->HGet(hkey, key1, val1_r) || val1 != val1_r)
+        BOOST_CHECK(false);
+
+    if(!conn->HGet(hkey, key2, val2_r) || val2 != val2_r)
+        BOOST_CHECK(false);
+
+    std::map<std::string, std::string> map_ret2;
+    if (!conn->HGetAll(hkey, map_ret2) || map_ret2.size() != 2) {
+        BOOST_CHECK(false);
+    }
+    for (auto iter = map_ret2.begin(); iter != map_ret2.end(); ++ iter) {
+        std::cout << iter->first << " - " << iter->second << std::endl;
+    }
+
+    std::string queue_name = "nccc_queue";
+    std::string msg = "HAHA";
+    int64_t     msg2 = 12987;
+    conn->LPush(queue_name, msg);
+    conn->LPush(queue_name, msg2);
+
+    std::string msg_ret;
+    int64_t msg2_ret;
+    if (!conn->RPop(queue_name, msg_ret) || !conn->RPop(queue_name, msg2_ret)) {
+        BOOST_CHECK(false);
+    }
+
+    if (msg != msg_ret || msg2 != msg2_ret) {
+        BOOST_CHECK(false);
+    }
 
     BOOST_CHECK(true);
 }

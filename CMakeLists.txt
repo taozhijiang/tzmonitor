@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 2.8.11)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x " )
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wconversion -Woverloaded-virtual -Wpointer-arith -Wshadow -Wwrite-strings -march=native " )
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Woverloaded-virtual -Wpointer-arith -Wwrite-strings -Werror=format -march=native " )
 
 
 ####################
@@ -21,9 +21,6 @@ ELSEIF(CMAKE_BUILD_TYPE MATCHES RELEASE)
 ELSE(CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(FATAL_ERROR "Unknown BUILD_TYPE ... ")
 ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
-
-# tzhttpd 的日志融入到现有的syslog中，否则就打印到标准输出
-add_definitions( -DTZHTTPD_USING_SYSLOG )
 
 
 set(CMAKE_BUILD_VERSION V1) # libevent  & thrift-0.9.2

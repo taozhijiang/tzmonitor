@@ -57,20 +57,23 @@ enum MqWorkState {
 class MqConn: public ConnWrap,
               public boost::noncopyable {
 public:
-    explicit MqConn(ConnPool<MqConn, MqConnPoolHelper>& pool);
+    explicit MqConn(ConnPool<MqConn, MqConnPoolHelper>& pool, const MqConnPoolHelper& helper);
     ~MqConn();
 
-    bool init(int64_t conn_uuid, const MqConnPoolHelper& helper);
+    bool init(int64_t conn_uuid);
+    bool is_health() {
+        return mq_.isConnectionOpen() && mq_.isChannelOpen(t_);
+    }
 
 private:
 
     amqp_channel_t   t_;
     AMQP::RabbitMQHelper mq_;
     enum MqWorkState state_;
-    MqConnPoolHelper helper_;
 
     // may be used in future
     ConnPool<MqConn, MqConnPoolHelper>& pool_;
+    MqConnPoolHelper helper_;
 
     // consume是推模式的消费，而get是拉模式的消费
     bool mq_setup_channel_publish(AMQP::RabbitChannelPtr pChannel, void* pArg);

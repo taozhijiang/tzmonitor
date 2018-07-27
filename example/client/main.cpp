@@ -30,7 +30,7 @@ int main(int arcg, char* argv[]) {
         client->report_event("event3", 200, "flag_T");
         client->report_event("event3", 100, "flag_F");
 
-        ::sleep(1);
+        ::usleep(1);
     }
 
     syslog(LOG_NOTICE, "TzMonitor client test done");

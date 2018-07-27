@@ -309,7 +309,7 @@ bool EventRepos::init() {
     if (!get_config_value("core.event_linger", event_linger) || event_linger <= 0) {
         return false;
     }
-    log_info("We will use event_linger time %d sec.", event_linger);
+    log_info("We will use event_linger time %ld sec.", event_linger);
     config_.event_linger_ = event_linger;
 
     if (!get_config_value("mysql.database", EventSql::database ) ||
@@ -373,7 +373,7 @@ int EventRepos::update_run_cfg(const libconfig::Config& cfg) {
         ret_code --;
     } else {
         if (value != config_.srv_il_process_queue_size_) {
-            log_alert("===> update srv_il_process_queue_size: from %ld to %ld",
+            log_alert("===> update srv_il_process_queue_size: from %d to %d",
                   config_.srv_il_process_queue_size_.load(), value );
             config_.srv_il_process_queue_size_ = value;
         }
@@ -384,7 +384,7 @@ int EventRepos::update_run_cfg(const libconfig::Config& cfg) {
         ret_code --;
     } else {
         if (value != config_.srv_ob_process_task_size_) {
-            log_alert("===> update srv_ob_process_task_size: from %ld to %ld",
+            log_alert("===> update srv_ob_process_task_size: from %d to %d",
                   config_.srv_ob_process_task_size_.load(), value );
             config_.srv_ob_process_task_size_ = value;
         }

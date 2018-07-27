@@ -31,7 +31,7 @@ public:
 
     bool wrap_conn_expired(time_t now, time_t live_sec) {
         if (now - start_.tv_sec > live_sec) {
-            log_info("use count: %ld, now: %lu, last_time: %lu, linger: %dsec", count_, now, start_.tv_sec, live_sec);
+            log_info("use count: %ld, now: %lu, last_time: %lu, linger: %lu sec", count_, now, start_.tv_sec, live_sec);
             return true;
         }
 

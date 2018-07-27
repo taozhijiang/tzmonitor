@@ -122,7 +122,7 @@ private:
         std::string identity = construct_identity(evs.host, evs.serv, evs.entity_idx);
         std::shared_ptr<EventHandler> handler = std::make_shared<EventHandler>(evs.host, evs.serv, evs.entity_idx);
         if (!handler) {
-            log_err("Create handler %s,%s,%s failed!", identity.c_str());
+            log_err("Create handler %s failed!", identity.c_str());
             return ErrorDef::CreateErr;
         }
 
