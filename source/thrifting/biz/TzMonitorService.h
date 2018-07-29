@@ -1,3 +1,11 @@
+/*-
+ * Copyright (c) 2018 TAO Zhijiang<taozhijiang@gmail.com>
+ *
+ * Licensed under the BSD-3-Clause license, see LICENSE for full information.
+ *
+ */
+
+
 #ifndef __TZ_MONITOR_SERVICE_H__
 #define __TZ_MONITOR_SERVICE_H__
 

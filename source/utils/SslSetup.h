@@ -1,3 +1,11 @@
+/*-
+ * Copyright (c) 2018 TAO Zhijiang<taozhijiang@gmail.com>
+ *
+ * Licensed under the BSD-3-Clause license, see LICENSE for full information.
+ *
+ */
+
+
 #ifndef _COMMONNET_SSL_SETUP_H_
 #define _COMMONNET_SSL_SETUP_H_
 

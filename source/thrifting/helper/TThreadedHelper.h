@@ -1,3 +1,11 @@
+/*-
+ * Copyright (c) 2018 TAO Zhijiang<taozhijiang@gmail.com>
+ *
+ * Licensed under the BSD-3-Clause license, see LICENSE for full information.
+ *
+ */
+
+
 #ifndef __TTHREADED_HELPER_H__
 #define __TTHREADED_HELPER_H__
 

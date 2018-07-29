@@ -1,3 +1,11 @@
+/*-
+ * Copyright (c) 2018 TAO Zhijiang<taozhijiang@gmail.com>
+ *
+ * Licensed under the BSD-3-Clause license, see LICENSE for full information.
+ *
+ */
+
+
 // 此库的作用就是对业务服务产生的数据进行压缩，然后开辟
 // 独立的线程向服务端进行提交，以避免多次独立提交带来的额外消耗
 
