@@ -14,6 +14,7 @@
 
 #include <utils/Log.h>
 
+#include "ErrorDef.h"
 #include "include/TzMonitor.h"
 #include "TzMonitorThriftClientHelper.h"
 
@@ -56,12 +57,16 @@ public:
             req.data = orders;
 
             tz_thrift::result_t result {};
-
-            int ret_code = TThriftClient::call_service<TzMonitorClient> (ip_, static_cast<uint16_t>(port_),
+            int ret_code = TThriftClient::call_service<TzMonitorClient>
+                                        (ip_, static_cast<uint16_t>(port_),
                                         &TzMonitorClient::ev_submit, std::ref(result), std::cref(req));
 
-            if (ret_code == 0 && result.code == 0 && result.desc == "OK") {
-                return ErrorDef::OK;
+            if (ret_code == 0) {
+                if (result.code == 0 && result.desc == "OK")
+                    return ErrorDef::OK;
+
+                log_err("call thrift logic return: %d: %s", result.code, result.desc.c_str());
+                return result.code != 0 ? result.code : ErrorDef::ThriftErr;
             }
 
         } while (0);
@@ -98,57 +103,64 @@ public:
             int ret_code = TThriftClient::call_service<TzMonitorClient>(ip_, static_cast<uint16_t>(port_),
                                         &TzMonitorClient::ev_query, std::ref(resp), std::cref(req));
 
-            if (ret_code == 0 && resp.result.code == 0 && resp.result.desc == "OK") {
+            if (ret_code == 0) {
 
-                // empty string equals
-                if (resp.version != req.version || resp.name != req.name ||
-                    resp.interval_sec != req.interval_sec ||
-                    resp.host != req.host || resp.serv != req.serv ||
-                    resp.entity_idx != req.entity_idx || resp.flag != req.flag )
-                {
-                    log_err("thrift return does not match request param.");
-                    return ErrorDef::CheckErr;
-                }
+                if( resp.result.code == 0 && resp.result.desc == "OK") {
 
-                resp_info.version = resp.version;
-                resp_info.time = resp.time;
-                resp_info.host = resp.host;
-                resp_info.serv = resp.serv;
-                resp_info.entity_idx = resp.entity_idx;
-                resp_info.name = resp.name;
-                resp_info.flag = resp.flag;
-
-                resp_info.summary.count = resp.summary.count;
-                resp_info.summary.value_sum = resp.summary.value_sum;
-                resp_info.summary.value_avg = resp.summary.value_avg;
-                resp_info.summary.value_std = resp.summary.value_std;
-
-
-                if (cond.groupby != GroupType::kGroupNone) {
-
-                    std::vector<event_info_t> info;
-                    for (auto iter = resp.info.begin(); iter != resp.info.end(); ++iter) {
-
-                        event_info_t item;
-                        if (cond.groupby == GroupType::kGroupbyTime) {
-                            item.time = iter->time;
-                        } else if (cond.groupby == GroupType::kGroupbyFlag) {
-                            item.flag = iter->flag;
-                        }
-
-                        item.count = iter->count;
-                        item.value_sum = iter->value_sum;
-                        item.value_avg = iter->value_avg;
-                        item.value_std = iter->value_std;
-
-                        info.push_back(item);
+                    // empty string equals
+                    if (resp.version != req.version || resp.name != req.name ||
+                        resp.interval_sec != req.interval_sec ||
+                        resp.host != req.host || resp.serv != req.serv ||
+                        resp.entity_idx != req.entity_idx || resp.flag != req.flag )
+                    {
+                        log_err("thrift return does not match request param.");
+                        return ErrorDef::CheckErr;
                     }
 
-                    // collect it
-                    resp_info.info = std::move(info);
+                    resp_info.version = resp.version;
+                    resp_info.time = resp.time;
+                    resp_info.host = resp.host;
+                    resp_info.serv = resp.serv;
+                    resp_info.entity_idx = resp.entity_idx;
+                    resp_info.name = resp.name;
+                    resp_info.flag = resp.flag;
+
+                    resp_info.summary.count = resp.summary.count;
+                    resp_info.summary.value_sum = resp.summary.value_sum;
+                    resp_info.summary.value_avg = resp.summary.value_avg;
+                    resp_info.summary.value_std = resp.summary.value_std;
+
+
+                    if (cond.groupby != GroupType::kGroupNone) {
+
+                        std::vector<event_info_t> info;
+                        for (auto iter = resp.info.begin(); iter != resp.info.end(); ++iter) {
+
+                            event_info_t item;
+                            if (cond.groupby == GroupType::kGroupbyTime) {
+                                item.time = iter->time;
+                            } else if (cond.groupby == GroupType::kGroupbyFlag) {
+                                item.flag = iter->flag;
+                            }
+
+                            item.count = iter->count;
+                            item.value_sum = iter->value_sum;
+                            item.value_avg = iter->value_avg;
+                            item.value_std = iter->value_std;
+
+                            info.push_back(item);
+                        }
+
+                        // collect it
+                        resp_info.info = std::move(info);
+                    }
+
+                    return ErrorDef::OK;
                 }
 
-                return ErrorDef::OK;
+                // request handler error
+                log_err("call thrift logic return: %d: %s", resp.result.code, resp.result.desc.c_str());
+                return resp.result.code != 0 ? resp.result.code : ErrorDef::ThriftErr;
             }
 
         } while (0);

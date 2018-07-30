@@ -9,8 +9,6 @@
 #ifndef _TZ_SQL_CONN_H_
 #define _TZ_SQL_CONN_H_
 
-#include "General.h"
-
 #include <vector>
 
 #include <boost/noncopyable.hpp>

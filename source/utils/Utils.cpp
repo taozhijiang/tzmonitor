@@ -8,7 +8,9 @@
 
 #include <execinfo.h>
 
-#include "General.h"
+#include <sys/types.h>
+#include <signal.h>
+
 #include "Utils.h"
 #include <utils/Log.h>
 
@@ -97,13 +99,3 @@ bool sys_config_init(const std::string& config_file) {
 void COUNT_FUNC_PERF::display_info(const std::string& env, int64_t time_ms, int64_t time_us) {
     log_debug("%s, %s perf: %ld.%ld ms", env_.c_str(), key_.c_str(), time_ms, time_us);
 }
-
-
-
-namespace boost {
-
-void assertion_failed(char const * expr, char const * function, char const * file, long line) {
-    log_err("BAD!!! expr `%s` assert failed at %s(%ld): %s", expr, file, line, function);
-}
-
-} // end boost

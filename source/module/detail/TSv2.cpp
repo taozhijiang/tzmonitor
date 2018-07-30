@@ -11,7 +11,6 @@
 #include <event2/event.h>
 #include <event2/util.h>
 
-#include "General.h"
 #include "Helper.h"
 #include <utils/Log.h>
 

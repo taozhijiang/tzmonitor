@@ -13,7 +13,6 @@
 #include <iomanip>
 #include <istream>
 #include <sstream>
-#include <string>
 #include <vector>
 
 #include <openssl/buffer.h>
@@ -21,7 +20,6 @@
 #include <openssl/md5.h>
 #include <openssl/sha.h>
 
-#include "General.h"
 
 // 类静态函数可以直接将函数定义丢在头文件中
 

@@ -20,13 +20,13 @@
 #include <thread>
 #include <functional>
 
-#ifndef _DEFINE_GET_POINTER_MARKER_
-#define _DEFINE_GET_POINTER_MARKER_
+#ifndef _XTRA_DEFINE_GET_POINTER_MARKER_
+#define _XTRA_DEFINE_GET_POINTER_MARKER_
 template<class T>
 T * get_pointer(std::shared_ptr<T> const& p) {
     return p.get();
 }
-#endif // _DEFINE_GET_POINTER_MARKER_
+#endif // _XTRA_DEFINE_GET_POINTER_MARKER_
 
 #include <utils/Log.h>
 #include <utils/EQueue.h>
@@ -35,6 +35,8 @@ T * get_pointer(std::shared_ptr<T> const& p) {
 #include "TzMonitorHttpClientHelper.h"
 #include "TzMonitorThriftClientHelper.h"
 #include "include/TzMonitor.h"
+
+#include "ErrorDef.h"
 
 namespace TzMonitor {
 
@@ -101,6 +103,9 @@ private:
                 if (ret_code == 0) {
                     log_debug("Thrift report submit ok.");
                     break;
+                } else if(ret_code == ErrorDef::MsgOld) {
+                    log_debug("report msg too old");
+                    break;
                 } else {
                     log_info("Thrift report submit return code: %d", ret_code);
                     // false through http
@@ -118,7 +123,7 @@ private:
             }
 
             // Error:
-            log_err("BAD, reprot failed!");
+            log_err("BAD here, reprot failed!");
             ret_code = -2;
 
         } while (0);

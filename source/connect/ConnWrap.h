@@ -9,7 +9,6 @@
 #ifndef _TZ_CONN_WRAP_H_
 #define _TZ_CONN_WRAP_H_
 
-#include "General.h"
 #include <utils/Log.h>
 
 class ConnWrap {

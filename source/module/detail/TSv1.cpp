@@ -6,10 +6,11 @@
  */
 
 
+#include <xtra_rhel6.h>
+
 #include <iostream>
 #include <event/evutil.h>
 
-#include "General.h"
 #include "Helper.h"
 #include <utils/Log.h>
 

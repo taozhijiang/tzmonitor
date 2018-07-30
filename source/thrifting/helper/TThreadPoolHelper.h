@@ -12,8 +12,6 @@
 // Server thread goes back to the thread pool after client closes the connection for reuse.
 // There is a limit on the number of threads. The thread pool won’t grow beyond the limit.
 
-#include "General.h"
-
 // Thrift严重依赖于boost库，所以这里的智能指针也适用boost的版本
 #include <boost/make_shared.hpp>
 

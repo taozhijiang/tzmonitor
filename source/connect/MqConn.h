@@ -11,8 +11,6 @@
 
 #include <boost/optional.hpp>
 
-#include "General.h"
-
 #include "ConnPool.h"
 #include "ConnWrap.h"
 #include "RabbitMQ.h"

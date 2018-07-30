@@ -33,7 +33,14 @@ public:
         typedef boost::optional<std::shared_ptr<ClientHandler>> OptionalClient;
         OptionalClient op_client = create_client<ClientHandler>(ip, port);
         if (!op_client) {
+            log_err("create thrift client %s:%d failed!", ip.c_str(), port);
             return -1;
+        }
+
+        auto transp = (*op_client)->getOutputProtocol()->getTransport();
+        if (!transp->isOpen()) {
+            log_err("low-level transport is closed, try reconnect ...");
+            transp->open();
         }
 
         try {
@@ -45,11 +52,9 @@ public:
             ((client.get())->*func)(std::forward<Args>(args) ...);
 
         } catch (std::exception& e) {
-            fprintf(stderr, "Thrift client call_service exception with %s", e.what());
             log_err("Thrift client call_service exception with %s", e.what());
             return -2;
         } catch (...) {
-            fprintf(stderr, "Thrift client call_service with unknown exception");
             log_err("Thrift client call_service with unknown exception");
             return -3;
         }
@@ -60,7 +65,14 @@ public:
     template <typename ClientHandler, typename Callable, class... Args>
     static int call_service(const std::shared_ptr<ClientHandler>& client, const Callable& func, Args&&... args ) {
         if (!client) {
+            log_err("thrift client invalid!");
             return -1;
+        }
+
+        auto transp = client->getOutputProtocol()->getTransport();
+        if (!transp->isOpen()) {
+            log_err("low-level transport is closed, try reconnect ...");
+            transp->open();
         }
 
         try {
@@ -71,11 +83,9 @@ public:
             ((client.get())->*func)(std::forward<Args>(args) ...);
 
         } catch (std::exception& e) {
-            fprintf(stderr, "Thrift client call_service exception with %s", e.what());
             log_err("Thrift client call_service exception with %s", e.what());
             return -2;
         } catch (...) {
-            fprintf(stderr, "Thrift client call_service with unknown exception");
             log_err("Thrift client call_service with unknown exception");
             return -3;
         }
@@ -89,7 +99,7 @@ public:
            create_client(std::string ip, uint16_t port, int timeout_ms = 0 /*ms*/) {
 
         typedef boost::optional<std::shared_ptr<ClientHandler>> OptionalClient;
-        OptionalClient ret;
+        OptionalClient ret {};
 
         try {
             boost::shared_ptr<transport::TSocket> socket = boost::make_shared<transport::TSocket>(ip, port);
@@ -104,13 +114,16 @@ public:
             boost::shared_ptr<ProtocolType>  protocol  = boost::make_shared<ProtocolType>(transport);
 
             std::shared_ptr<ClientHandler> client (new ClientHandler(protocol));
+            if (!client) {
+                log_err("create thrift client %s:%d failed!", ip.c_str(), port);
+                return boost::none;
+            }
 
             ret = client;
+
         } catch (std::exception& e) {
-            fprintf(stderr, "Create Thrift client exceptions with %s", e.what());
             log_err("Create Thrift client exceptions with %s", e.what());
         } catch (...) {
-            fprintf(stderr, "Exception caught when create client: %s:%d", ip.c_str(), port);
             log_err("Exception caught when create client: %s:%d", ip.c_str(), port);
         }
 

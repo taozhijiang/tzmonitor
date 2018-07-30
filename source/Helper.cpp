@@ -6,7 +6,6 @@
  */
 
 
-#include "General.h"
 #include "Helper.h"
 #include <utils/Log.h>
 

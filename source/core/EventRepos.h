@@ -9,8 +9,6 @@
 #ifndef _TZ_EVENT_REPOS_H__
 #define _TZ_EVENT_REPOS_H__
 
-#include "General.h"
-
 #include <libconfig.h++>
 
 #include <deque>
@@ -24,6 +22,7 @@
 #include <utils/Log.h>
 
 #include "EventItem.h"
+#include "ErrorDef.h"
 
 class EventHandler: public boost::noncopyable,
                     public std::enable_shared_from_this<EventHandler> {

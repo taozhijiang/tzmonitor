@@ -9,10 +9,9 @@
 #ifndef _TZ_EVENT_SQL_H__
 #define _TZ_EVENT_SQL_H__
 
-#include "General.h"
-
 #include <connect/SqlConn.h>
 #include "EventItem.h"
+#include "ErrorDef.h"
 
 #if 0
 CREATE TABLE `t_tzmonitor_event_stat_201805` (

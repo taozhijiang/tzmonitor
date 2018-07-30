@@ -11,11 +11,7 @@
 
 #include <sys/time.h>
 
-#include <memory>
-#include <string>
-#include <vector>
-
-#include <boost/noncopyable.hpp>
+#include <xtra_rhel6.h>
 
 void backtrace_init();
 int set_nonblocking(int fd);
@@ -44,8 +40,6 @@ bool get_config_value(const std::string& key, T& t) {
     return get_config_object().lookupValue(key, t);
 }
 
-
-#include <boost/assert.hpp>
 #include <boost/format.hpp>
 
 struct COUNT_FUNC_PERF: public boost::noncopyable {

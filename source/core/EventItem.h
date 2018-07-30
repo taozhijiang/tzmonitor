@@ -11,7 +11,8 @@
 
 // in include dir, also as API
 #include "EventTypes.h"
-
+#include <map>
+#include <sstream>
 
 // 提交插入条目
 struct event_insert_t {

@@ -8,7 +8,6 @@
 #include <vector>
 #include <boost/algorithm/string.hpp>
 
-#include "General.h"
 #include <utils/Log.h>
 
 // 这里client和server使用的同一个utils/Log.h头文件，但是
@@ -26,6 +25,17 @@ void set_checkpoint_log_store_func(CP_log_store_func_t func) {
 }
 /////////////////////////////////////
 /////////////////////////////////////
+
+#ifndef __TZ_XTRA_RHEL6x_H__
+#ifdef __GNUC__
+#define likely(x)       __builtin_expect(!!(x), 1)
+#define unlikely(x)     __builtin_expect(!!(x), 0)
+#else
+#define likely(x)       (x)
+#define unlikely(x)     (x)
+#endif
+
+#endif // __TZ_XTRA_RHEL6x_H__
 
 // The use of openlog() is optional; it will automatically be called by syslog() if necessary.
 bool log_init(int log_level) {
@@ -69,7 +79,7 @@ void log_api(int priority, const char *file, int line, const char *func, const c
     // 拆分消息
     std::vector<std::string> messages;
     boost::split(messages, buf, boost::is_any_of("\r\n"));
-    for (std::vector<string>::iterator it = messages.begin(); it != messages.end(); ++it){
+    for (std::vector<std::string>::iterator it = messages.begin(); it != messages.end(); ++it){
         if (!it->empty()) {
             std::string message = (*it) + "\n";
             if (checkpoint_log_store_func_impl_) {

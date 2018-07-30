@@ -9,7 +9,6 @@
 #ifndef _TZ_STAT_HANDLER_H_
 #define _TZ_STAT_HANDLER_H_
 
-#include "General.h"
 #include "ErrorDef.h"
 
 #include <sstream>

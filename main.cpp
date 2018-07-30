@@ -7,7 +7,6 @@ void backtrace_init();
 
 #include "config.h"
 
-#include "General.h"
 #include "Manager.h"
 #include "Helper.h"
 
@@ -138,3 +137,11 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
+
+
+
+namespace boost {
+void assertion_failed(char const * expr, char const * function, char const * file, long line) {
+    log_err("BAD!!! expr `%s` assert failed at %s(%ld): %s", expr, file, line, function);
+}
+} // end boost

@@ -9,21 +9,18 @@
 #ifndef _TZ_CONN_POOL_H_
 #define _TZ_CONN_POOL_H_
 
-#include "General.h"
+#include <xtra_rhel6.h>
 
 #include <set>
 #include <deque>
 #include <numeric>
 
-#include <boost/noncopyable.hpp>
 #include <boost/circular_buffer.hpp>
 
 //#include <boost/atomic.hpp>
 
-#include <mutex>
 #include <condition_variable>
 #include <chrono>
-#include <functional>
 
 #include <utils/Log.h>
 

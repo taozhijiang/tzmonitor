@@ -25,6 +25,7 @@ const int NetworkErr = -10007;
 const int TimeoutErr = -10008;
 const int OffServiceErr = -10009;
 const int DenialOfServiceErr = -10010;
+const int MsgOld = -10011;
 
 // DatabaseErr
 const int DatabasePoolErr = -20001;

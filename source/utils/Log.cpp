@@ -5,12 +5,13 @@
  *
  */
 
+
+#include <xtra_rhel6.h>
+
 #include <vector>
 #include <boost/algorithm/string.hpp>
 
-#include "General.h"
 #include "Log.h"
-
 
 //
 // define here
@@ -63,7 +64,7 @@ void log_api(int priority, const char *file, int line, const char *func, const c
     // 拆分消息
     std::vector<std::string> messages;
     boost::split(messages, buf, boost::is_any_of("\r\n"));
-    for (std::vector<string>::iterator it = messages.begin(); it != messages.end(); ++it){
+    for (std::vector<std::string>::iterator it = messages.begin(); it != messages.end(); ++it){
         if (!it->empty()) {
             std::string message = (*it) + "\n";
             if (checkpoint_log_store_func_impl_) {

@@ -6,8 +6,6 @@
  */
 
 
-#include "General.h"
-
 #include <boost/lexical_cast.hpp>
 
 #include <utils/Log.h>
