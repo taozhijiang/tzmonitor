@@ -1,7 +1,13 @@
+/*-
+ * Copyright (c) 2018 TAO Zhijiang<taozhijiang@gmail.com>
+ *
+ * Licensed under the BSD-3-Clause license, see LICENSE for full information.
+ *
+ */
+
+
 #ifndef _TZ_SQL_CONN_H_
 #define _TZ_SQL_CONN_H_
-
-#include "General.h"
 
 #include <vector>
 
@@ -38,6 +44,7 @@ public:
     const string user_;
     const string passwd_;
     const string db_;
+    const string charset_;
 };
 
 static const int kMaxBuffSize = 4*8190;
@@ -97,10 +104,13 @@ bool cast_raw_value(shared_result_ptr result, const uint32_t idx, T& val, Args& 
 class SqlConn: public ConnWrap,
                  public boost::noncopyable {
 public:
-    explicit SqlConn(ConnPool<SqlConn, SqlConnPoolHelper>& pool);
+    explicit SqlConn(ConnPool<SqlConn, SqlConnPoolHelper>& pool, const SqlConnPoolHelper& helper);
     ~SqlConn();
 
-    bool init(int64_t conn_uuid, const SqlConnPoolHelper& helper);
+    bool init(int64_t conn_uuid);
+    bool is_health() {
+        return (conn_ && conn_->isValid());
+    }
 
     // Simple SQL API
     bool sqlconn_execute(const string& sql);
@@ -127,6 +137,7 @@ private:
 
     // may be used in future
     ConnPool<SqlConn, SqlConnPoolHelper>& pool_;
+    const SqlConnPoolHelper helper_;
 };
 
 

@@ -1,9 +1,18 @@
+/*-
+ * Copyright (c) 2018 TAO Zhijiang<taozhijiang@gmail.com>
+ *
+ * Licensed under the BSD-3-Clause license, see LICENSE for full information.
+ *
+ */
+
+
 #ifndef _TZ_EVENT_ITEM_H__
 #define _TZ_EVENT_ITEM_H__
 
 // in include dir, also as API
 #include "EventTypes.h"
-
+#include <map>
+#include <sstream>
 
 // 提交插入条目
 struct event_insert_t {

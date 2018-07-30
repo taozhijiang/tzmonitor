@@ -1,4 +1,11 @@
-#include "General.h"
+/*-
+ * Copyright (c) 2018 TAO Zhijiang<taozhijiang@gmail.com>
+ *
+ * Licensed under the BSD-3-Clause license, see LICENSE for full information.
+ *
+ */
+
+
 #include "ErrorDef.h"
 
 #include <boost/algorithm/string.hpp>
@@ -39,13 +46,14 @@ void TzMonitorHandler::ev_submit(tz_thrift::result_t& _return, const tz_thrift::
         events.data.push_back(item);
     }
 
-    if (EventRepos::instance().add_event(events) == ErrorDef::OK) {
+    int ret_code = EventRepos::instance().add_event(events);
+    if (ret_code == ErrorDef::OK) {
         _return.__set_code(0);
         _return.__set_desc("OK");
         return;
     }
 
-    _return.__set_code(-1);
+    _return.__set_code(ret_code);
     _return.__set_desc("ERROR");
 }
 
@@ -120,6 +128,6 @@ void TzMonitorHandler::ev_query (tz_thrift::ev_query_response_t& resp, const tz_
 
     } while (0);
 
-    resp.result.__set_code(-1);
+    resp.result.__set_code(ErrorDef::Error);
     resp.result.__set_desc("ERROR");
 }

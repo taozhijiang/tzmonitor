@@ -1,7 +1,13 @@
+/*-
+ * Copyright (c) 2018 TAO Zhijiang<taozhijiang@gmail.com>
+ *
+ * Licensed under the BSD-3-Clause license, see LICENSE for full information.
+ *
+ */
+
+
 #ifndef _TZ_EVENT_REPOS_H__
 #define _TZ_EVENT_REPOS_H__
-
-#include "General.h"
 
 #include <libconfig.h++>
 
@@ -16,6 +22,7 @@
 #include <utils/Log.h>
 
 #include "EventItem.h"
+#include "ErrorDef.h"
 
 class EventHandler: public boost::noncopyable,
                     public std::enable_shared_from_this<EventHandler> {
@@ -122,7 +129,7 @@ private:
         std::string identity = construct_identity(evs.host, evs.serv, evs.entity_idx);
         std::shared_ptr<EventHandler> handler = std::make_shared<EventHandler>(evs.host, evs.serv, evs.entity_idx);
         if (!handler) {
-            log_err("Create handler %s,%s,%s failed!", identity.c_str());
+            log_err("Create handler %s failed!", identity.c_str());
             return ErrorDef::CreateErr;
         }
 

@@ -1,12 +1,12 @@
 #include <signal.h>
 void backtrace_init();
 
+#include <syslog.h>
 #include <boost/format.hpp>
 #include <boost/atomic/atomic.hpp>
 
 #include "config.h"
 
-#include "General.h"
 #include "Manager.h"
 #include "Helper.h"
 
@@ -18,38 +18,12 @@ void backtrace_init();
 struct tm service_start{};
 std::string TZ_VERSION;
 
-static void interrupted_callback(int signal){
-    log_err("Signal %d received ...", signal);
-
-    switch(signal) {
-
-    case SIGQUIT:
-            log_info("Graceful stop tzmonitor service ... ");
-            Manager::instance().service_graceful();
-            log_info("Graceful stop tzmonitor done!"); // main join all
-            ::sleep(1);
-            ::exit(0);
-            break;
-
-    case SIGTERM:
-            log_info("Immediately shutdown tzmonitor service ... ");
-            Manager::instance().service_terminate();
-            log_info("Immediately shutdown tzmonitor service done! ");
-            ::sleep(1);
-            ::exit(0);
-            break;
-
-    default:
-            log_err("Unhandled signal: %d", signal);
-            break;
-    }
-}
-
 static void init_signal_handle(){
+
     ::signal(SIGPIPE, SIG_IGN);
 
-    ::signal(SIGQUIT, interrupted_callback);
-    ::signal(SIGTERM, interrupted_callback);
+    ::signal(SIGUSR1, SIG_IGN);
+    ::signal(SIGUSR2, SIG_IGN);
 
     return;
 }
@@ -80,6 +54,7 @@ static void show_vcs_info () {
 
 // /var/run/[program_invocation_short_name].pid --> root permission
 static int create_process_pid() {
+
     char pid_msg[24];
     char pid_file[PATH_MAX];
 
@@ -115,7 +90,8 @@ int main(int argc, char* argv[]) {
         log_info("Using default log_level LOG_INFO");
     }
 
-    if (!Log::instance().init(log_level)) {
+    set_checkpoint_log_store_func(syslog);
+    if (!log_init(log_level)) {
         std::cerr << "Init syslog failed!" << std::endl;
         return -1;
     }
@@ -133,6 +109,12 @@ int main(int argc, char* argv[]) {
         log_err("BAD, your system atomic is not lock_free, may impact performance ...");
     }
 
+    // SSL 环境设置
+    if (!Ssl_thread_setup()) {
+        log_err("SSL env setup error!");
+        ::exit(1);
+    }
+
 
     (void)Manager::instance(); // create object first!
 
@@ -148,12 +130,6 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // SSL 环境设置
-    if (!Ssl_thread_setup()) {
-        log_err("SSL env setup error!");
-        ::exit(1);
-    }
-
     log_debug( "TZMonitor service initialized ok!");
     Manager::instance().service_joinall();
 
@@ -161,3 +137,11 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
+
+
+
+namespace boost {
+void assertion_failed(char const * expr, char const * function, char const * file, long line) {
+    log_err("BAD!!! expr `%s` assert failed at %s(%ld): %s", expr, file, line, function);
+}
+} // end boost

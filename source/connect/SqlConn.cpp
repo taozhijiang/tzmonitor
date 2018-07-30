@@ -1,15 +1,23 @@
+/*-
+ * Copyright (c) 2018 TAO Zhijiang<taozhijiang@gmail.com>
+ *
+ * Licensed under the BSD-3-Clause license, see LICENSE for full information.
+ *
+ */
+
+
 #include <sstream>
 
 #include "SqlConn.h"
 
-
-SqlConn::SqlConn(ConnPool<SqlConn, SqlConnPoolHelper>& pool):
+SqlConn::SqlConn(ConnPool<SqlConn, SqlConnPoolHelper>& pool, const SqlConnPoolHelper& helper):
     driver_(),
     stmt_(),
-    pool_(pool) {
+    pool_(pool),
+    helper_(helper) {
 }
 
-bool SqlConn::init(int64_t conn_uuid,  const SqlConnPoolHelper& helper) {
+bool SqlConn::init(int64_t conn_uuid) {
 
     try {
 
@@ -23,12 +31,20 @@ bool SqlConn::init(int64_t conn_uuid,  const SqlConnPoolHelper& helper) {
         log_info("Driver info: %s", output.str().c_str());
 
         sql::ConnectOptionsMap connection_properties;
-        connection_properties["hostName"] = helper.host_;
-        connection_properties["port"] = helper.port_;
-        connection_properties["userName"] = helper.user_;
-        connection_properties["password"] = helper.passwd_;
-        connection_properties["database"] = helper.db_;
+        connection_properties["hostName"] = helper_.host_;
+        connection_properties["port"] = helper_.port_;
+        connection_properties["userName"] = helper_.user_;
+        connection_properties["password"] = helper_.passwd_;
+        connection_properties["database"] = helper_.db_;
+
+        int timeout_val = 600000;
         connection_properties["OPT_RECONNECT"] = true;
+        connection_properties["OPT_CONNECT_TIMEOUT"] = timeout_val;
+        connection_properties["OPT_READ_TIMEOUT"] = timeout_val;
+        connection_properties["OPT_WRITE_TIMEOUT"] = timeout_val;
+
+        connection_properties["CLIENT_MULTI_STATEMENTS"] = true;
+        connection_properties["MYSQL_SET_CHARSET_NAME"] = helper_.charset_;
 
         conn_.reset(driver_->connect(connection_properties));
         stmt_.reset(conn_->createStatement());
@@ -43,7 +59,7 @@ bool SqlConn::init(int64_t conn_uuid,  const SqlConnPoolHelper& helper) {
         return false;
     }
 
-    stmt_->execute("USE " + helper.db_ + ";");
+    stmt_->execute("USE " + helper_.db_ + ";");
     log_info("Create New Connection OK!");
     return true;
 }

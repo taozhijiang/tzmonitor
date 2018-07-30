@@ -1,21 +1,26 @@
+/*-
+ * Copyright (c) 2018 TAO Zhijiang<taozhijiang@gmail.com>
+ *
+ * Licensed under the BSD-3-Clause license, see LICENSE for full information.
+ *
+ */
+
+
 #ifndef _TZ_CONN_POOL_H_
 #define _TZ_CONN_POOL_H_
 
-#include "General.h"
+#include <xtra_rhel6.h>
 
 #include <set>
 #include <deque>
 #include <numeric>
 
-#include <boost/noncopyable.hpp>
 #include <boost/circular_buffer.hpp>
 
 //#include <boost/atomic.hpp>
 
-#include <mutex>
 #include <condition_variable>
 #include <chrono>
-#include <functional>
 
 #include <utils/Log.h>
 
@@ -55,7 +60,7 @@ public:
         conn_pool_linger_trim_id_(0) {
 
         SAFE_ASSERT(capacity_);
-        log_info( "ConnPool Maxium Capacity: %d", capacity_ );
+        log_info( "ConnPool Maxium Capacity: %lu", capacity_ );
         return;
     }
 
@@ -143,7 +148,13 @@ public:
         {
             std::lock_guard<std::mutex> lock(conn_notify_mutex_);
 
-            conns_idle_.push_back(conn);
+            // 如果健康，则将其丢回连接池中，否则直接丢弃
+            if (conn->is_health()) {
+                conns_idle_.push_back(conn);
+            } else {
+                log_err("connect %ld is not ok, drop it away", conn->get_uuid());
+            }
+
             conns_busy_.erase(conn);
             hold_time_ms_.push_back(conn->wrap_hold_ms());
 
@@ -181,13 +192,13 @@ private:
 
         if ( (conns_idle_.size() + conns_busy_.size()) < capacity_) {
 
-            ConnPtr new_conn = std::make_shared<T>(*this);
+            ConnPtr new_conn = std::make_shared<T>(*this, helper_);
             if (!new_conn){
                 log_err("creating new Conn failed!");
                 return new_conn;
             }
 
-            if (!new_conn->init(reinterpret_cast<int64_t>(new_conn.get()), helper_)) {
+            if (!new_conn->init(reinterpret_cast<int64_t>(new_conn.get()))) {
                 log_err("init new Conn failed!");
                 new_conn.reset();
                 return new_conn;

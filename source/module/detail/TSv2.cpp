@@ -1,9 +1,16 @@
+/*-
+ * Copyright (c) 2018 TAO Zhijiang<taozhijiang@gmail.com>
+ *
+ * Licensed under the BSD-3-Clause license, see LICENSE for full information.
+ *
+ */
+
+
 #include <iostream>
 
 #include <event2/event.h>
 #include <event2/util.h>
 
-#include "General.h"
 #include "Helper.h"
 #include <utils/Log.h>
 

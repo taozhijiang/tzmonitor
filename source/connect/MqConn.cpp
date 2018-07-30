@@ -1,18 +1,26 @@
+/*-
+ * Copyright (c) 2018 TAO Zhijiang<taozhijiang@gmail.com>
+ *
+ * Licensed under the BSD-3-Clause license, see LICENSE for full information.
+ *
+ */
+
+
 #include <sstream>
 #include <functional>
 
 #include "MqConn.h"
 
-MqConn::MqConn(ConnPool<MqConn, MqConnPoolHelper>& pool):
+MqConn::MqConn(ConnPool<MqConn, MqConnPoolHelper>& pool, const MqConnPoolHelper& helper):
     t_(-1), mq_(""),
     state_(MqWorkState::kProducer), //default
-    pool_(pool) {
+    pool_(pool),
+    helper_(helper) {
 }
 
-bool MqConn::init(int64_t conn_uuid,  const MqConnPoolHelper& helper) {
+bool MqConn::init(int64_t conn_uuid) {
 
     set_uuid(conn_uuid);
-    helper_ = helper;
 
     if (helper_.connect_urls_.empty()) {
         log_err("empty connect urls ...");

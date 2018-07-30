@@ -1,3 +1,11 @@
+/*-
+ * Copyright (c) 2018 TAO Zhijiang<taozhijiang@gmail.com>
+ *
+ * Licensed under the BSD-3-Clause license, see LICENSE for full information.
+ *
+ */
+
+
 #ifndef _TZ_HTTP_UTIL_H_
 #define _TZ_HTTP_UTIL_H_
 
@@ -10,6 +18,7 @@
 #include <curl/curl.h>
 #include <boost/noncopyable.hpp>
 
+#include "Log.h"
 #include "CryptoUtil.h"
 
 namespace HttpUtil {
@@ -88,7 +97,7 @@ public:
         int ret_code = 0;
         response_data_.clear();
 
-        fprintf(stderr,"get url: %s", strUrl.c_str());
+        log_debug("get url: %s", strUrl.c_str());
 
         CURL *curl = curl_easy_init();
         curl_easy_setopt(curl, CURLOPT_ENCODING , "UTF-8");
@@ -104,14 +113,14 @@ public:
         CURLcode res = curl_easy_perform(curl);
         response_data_.push_back(0);
 
-        long nStatusCode = 500;
+        long nStatusCode = 0;
         if (res == CURLE_OK) {
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &nStatusCode);
         }
         curl_easy_cleanup(curl);
         if (res == CURLE_OK && nStatusCode == 200  ) { // OK
         } else {
-            fprintf(stderr, "curl nStatusCode:%ld, res=%d, error:%s", nStatusCode, res, curl_easy_strerror(res));
+            log_err("curl nStatusCode:%ld, res=%d, error:%s", nStatusCode, res, curl_easy_strerror(res));
             ret_code = -1;
         }
 
@@ -124,7 +133,7 @@ public:
         int ret_code = 0;
         response_data_.clear();
 
-        fprintf(stderr,"post url: %s, data: %s", strUrl.c_str(), strData.c_str());
+        log_debug("post url: %s, data: %s", strUrl.c_str(), strData.c_str());
 
         CURL *curl = curl_easy_init();
         curl_easy_setopt(curl, CURLOPT_ENCODING , "UTF-8");
@@ -141,14 +150,14 @@ public:
         CURLcode res = curl_easy_perform(curl);
         response_data_.push_back(0);
 
-        long nStatusCode = 500;
+        long nStatusCode = 0;
         if (res == CURLE_OK) {
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &nStatusCode);
         }
         curl_easy_cleanup(curl);
         if (res == CURLE_OK && nStatusCode == 200){
         } else {
-            fprintf(stderr, "nStatusCode:%ld res=%d,error:%s", nStatusCode, res, curl_easy_strerror(res));
+            log_err("nStatusCode:%ld res=%d,error:%s", nStatusCode, res, curl_easy_strerror(res));
             ret_code = -1;
         }
 
@@ -162,7 +171,7 @@ public:
         int ret_code = 0;
         response_data_.push_back(0);
 
-        fprintf(stderr,"post url: %s, data: %s", strUrl.c_str(), strData.c_str());
+        log_debug("post url: %s, data: %s", strUrl.c_str(), strData.c_str());
 
         CURL *curl = curl_easy_init();
         curl_easy_setopt(curl, CURLOPT_ENCODING , "UTF-8");
@@ -187,14 +196,14 @@ public:
         curl_slist_free_all(s_headers);
         response_data_.push_back(0);
 
-        long nStatusCode = 500;
+        long nStatusCode = 1;
         if (res == CURLE_OK) {
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &nStatusCode);
         }
         curl_easy_cleanup(curl);
         if (res == CURLE_OK && nStatusCode == 200) {
         } else {
-            fprintf(stderr, "nStatusCode:%ld res=%d,error:%s", nStatusCode, res, curl_easy_strerror(res));
+            log_err("nStatusCode:%ld res=%d,error:%s", nStatusCode, res, curl_easy_strerror(res));
             ret_code = -1;
         }
 

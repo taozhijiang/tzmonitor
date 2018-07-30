@@ -5,14 +5,16 @@
  *
  */
 
-
-#include <xtra_rhel6.h>
-
 #include <vector>
 #include <boost/algorithm/string.hpp>
 
-#include "Log.h"
+#include <utils/Log.h>
 
+// 这里client和server使用的同一个utils/Log.h头文件，但是
+// client库自己拷贝了一份实现，总体来说是不会冲突的
+
+/////////////////////////////////////
+/////////////////////////////////////
 //
 // define here
 // Log Store
@@ -21,6 +23,19 @@ CP_log_store_func_t checkpoint_log_store_func_impl_ = NULL;
 void set_checkpoint_log_store_func(CP_log_store_func_t func) {
     checkpoint_log_store_func_impl_ = func;
 }
+/////////////////////////////////////
+/////////////////////////////////////
+
+#ifndef __TZ_XTRA_RHEL6x_H__
+#ifdef __GNUC__
+#define likely(x)       __builtin_expect(!!(x), 1)
+#define unlikely(x)     __builtin_expect(!!(x), 0)
+#else
+#define likely(x)       (x)
+#define unlikely(x)     (x)
+#endif
+
+#endif // __TZ_XTRA_RHEL6x_H__
 
 // The use of openlog() is optional; it will automatically be called by syslog() if necessary.
 bool log_init(int log_level) {

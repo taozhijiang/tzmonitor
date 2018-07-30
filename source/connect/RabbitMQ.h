@@ -1,3 +1,11 @@
+/*-
+ * Copyright (c) 2018 TAO Zhijiang<taozhijiang@gmail.com>
+ *
+ * Licensed under the BSD-3-Clause license, see LICENSE for full information.
+ *
+ */
+
+
 #ifndef __RABBITMQ_H_
 #define __RABBITMQ_H_
 
@@ -51,9 +59,9 @@ public:
         return envelope.message.body;
     }
 
-	bool has_content() {
-		return !!(envelope.message.body.len);
-	}
+    bool has_content() {
+        return !!(envelope.message.body.len);
+    }
 
     void safe_clear() {
 
@@ -89,7 +97,7 @@ public:
         connect_uris_(), frame_max_(frame_max),
         is_connected_(false) {
         connect_uris_.push_back(connect_uri);
-		channel_ids_.insert(0);
+        channel_ids_.insert(0);
 
         LOG_API("current connect_uri size: %lu", connect_uris_.size());
     }
@@ -97,13 +105,13 @@ public:
     explicit RabbitMQHelper(const std::vector<std::string>& connect_uris, int frame_max = 131072 /*128K*/):
         connect_uris_(connect_uris), frame_max_(frame_max),
         is_connected_(false) {
-		channel_ids_.insert(0);
+        channel_ids_.insert(0);
 
         LOG_API("current connect_uri size: %lu", connect_uris_.size());
     }
 
     ~RabbitMQHelper() {
-		closeConnection();
+        closeConnection();
     }
 
     bool doConnect();
@@ -116,21 +124,21 @@ public:
     int basicConsumeMessage(RabbitMessage& rabbit_msg,
                             struct timeval *timeout, int flags);
 
-	amqp_channel_t createChannel();
+    amqp_channel_t createChannel();
 
-	bool setupChannel(amqp_channel_t channel, RabbitChannelSetupFunc func, void* pArg);
+    bool setupChannel(amqp_channel_t channel, RabbitChannelSetupFunc func, void* pArg);
 
-	// channel <=0, 表示新建连接
-	int checkAndRepairChannel(amqp_channel_t& channel,
+    // channel <=0, 表示新建连接
+    int checkAndRepairChannel(amqp_channel_t& channel,
                               RabbitChannelSetupFunc func, void* pArg);
 
-	int closeChannel(amqp_channel_t channel);
+    int closeChannel(amqp_channel_t channel);
 
-	int freeChannel(amqp_channel_t channel);
+    int freeChannel(amqp_channel_t channel);
 
 
-	// channel wrapper
-	bool isChannelOpen(amqp_channel_t channel);
+    // channel wrapper
+    bool isChannelOpen(amqp_channel_t channel);
 
     int basicRecover(amqp_channel_t channel, const std::string &consumer);
 
@@ -139,28 +147,28 @@ public:
                      const std::string &message);
 
     int basicGet(amqp_channel_t channel, RabbitMessage& rabbit_msg,
-				 const std::string &queue, bool no_ack);
+                 const std::string &queue, bool no_ack);
 
     int basicAck(amqp_channel_t channel, uint64_t delivery_tag,
-				 bool multiple = false);
+                 bool multiple = false);
 
     int basicReject(amqp_channel_t channel, uint64_t delivery_tag,
-					bool requeue);
+                    bool requeue);
 
     int basicNack(amqp_channel_t channel, uint64_t delivery_tag,
-				  bool requeue, bool multiple  /* = false */ );
+                  bool requeue, bool multiple  /* = false */ );
 
-	std::string brokerVersion();
+    std::string brokerVersion();
 
 private:
-	// 客户端不应该暴露RabbitChannel的指针、对象等信息，否则
-	// 智能指针对对象生命周期的控制会很混乱
-	RabbitChannelPtr channelInstance(amqp_channel_t channel) {
-		if (channels_.find(channel) == channels_.end())
-			return RabbitChannelPtr();	// nullptr
+    // 客户端不应该暴露RabbitChannel的指针、对象等信息，否则
+    // 智能指针对对象生命周期的控制会很混乱
+    RabbitChannelPtr channelInstance(amqp_channel_t channel) {
+        if (channels_.find(channel) == channels_.end())
+            return RabbitChannelPtr();  // nullptr
 
-		return channels_.at(channel);
-	}
+        return channels_.at(channel);
+    }
 
     amqp_channel_t getChannelId() {
         for (int i=1; (int)i<max_channel_id_; ++i) {
@@ -173,10 +181,10 @@ private:
     }
 
     int freeChannelId(amqp_channel_t channel) {
-		if (channel > 0 && channel < max_channel_id_)
-			channel_ids_.erase(channel);
+        if (channel > 0 && channel < max_channel_id_)
+            channel_ids_.erase(channel);
 
-		return 0;
+        return 0;
     }
 
 private:
@@ -186,8 +194,8 @@ private:
     amqp_connection_state_t connection_;
     bool is_connected_;
 
-	amqp_channel_t max_channel_id_;
-	std::set<amqp_channel_t> channel_ids_;
+    amqp_channel_t max_channel_id_;
+    std::set<amqp_channel_t> channel_ids_;
     std::map<amqp_channel_t, std::shared_ptr<RabbitChannel> > channels_;
 };
 
@@ -203,7 +211,7 @@ public:
 
     ~RabbitChannel() {
         closeChannel();
-	}
+    }
 
     int initChannel() {
         if (id_ <= 0) {
@@ -211,7 +219,7 @@ public:
             return -1;
         }
         amqp_channel_open_ok_t *r = amqp_channel_open(mqHelper_.connection_, id_);
-		(void)r;
+        (void)r;
 
         amqp_rpc_reply_t res = amqp_get_rpc_reply(mqHelper_.connection_);
         int ret_code = amqpErrorCheck(res);
@@ -311,14 +319,14 @@ public:
         return is_connected_;
     }
 
-	// we just update our error status, but should not delete by ourself
+    // we just update our error status, but should not delete by ourself
     void closeChannel() {
-		if (!is_connected_)
-			return;
+        if (!is_connected_)
+            return;
 
-		LOG_API("Channel: %d close...", id_);
-		amqp_channel_close(mqHelper_.connection_, id_, AMQP_REPLY_SUCCESS); // avoid multi call, only real destruct
-		is_connected_ = false;
+        LOG_API("Channel: %d close...", id_);
+        amqp_channel_close(mqHelper_.connection_, id_, AMQP_REPLY_SUCCESS); // avoid multi call, only real destruct
+        is_connected_ = false;
     }
 
 private:

@@ -1,21 +1,32 @@
+/*-
+ * Copyright (c) 2018 TAO Zhijiang<taozhijiang@gmail.com>
+ *
+ * Licensed under the BSD-3-Clause license, see LICENSE for full information.
+ *
+ */
+
+
 // 此库的作用就是对业务服务产生的数据进行压缩，然后开辟
 // 独立的线程向服务端进行提交，以避免多次独立提交带来的额外消耗
 
 // 如果支持新标准，future更加合适做这个事情
 
 // 客户端使用，尽量减少依赖的库
+
+#include <unistd.h>
+
 #include <cassert>
 #include <sstream>
 #include <thread>
 #include <functional>
 
-#ifndef _DEFINE_GET_POINTER_MARKER_
-#define _DEFINE_GET_POINTER_MARKER_
+#ifndef _XTRA_DEFINE_GET_POINTER_MARKER_
+#define _XTRA_DEFINE_GET_POINTER_MARKER_
 template<class T>
 T * get_pointer(std::shared_ptr<T> const& p) {
     return p.get();
 }
-#endif // _DEFINE_GET_POINTER_MARKER_
+#endif // _XTRA_DEFINE_GET_POINTER_MARKER_
 
 #include <utils/Log.h>
 #include <utils/EQueue.h>
@@ -24,6 +35,8 @@ T * get_pointer(std::shared_ptr<T> const& p) {
 #include "TzMonitorHttpClientHelper.h"
 #include "TzMonitorThriftClientHelper.h"
 #include "include/TzMonitor.h"
+
+#include "ErrorDef.h"
 
 namespace TzMonitor {
 
@@ -38,7 +51,8 @@ public:
 
     ~Impl() {}
 
-    bool init(const std::string& cfgFile);
+    bool init(const std::string& cfgFile, CP_log_store_func_t log_func);
+    bool init(const libconfig::Config& cfg, CP_log_store_func_t log_func);
     int report_event(const std::string& name, int64_t value, std::string flag = "T");
     int retrieve_stat(const event_cond_t& cond, event_query_t& stat);
 
@@ -47,8 +61,8 @@ public:
         int ret_code = 0;
 
         bool cli_enabled;
-        if (!cfg.lookupValue("core.cli_enabled", cli_enabled)) {
-            log_err("find core.enabled failed");
+        if (!cfg.lookupValue("tzmonitor.core.cli_enabled", cli_enabled)) {
+            log_err("find tzmonitor.core.enabled failed");
             ret_code --;
         } else {
             if (cli_enabled != cli_enabled_) {
@@ -59,8 +73,8 @@ public:
         }
 
         int cli_submit_queue_size;
-        if (!cfg.lookupValue("core.cli_submit_queue_size", cli_submit_queue_size) || cli_submit_queue_size < 0) {
-            log_err("find core.cli_submit_queue_size failed");
+        if (!cfg.lookupValue("tzmonitor.core.cli_submit_queue_size", cli_submit_queue_size) || cli_submit_queue_size < 0) {
+            log_err("find tzmonitor.core.cli_submit_queue_size failed");
             ret_code --;
         } else {
             if (cli_submit_queue_size != cli_submit_queue_size_) {
@@ -87,6 +101,10 @@ private:
             if (thrift_agent_) {
                 ret_code = thrift_agent_->thrift_event_submit(*report_ptr);
                 if (ret_code == 0) {
+                    log_debug("Thrift report submit ok.");
+                    break;
+                } else if(ret_code == ErrorDef::MsgOld) {
+                    log_debug("report msg too old");
                     break;
                 } else {
                     log_info("Thrift report submit return code: %d", ret_code);
@@ -97,6 +115,7 @@ private:
             if (http_agent_) {
                 ret_code = http_agent_->http_event_submit(*report_ptr);
                 if (ret_code == 0) {
+                    log_debug("Http report submit ok.");
                     break;
                 } else {
                     log_info("Http report submit return code: %d", ret_code);
@@ -104,7 +123,7 @@ private:
             }
 
             // Error:
-            log_err("BAD, reprot failed!");
+            log_err("BAD here, reprot failed!");
             ret_code = -2;
 
         } while (0);
@@ -145,7 +164,8 @@ private:
 
 // Impl member function
 
-bool TzMonitorClient::Impl::init(const std::string& cfgFile) {
+
+bool TzMonitorClient::Impl::init(const std::string& cfgFile, CP_log_store_func_t log_func) {
 
     libconfig::Config cfg;
     try {
@@ -158,10 +178,18 @@ bool TzMonitorClient::Impl::init(const std::string& cfgFile) {
         return false;
     }
 
+    return init(cfg, log_func);
+}
+
+bool TzMonitorClient::Impl::init(const libconfig::Config& cfg, CP_log_store_func_t log_func) {
+
+    // init log first
+    set_checkpoint_log_store_func(log_func);
+
     std::string thrift_serv_addr;
     int thrift_listen_port = 0;
-    if (!cfg.lookupValue("thrift.serv_addr", thrift_serv_addr) ||
-        !cfg.lookupValue("thrift.listen_port", thrift_listen_port) ) {
+    if (!cfg.lookupValue("tzmonitor.thrift.serv_addr", thrift_serv_addr) ||
+        !cfg.lookupValue("tzmonitor.thrift.listen_port", thrift_listen_port) ) {
         log_err("get thrift config failed.");
     } else {
         thrift_agent_ = std::make_shared<TzMonitorThriftClientHelper>(thrift_serv_addr, thrift_listen_port);
@@ -169,8 +197,8 @@ bool TzMonitorClient::Impl::init(const std::string& cfgFile) {
 
     std::string http_serv_addr;
     int http_listen_port = 0;
-    if (!cfg.lookupValue("http.serv_addr", http_serv_addr) ||
-        !cfg.lookupValue("http.listen_port", http_listen_port) ) {
+    if (!cfg.lookupValue("tzmonitor.http.serv_addr", http_serv_addr) ||
+        !cfg.lookupValue("tzmonitor.http.listen_port", http_listen_port) ) {
         log_err("get http config failed.");
     } else {
         std::stringstream ss;
@@ -183,26 +211,26 @@ bool TzMonitorClient::Impl::init(const std::string& cfgFile) {
         return false;
     }
 
-    if (!cfg.lookupValue("core.cli_enabled", cli_enabled_)) {
-        log_info("find core.enabled failed, set default to true");
+    if (!cfg.lookupValue("tzmonitor.core.cli_enabled", cli_enabled_)) {
+        log_info("find tzmonitor.core.enabled failed, set default to true");
         cli_enabled_ = true;
     }
 
-    if (!cfg.lookupValue("core.cli_submit_queue_size", cli_submit_queue_size_) ||
+    if (!cfg.lookupValue("tzmonitor.core.cli_submit_queue_size", cli_submit_queue_size_) ||
         cli_submit_queue_size_ < 0 ) {
-        log_info("find core.cli_submit_queue_size failed, set default to 0");
+        log_info("find tzmonitor.core.cli_submit_queue_size failed, set default to 0");
         cli_item_size_per_submit_ = 0;
     }
 
-    if (!cfg.lookupValue("core.cli_item_size_per_submit", cli_item_size_per_submit_) ||
+    if (!cfg.lookupValue("tzmonitor.core.cli_item_size_per_submit", cli_item_size_per_submit_) ||
         cli_item_size_per_submit_ <= 0 ) {
-        log_info("find core.cli_item_size_per_submit failed, set default to 500");
+        log_info("find tzmonitor.core.cli_item_size_per_submit failed, set default to 500");
         cli_item_size_per_submit_ = 500;
     }
 
-    if (!cfg.lookupValue("core.cli_il_submit_queue_size", cli_il_submit_queue_size_) ||
+    if (!cfg.lookupValue("tzmonitor.core.cli_il_submit_queue_size", cli_il_submit_queue_size_) ||
         cli_il_submit_queue_size_ <= 0 ) {
-        log_info("find core.cli_il_submit_queue_size failed, set default to 5");
+        log_info("find tzmonitor.core.cli_il_submit_queue_size failed, set default to 5");
         cli_il_submit_queue_size_ = 5;
     }
 
@@ -212,9 +240,9 @@ bool TzMonitorClient::Impl::init(const std::string& cfgFile) {
         return false;
     }
 
-    if (!cfg.lookupValue("core.cli_ob_submit_task_size", cli_ob_submit_task_size_) ||
+    if (!cfg.lookupValue("tzmonitor.core.cli_ob_submit_task_size", cli_ob_submit_task_size_) ||
         cli_ob_submit_task_size_ <= 0 ) {
-        log_info("find core.cli_ob_submit_task_size failed, set default to 5");
+        log_info("find tzmonitor.core.cli_ob_submit_task_size failed, set default to 5");
         cli_ob_submit_task_size_ = 5;
     }
     task_helper_ = std::make_shared<TinyTask>(cli_ob_submit_task_size_);
@@ -343,8 +371,20 @@ void TzMonitorClient::Impl::run_once_task(std::vector<event_report_ptr_t> report
 
 
 // call forward
+TzMonitorClient::TzMonitorClient(std::string entity_idx) {
+
+    char host[64 + 1] {};
+    ::gethostname(host, 64);
+
+    impl_ptr_.reset(new Impl(host, program_invocation_short_name, entity_idx));
+    if (!impl_ptr_) {
+         log_crit("create impl failed, CRITICAL!!!!");
+         ::abort();
+     }
+}
 
 TzMonitorClient::TzMonitorClient(std::string host, std::string serv, std::string entity_idx){
+
     impl_ptr_.reset(new Impl(host, serv, entity_idx));
     if (!impl_ptr_) {
          log_crit("create impl failed, CRITICAL!!!!");
@@ -355,8 +395,12 @@ TzMonitorClient::TzMonitorClient(std::string host, std::string serv, std::string
 TzMonitorClient::~TzMonitorClient(){}
 
 
-bool TzMonitorClient::init(const std::string& cfgFile) {
-    return impl_ptr_->init(cfgFile);
+bool TzMonitorClient::init(const std::string& cfgFile, CP_log_store_func_t log_func) {
+    return impl_ptr_->init(cfgFile, log_func);
+}
+
+bool TzMonitorClient::init(const libconfig::Config& cfg, CP_log_store_func_t log_func) {
+    return impl_ptr_->init(cfg, log_func);
 }
 
 int TzMonitorClient::update_run_cfg(const libconfig::Config& cfg) {

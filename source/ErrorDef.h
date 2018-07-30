@@ -1,3 +1,11 @@
+/*-
+ * Copyright (c) 2018 TAO Zhijiang<taozhijiang@gmail.com>
+ *
+ * Licensed under the BSD-3-Clause license, see LICENSE for full information.
+ *
+ */
+
+
 #ifndef _TZ_ERROR_DEF_H_
 #define _TZ_ERROR_DEF_H_
 
@@ -17,6 +25,7 @@ const int NetworkErr = -10007;
 const int TimeoutErr = -10008;
 const int OffServiceErr = -10009;
 const int DenialOfServiceErr = -10010;
+const int MsgOld = -10011;
 
 // DatabaseErr
 const int DatabasePoolErr = -20001;

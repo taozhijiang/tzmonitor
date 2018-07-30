@@ -11,7 +11,7 @@ BOOST_AUTO_TEST_SUITE(client_query_test)
 BOOST_AUTO_TEST_CASE(client_query_test)
 {
     auto client = std::make_shared<TzMonitor::TzMonitorClient>("centos", "testservice");
-    if(!client->init("../tzmonitor.conf")) {
+    if(!client->init("../tzmonitor.conf", NULL)) {
         BOOST_CHECK(false);
     }
 

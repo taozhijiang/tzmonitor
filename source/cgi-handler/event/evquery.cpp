@@ -55,7 +55,7 @@ int module_init() {
                              mysql_username_, mysql_passwd_, mysql_database_);
     sql_pool_ptr_.reset(new ConnPool<SqlConn, SqlConnPoolHelper>("MySQLPool", 60, helper, 60 /*60s*/));
     if (!sql_pool_ptr_ || !sql_pool_ptr_->init()) {
-        tzhttpd::log_err("Init SqlConnPool failed!");
+        tzhttpd::tzhttpd_log_err("Init SqlConnPool failed!");
         return -1;
     }
 
@@ -97,20 +97,20 @@ int ev_query_handler(const std::string& request, std::string& response, std::str
     do {
 
         event_cond_t cond {};
-        tzhttpd::log_debug("recv request: %s", request.c_str());
+        tzhttpd::tzhttpd_log_debug("recv request: %s", request.c_str());
 
         {
             Json::Value root;
             Json::Reader reader;
             if (!reader.parse(request, root) || root.isNull()) {
-                tzhttpd::log_err("parse error: %s", request.c_str());
+                tzhttpd::tzhttpd_log_err("parse error: %s", request.c_str());
                 break;
             }
 
             // required
             if (!root["version"].isString() || !root["name"].isString() ||
                 !root["interval_sec"].isString() ) {
-                tzhttpd::log_err("required param is missing.");
+                tzhttpd::tzhttpd_log_err("required param is missing.");
                 break;
             }
 
@@ -125,7 +125,7 @@ int ev_query_handler(const std::string& request, std::string& response, std::str
             cond.interval_sec = ::atoll(map_param["interval_sec"].c_str());
 
             if (cond.version.empty() || cond.name.empty() || cond.interval_sec <= 0) {
-                tzhttpd::log_err("required param missing...");
+                tzhttpd::tzhttpd_log_err("required param missing...");
                 break;
             }
 
@@ -164,7 +164,7 @@ int ev_query_handler(const std::string& request, std::string& response, std::str
 
         event_query_t stat{};
         if (query_ev_stat(cond, stat) != ErrorDef::OK) {
-            tzhttpd::log_err("call get_event detail failed!");
+            tzhttpd::tzhttpd_log_err("call get_event detail failed!");
             break;
         }
 
@@ -214,7 +214,7 @@ int ev_query_handler(const std::string& request, std::string& response, std::str
             }
 
             response = fast_writer.write(root);
-            tzhttpd::log_debug("response: %s", response.c_str());
+            tzhttpd::tzhttpd_log_debug("response: %s", response.c_str());
         }
 
         add_header = {"Content-Type: text/html; charset=utf-8"};

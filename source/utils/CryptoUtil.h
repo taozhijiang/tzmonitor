@@ -1,3 +1,11 @@
+/*-
+ * Copyright (c) 2018 TAO Zhijiang<taozhijiang@gmail.com>
+ *
+ * Licensed under the BSD-3-Clause license, see LICENSE for full information.
+ *
+ */
+
+
 #ifndef _TZ_CRYPTO_UTIL_H_
 #define _TZ_CRYPTO_UTIL_H_
 
@@ -5,7 +13,6 @@
 #include <iomanip>
 #include <istream>
 #include <sstream>
-#include <string>
 #include <vector>
 
 #include <openssl/buffer.h>
@@ -13,7 +20,6 @@
 #include <openssl/md5.h>
 #include <openssl/sha.h>
 
-#include "General.h"
 
 // 类静态函数可以直接将函数定义丢在头文件中
 

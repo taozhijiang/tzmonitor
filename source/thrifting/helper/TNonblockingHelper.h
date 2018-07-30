@@ -1,7 +1,13 @@
+/*-
+ * Copyright (c) 2018 TAO Zhijiang<taozhijiang@gmail.com>
+ *
+ * Licensed under the BSD-3-Clause license, see LICENSE for full information.
+ *
+ */
+
+
 #ifndef __TNONBLOCKING_HELPER_H__
 #define __TNONBLOCKING_HELPER_H__
-
-#include "General.h"
 
 // Thrift严重依赖于boost库，所以这里的智能指针也适用boost的版本
 #include <boost/make_shared.hpp>
@@ -53,7 +59,7 @@ public:
 
             threads_->stop();
             // threads_->join();
-			
+
             threads_.reset();
             server_.reset();
 
@@ -84,21 +90,21 @@ private:
             // 业务处理接口
             boost::shared_ptr<ServiceHandler> handler = boost::make_shared<ServiceHandler>();
             boost::shared_ptr<TProcessor> processor = boost::make_shared<ServiceProcessor>(handler);
-			
+
 #if defined( BUILD_VERSION_V1 )
 
-            boost::shared_ptr<server::TNonblockingServer> serverPtr 
+            boost::shared_ptr<server::TNonblockingServer> serverPtr
                 = boost::make_shared<server::TNonblockingServer>(processor,  protocolFactory, port_, threads_);
 
 #elif defined( BUILD_VERSION_V2 )
 
-			// Socket网络层
-			// if SSL, consider transport::TNonblockingSSLServerSocket
-            boost::shared_ptr<transport::TNonblockingServerTransport> tSocket 
+            // Socket网络层
+            // if SSL, consider transport::TNonblockingSSLServerSocket
+            boost::shared_ptr<transport::TNonblockingServerTransport> tSocket
                 = boost::make_shared<transport::TNonblockingServerSocket>(port_);
 
             // Server层次
-            boost::shared_ptr<server::TNonblockingServer> serverPtr 
+            boost::shared_ptr<server::TNonblockingServer> serverPtr
                 = boost::make_shared<server::TNonblockingServer>(processor,  protocolFactory, tSocket, threads_);
 
 #else

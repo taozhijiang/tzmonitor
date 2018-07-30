@@ -1,13 +1,17 @@
+/*-
+ * Copyright (c) 2018 TAO Zhijiang<taozhijiang@gmail.com>
+ *
+ * Licensed under the BSD-3-Clause license, see LICENSE for full information.
+ *
+ */
+
+
 #ifndef _TZ_UTILS_H_
 #define _TZ_UTILS_H_
 
 #include <sys/time.h>
 
-#include <memory>
-#include <string>
-#include <vector>
-
-#include <boost/noncopyable.hpp>
+#include <xtra_rhel6.h>
 
 void backtrace_init();
 int set_nonblocking(int fd);
@@ -36,8 +40,6 @@ bool get_config_value(const std::string& key, T& t) {
     return get_config_object().lookupValue(key, t);
 }
 
-
-#include <boost/assert.hpp>
 #include <boost/format.hpp>
 
 struct COUNT_FUNC_PERF: public boost::noncopyable {
@@ -65,13 +67,7 @@ private:
     struct timeval start_;
 };
 
-
-#ifdef NP_DEBUG
-#define PUT_COUNT_FUNC_PERF(T)  helper::COUNT_FUNC_PERF PERF_CHECKER_##T( boost::str(boost::format("%s(%ld):%s") % __FILENAME__%__LINE__%BOOST_CURRENT_FUNCTION), #T ); \
+#define PUT_COUNT_FUNC_PERF(T) COUNT_FUNC_PERF PERF_CHECKER_##T( boost::str(boost::format("%s(%ld):%s") % __FILE__%__LINE__%BOOST_CURRENT_FUNCTION), #T ); \
                 (void) PERF_CHECKER_##T
-#else
-#define PUT_COUNT_FUNC_PERF(T) ((void)0)
-#endif
-
 
 #endif // _TZ_UTILS_H_
