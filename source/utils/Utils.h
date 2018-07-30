@@ -67,13 +67,7 @@ private:
     struct timeval start_;
 };
 
-
-#ifdef NP_DEBUG
-#define PUT_COUNT_FUNC_PERF(T)  helper::COUNT_FUNC_PERF PERF_CHECKER_##T( boost::str(boost::format("%s(%ld):%s") % __FILENAME__%__LINE__%BOOST_CURRENT_FUNCTION), #T ); \
+#define PUT_COUNT_FUNC_PERF(T) COUNT_FUNC_PERF PERF_CHECKER_##T( boost::str(boost::format("%s(%ld):%s") % __FILE__%__LINE__%BOOST_CURRENT_FUNCTION), #T ); \
                 (void) PERF_CHECKER_##T
-#else
-#define PUT_COUNT_FUNC_PERF(T) ((void)0)
-#endif
-
 
 #endif // _TZ_UTILS_H_

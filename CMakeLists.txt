@@ -18,6 +18,7 @@ IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
     set(BUILD_TYPE_STR "debug")
 ELSEIF(CMAKE_BUILD_TYPE MATCHES RELEASE)
     set(BUILD_TYPE_STR "release")
+    add_definitions(-DNP_DEBUG)
 ELSE(CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(FATAL_ERROR "Unknown BUILD_TYPE ... ")
 ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
@@ -27,13 +28,13 @@ set(CMAKE_BUILD_VERSION V1) # libevent  & thrift-0.9.2
 #set(CMAKE_BUILD_VERSION V2) # libevent2 & thrift-0.11.0
 
 IF(CMAKE_BUILD_VERSION MATCHES V1)
-	add_definitions(-DBUILD_VERSION_V1)
+    add_definitions(-DBUILD_VERSION_V1)
     set(THRIFT_VERSION "0.9.2")
-	set(LIBEVENT_VERSION "event")
+    set(LIBEVENT_VERSION "event")
 ELSEIF(CMAKE_BUILD_VERSION MATCHES V2)
-	add_definitions(-DBUILD_VERSION_V2)
+    add_definitions(-DBUILD_VERSION_V2)
     set(THRIFT_VERSION "0.11.0")
-	set(LIBEVENT_VERSION "event2")
+    set(LIBEVENT_VERSION "event2")
 ELSE(CMAKE_BUILD_VERSION MATCHES V1)
     message(FATAL_ERROR "Unknown BUILD_VERSION ... ")
 ENDIF(CMAKE_BUILD_VERSION MATCHES V1)
@@ -50,8 +51,8 @@ set (TZ_VERSION_MAJOR 2)
 set (TZ_VERSION_MINOR 0)
 set (TZ_VERSION_PATCH 0)
 configure_file (
-	"include/config.h.in"
-	"../include/config.h" )
+    "include/config.h.in"
+    "../include/config.h" )
 
 # mysqlcppconn如果使用C开发会在释放的时候段错误
 
@@ -64,17 +65,17 @@ aux_source_directory( source/ DIR_SRCS )
 
 
 set (INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include/
-				  ${PROJECT_SOURCE_DIR}/source/
-				  ${PROJECT_SOURCE_DIR}/source/client/include
-				  ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/include
-				  ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/include/thrift-${THRIFT_VERSION}/
-				  /usr/include/mysql )
+                  ${PROJECT_SOURCE_DIR}/source/
+                  ${PROJECT_SOURCE_DIR}/source/client/include
+                  ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/include
+                  ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/include/thrift-${THRIFT_VERSION}/
+                  /usr/include/mysql )
 IF(LIBEVENT_VERSION STREQUAL "event")
-	list(APPEND INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/include/event/ )
+    list(APPEND INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/include/event/ )
 ENDIF(LIBEVENT_VERSION STREQUAL "event")
 include_directories( ${INCLUDE_DIRS} )
-	
-	
+    
+    
 add_subdirectory( source/utils )
 add_subdirectory( source/connect )
 add_subdirectory( source/tzhttpd )
@@ -124,16 +125,16 @@ target_link_libraries( tzmonitor -lrt -rdynamic -ldl
 
 IF(TZ_BUILD_UNIT_TEST)
     message("build unit_test ... ")
-	
-	# unit_test part
-	enable_testing()
-	# add_definitions(-DBOOST_TEST_DYN_LINK)
-	include(BoostTestHelper.cmake)
-	file(GLOB UNIT_TEST_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} test/*.cpp)
+    
+    # unit_test part
+    enable_testing()
+    # add_definitions(-DBOOST_TEST_DYN_LINK)
+    include(BoostTestHelper.cmake)
+    file(GLOB UNIT_TEST_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} test/*.cpp)
 
-	foreach(test_source_file ${UNIT_TEST_SRCS})
+    foreach(test_source_file ${UNIT_TEST_SRCS})
         add_boost_test( ${test_source_file} ${WHOLE_LIBS} ${EXTRA_LIBS} )
-	endforeach(test_source_file)
+    endforeach(test_source_file)
 
 ENDIF(TZ_BUILD_UNIT_TEST)
 
