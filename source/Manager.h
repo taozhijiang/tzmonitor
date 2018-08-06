@@ -47,7 +47,7 @@ public:
     static Manager& instance();
 
 public:
-    bool init();
+    bool init(const std::string& cfgFile);
 
     bool service_joinall();
     bool service_graceful();
