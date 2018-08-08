@@ -64,30 +64,54 @@ static std::string va_format(const char * fmt, ...) {
 
 template <typename T>
 bool cast_raw_value(shared_result_ptr result, const uint32_t idx, T& val) {
-    if (typeid(T) == typeid(float) ||
-        typeid(T) == typeid(double) ) {
-        val = static_cast<T>(result->getDouble(idx));
-    }
-    else if (typeid(T) == typeid(int) ||
-        typeid(T) == typeid(int64_t) ) {
-        val = static_cast<T>(result->getInt64(idx));
-    }
-    else if (typeid(T) == typeid(unsigned int) ||
-        typeid(T) == typeid(result) ) {
-        val = static_cast<T>(result->getUInt64(idx));
-    }
-    else {
-        log_err("Tell unsupported type: %s", typeid(T).name());
+    
+    try {
+        
+        if (typeid(T) == typeid(float) ||
+            typeid(T) == typeid(double) ) {
+            val = static_cast<T>(result->getDouble(idx));
+        } else if (typeid(T) == typeid(int) ||
+            typeid(T) == typeid(int64_t) ) {
+            val = static_cast<T>(result->getInt64(idx));
+        } else if (typeid(T) == typeid(unsigned int) ||
+            typeid(T) == typeid(result) ) {
+            val = static_cast<T>(result->getUInt64(idx));
+        } else {
+            log_err("Tell unsupported type: %s", typeid(T).name());
+            return false;
+        }
+        
+    } catch (sql::SQLException &e) {
+        
+        std::stringstream output;
+        output << "# ERR: " << e.what() << endl;
+        output << " (MySQL error code: " << e.getErrorCode() << endl;
+        output << ", SQLState: " << e.getSQLState() << " )" << endl;
+        log_err("%s", output.str().c_str());
+        
         return false;
     }
-
+    
     return true;
 }
 
 // 特例化如果多次包含连接会重复定义，所以要么static、inline
 template <>
 inline bool cast_raw_value(shared_result_ptr result, const uint32_t idx, std::string& val) {
-    val = static_cast<std::string>(result->getString(static_cast<int32_t>(idx)));
+    
+    try {
+        val = static_cast<std::string>(result->getString(static_cast<int32_t>(idx)));
+    } catch (sql::SQLException &e) {
+        
+        std::stringstream output;
+        output << "# ERR: " << e.what() << endl;
+        output << " (MySQL error code: " << e.getErrorCode() << endl;
+        output << ", SQLState: " << e.getSQLState() << " )" << endl;
+        log_err("%s", output.str().c_str());
+        
+        return false;
+    }
+    
     return true;
 }
 
@@ -99,7 +123,22 @@ bool cast_raw_value(shared_result_ptr result, const uint32_t idx, T& val, Args& 
     return cast_raw_value(result, idx+1, rest ...);
 }
 
-
+// -1 err, 0 false, 1 true
+inline int rs_is_null(shared_result_ptr result, const uint32_t idx) {
+    
+    try {
+        return result->isNull(idx) ? 1 : 0;
+    } catch (sql::SQLException &e) {
+        
+        std::stringstream output;
+        output << "# ERR: " << e.what() << endl;
+        output << " (MySQL error code: " << e.getErrorCode() << endl;
+        output << ", SQLState: " << e.getSQLState() << " )" << endl;
+        log_err("%s", output.str().c_str());
+    }
+    
+    return -1;
+}
 
 class SqlConn: public ConnWrap,
                  public boost::noncopyable {

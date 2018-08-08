@@ -13,20 +13,14 @@
 
 // 客户端使用，尽量减少依赖的库
 
+#include <xtra_rhel6.h>
+
 #include <unistd.h>
 
 #include <cassert>
 #include <sstream>
 #include <thread>
 #include <functional>
-
-#ifndef _XTRA_DEFINE_GET_POINTER_MARKER_
-#define _XTRA_DEFINE_GET_POINTER_MARKER_
-template<class T>
-T * get_pointer(std::shared_ptr<T> const& p) {
-    return p.get();
-}
-#endif // _XTRA_DEFINE_GET_POINTER_MARKER_
 
 #include <utils/Log.h>
 #include <utils/EQueue.h>
@@ -88,6 +82,10 @@ public:
     }
 
 private:
+
+    void report_empty_event() {
+        report_event("", 0);
+    }
 
     int do_report(event_report_ptr_t report_ptr) {
 
@@ -295,7 +293,11 @@ int TzMonitorClient::Impl::report_event(const std::string& name, int64_t value, 
         msgid_ = 0;
         item.msgid = ++ msgid_; // 新时间，新起点
     }
-    current_slot_.emplace_back(item);
+
+    // item.name 可能是空的，我们会定期插入空的消息，强制没有满的消息刷新提交出去
+    if (likely(!item.name.empty())) {
+        current_slot_.emplace_back(item);
+    }
 
     if (cli_submit_queue_size_ != 0) {
         submit_queue_.SHRINK_FRONT(cli_submit_queue_size_);
@@ -352,11 +354,16 @@ void TzMonitorClient::Impl::run() {
     while (true) {
 
         event_report_ptr_t report_ptr;
-        if( !submit_queue_.POP(report_ptr, 5000) ){
+        time_t start = ::time(NULL);
+        if( !submit_queue_.POP(report_ptr, 1000) ){
+            report_empty_event(); // 触发事件提交
             continue;
         }
 
         do_report(report_ptr);
+        if (::time(NULL) != start) {
+            report_empty_event(); // 触发事件提交
+        }
     }
 }
 
