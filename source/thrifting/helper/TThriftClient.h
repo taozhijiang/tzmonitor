@@ -18,9 +18,9 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
-#include "TThriftTypes.h"
+#include <utils/Log.h>
 
-#include "../biz/TzMonitorService.h"
+#include "TThriftTypes.h"
 
 // 客户端相对比较的单一，所以相对服务端也比较简单；
 // 同时为了方便起见，客户端和服务端采用默认的短连接通信模式；

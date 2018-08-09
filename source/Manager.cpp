@@ -6,6 +6,7 @@
  */
 
 
+#include <syslog.h>
 #include <cstdlib>
 
 #include <memory>
@@ -47,7 +48,7 @@ Manager::Manager():
 }
 
 
-bool Manager::init() {
+bool Manager::init(const std::string& cfgFile) {
 
     if (initialized_) {
         log_err("Manager already initlialized...");
@@ -115,10 +116,10 @@ bool Manager::init() {
 
     // Web
     // default syslog for tzhttpd
-    tzhttpd::set_checkpoint_log_store_func(syslog);
+    tzhttpd::set_checkpoint_log_store_func(::syslog);
     tzhttpd::tzhttpd_log_init(7);
 
-    http_server_ptr_.reset(new tzhttpd::HttpServer("tzmonitor.conf", "tzmonitor"));
+    http_server_ptr_.reset(new tzhttpd::HttpServer(cfgFile, std::string(program_invocation_short_name)));
     if (!http_server_ptr_ || !http_server_ptr_->init()) {
         log_err("Init HttpServer failed!");
         return false;

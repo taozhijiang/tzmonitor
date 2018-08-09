@@ -72,6 +72,8 @@ set (INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include/
                   /usr/include/mysql )
 IF(LIBEVENT_VERSION STREQUAL "event")
     list(APPEND INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/include/event/ )
+ELSEIF(LIBEVENT_VERSION STREQUAL "event")
+    list(APPEND INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/xtra_rhel6.x/include/event2/ )
 ENDIF(LIBEVENT_VERSION STREQUAL "event")
 include_directories( ${INCLUDE_DIRS} )
     

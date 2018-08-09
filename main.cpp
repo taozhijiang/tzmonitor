@@ -78,11 +78,12 @@ int main(int argc, char* argv[]) {
 
     show_vcs_info();
 
-    std::string config_file = "tzmonitor.conf";
+    std::string config_file = std::string(program_invocation_short_name) + ".conf";
     if (!sys_config_init(config_file)) {
-        std::cout << "Handle system configure failed!" << std::endl;
+        std::cout << "Handle system configure " << config_file <<" failed!" << std::endl;
         return -1;
     }
+    std::cout << "we using system configure file: " << config_file << std::endl;
 
     int log_level = 0;
     if (!get_config_value("log_level", log_level)) {
@@ -124,7 +125,7 @@ int main(int argc, char* argv[]) {
 
     {
         PUT_COUNT_FUNC_PERF(Manager_init);
-        if(!Manager::instance().init()) {
+        if(!Manager::instance().init(config_file)) {
             log_err("Manager init error!");
             ::exit(1);
         }
