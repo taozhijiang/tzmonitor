@@ -1,0 +1,132 @@
+
+package tzrpc.MonitorTask;
+
+enum OpCode {
+    CMD_READ_EVENT  = 1;
+    CMD_WRIT_EVENT = 2;
+};
+
+message MonitorReadOps {
+
+    message Request {
+
+        message ping_t {
+            required string msg = 1;
+        }
+        optional ping_t ping = 3;
+
+        // service timestamp_metric_tag_entity_idx count,sum,avg,std
+        message ev_select_t {
+            required string version = 1;      // 1.0.0
+            required string service = 2;
+
+            required string metric  = 3;      // 需要查询的指标名称
+            required int64  tm_interval = 4;  // 需要查询的时间长度,0为无下限
+
+            // 可选的查询参数类型
+            optional int64  tm_start = 11;
+            optional string entity_idx = 12;
+            optional string tag = 13;
+            optional string groupby = 14; // none,flag,time
+        }
+        optional ev_select_t select = 4;
+
+        message ev_metrics_t {
+            required string version = 1;      // 1.0.0
+            required string service = 2;      // 空表示查询所有服务的信息
+
+            optional int64  tm_interval = 3;  // 需要查询的时间长度
+        }
+
+        optional ev_metrics_t metric = 5;
+    }
+
+    // 所有响应报文
+    message Response {
+
+        optional int32  code = 1;
+        optional string desc = 2;
+
+        message ping_t {
+            required string msg = 1;
+        }
+        optional ping_t ping = 3;
+
+        message ev_info_t {
+            required int64  timestamp = 1;
+            required string tag       = 2;
+
+            required int32  count     = 5;
+            required int64  value_sum = 6;
+            required int64  value_avg = 7;
+            required int64  value_std = 8;
+        }
+
+        message ev_select_t {
+            required string version = 1;    // 1.0.0
+            required string service = 2;
+
+            required int64  timestamp = 3;  // 实际数据开始取的时间
+            required string metric = 4;
+            required int64  tm_interval = 5;
+
+            optional int64  tm_start = 10;  // 如果请求条件约束，则原样返回校验
+            optional string entity_idx = 11;// 如果请求条件约束，则原样返回校验
+            optional string tag = 12;       // 如果请求条件约束，则原样返回校验
+
+            optional ev_info_t summary = 15;
+            repeated ev_info_t info = 16;
+        }
+        optional ev_select_t select = 4;
+
+        message ev_metric_t {
+            required string service = 1;
+            required string metric  = 2;
+        }
+
+        message ev_metrics_t {
+            required string version = 1;      // 1.0.0
+            optional int64  tm_interval = 2;  // 如果请求条件约束，则原样返回校验
+
+            repeated ev_metric_t metrics = 5;
+        }
+
+        optional ev_metrics_t metric = 5;
+
+    }
+}
+
+
+message MonitorWriteOps {
+
+    // 所有请求报文
+    message Request {
+
+        message ev_data_t {
+            required int64  msgid  = 1;     // 消息ID，只需要在time_identity_event 域下唯一即可，服务端用于防止重复上报，客户端可以安全重试
+            required string metric = 2;     // 上报的指标名
+            required int64  value  = 3;
+            required string tag    = 4;     // 标识区分，比如成功、失败、各种结果类别等
+        }
+
+        message ev_report_t {
+            required string version = 1;    // 1.0.0
+            required int64  timestamp = 2;
+
+            required string service = 3;    // 汇报服务名
+            required string entity_idx = 4; // 汇报服务标识(多实例服务部署时候使用，否则默认为空)，主机名也编辑在这里
+
+            repeated ev_data_t data = 10;
+        }
+        optional ev_report_t report = 3; // 事件不必相同，但是必须同一个time
+
+    }
+
+    message Response {
+
+        optional int32  code = 1;
+        optional string desc = 2;
+
+    }
+}
+
