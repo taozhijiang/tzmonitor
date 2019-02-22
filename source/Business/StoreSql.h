@@ -10,7 +10,6 @@
 #define __BUSINESS_STORE_SQL_H__
 
 #include <Connect/SqlConn.h>
-using namespace tzrpc;
 
 #include <Business/StoreIf.h>
 
@@ -23,14 +22,14 @@ public:
     int select_ev_metrics(std::map<std::string, service_metric_t>& metrics);
 
 private:
-    int insert_ev_stat(sql_conn_ptr &conn, const event_insert_t& stat);
-    int select_ev_stat(sql_conn_ptr& conn, const event_cond_t& cond, event_select_t& stat);
+    int insert_ev_stat(tzrpc::sql_conn_ptr &conn, const event_insert_t& stat);
+    int select_ev_stat(tzrpc::sql_conn_ptr& conn, const event_cond_t& cond, event_select_t& stat);
 
     std::string get_table_suffix(time_t time_sec);
     std::string build_sql(const event_cond_t& cond, time_t& start_time);
 
     // 数据库连接
-    std::shared_ptr<ConnPool<SqlConn, SqlConnPoolHelper>> sql_pool_ptr_;
+    std::shared_ptr<tzrpc::ConnPool<tzrpc::SqlConn, tzrpc::SqlConnPoolHelper>> sql_pool_ptr_;
 
     std::string database_;
     std::string table_prefix_;

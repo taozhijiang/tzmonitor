@@ -15,7 +15,7 @@ bool MonitorTaskService::init() {
     }
 
     bool init_success = false;
-    const libconfig::Setting &rpc_services = conf_ptr->lookup("services");
+    const libconfig::Setting &rpc_services = conf_ptr->lookup("rpc_services");
     for(int i = 0; i < rpc_services.getLength(); ++i) {
 
         const libconfig::Setting& service = rpc_services[i];
@@ -198,6 +198,7 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
     if (rpc_request_message.header_.opcode != MonitorTask::OpCode::CMD_READ_EVENT) {
         log_err("invalid opcode %u in service MonitorTask.", rpc_request_message.header_.opcode);
         rpc_instance->reject(RpcResponseStatus::INVALID_REQUEST);
+        return;
     }
 
     MonitorTask::MonitorReadOps::Response response;
@@ -215,11 +216,19 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
             break;
         }
 
-        // 相同类目下的子RPC分发
+        // 相同类目下的子RPC调用分发
         if (request.has_ping()) {
-            log_debug("MonitorRead::MonitorReadOps::ping -> %s", request.ping().msg().c_str());
+            log_debug("MonitorTask::MonitorReadOps::ping -> %s", request.ping().msg().c_str());
             response.mutable_ping()->set_msg("[[[pong]]]");
             break;
+        } else if (request.has_select()) {
+
+        } else if (request.has_metrics()) {
+
+        } else {
+            log_err("undetected specified service call.");
+            rpc_instance->reject(RpcResponseStatus::INVALID_REQUEST);
+            return;
         }
 
     } while (0);
@@ -231,17 +240,44 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
 
 void MonitorTaskService::write_ops_impl(std::shared_ptr<RpcInstance> rpc_instance) {
 
-    #if 0
-    PRELUDE(XtraWriteCmd);
+       // 再做一次opcode校验
+    RpcRequestMessage& rpc_request_message = rpc_instance->get_rpc_request_message();
+    if (rpc_request_message.header_.opcode != MonitorTask::OpCode::CMD_WRIT_EVENT) {
+        log_err("invalid opcode %u in service MonitorTask.", rpc_request_message.header_.opcode);
+        rpc_instance->reject(RpcResponseStatus::INVALID_REQUEST);
+        return;
+    }
 
+    MonitorTask::MonitorWriteOps::Response response;
+    response.set_code(0);
+    response.set_desc("OK");
 
-    rpc.reply(response);
-    #endif
+    do {
 
-    const RpcRequestMessage& msg = rpc_instance->get_rpc_request_message();
-    log_debug(" write ops recv: %s", msg.dump().c_str());
+        // 消息体的unmarshal
+        MonitorTask::MonitorWriteOps::Request request;
+        if (!ProtoBuf::unmarshalling_from_string(rpc_request_message.payload_, &request)) {
+            log_err("unmarshal request failed.");
+            response.set_code(-1);
+            response.set_desc("参数错误");
+            break;
+        }
 
-    rpc_instance->reply_rpc_message("nicol_write_reply");
+        // 相同类目下的子RPC调用分发
+        if (request.has_report()) {
+            log_debug("MonitorTask::MonitorWriteOps::report ->");
+            break;
+        } else {
+            log_err("undetected specified service call.");
+            rpc_instance->reject(RpcResponseStatus::INVALID_REQUEST);
+            return;
+        }
+
+    } while (0);
+
+    std::string response_str;
+    ProtoBuf::marshalling_to_string(response, &response_str);
+    rpc_instance->reply_rpc_message(response_str);
 }
 
 

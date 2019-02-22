@@ -38,7 +38,7 @@ message MonitorReadOps {
             optional int64  tm_interval = 3;  // 需要查询的时间长度
         }
 
-        optional ev_metrics_t metric = 5;
+        optional ev_metrics_t metrics = 5;
     }
 
     // 所有响应报文
@@ -91,7 +91,7 @@ message MonitorReadOps {
             repeated ev_metric_t metrics = 5;
         }
 
-        optional ev_metrics_t metric = 5;
+        optional ev_metrics_t metrics = 5;
 
     }
 }
@@ -114,7 +114,7 @@ message MonitorWriteOps {
             required int64  timestamp = 2;
 
             required string service = 3;    // 汇报服务名
-            required string entity_idx = 4; // 汇报服务标识(多实例服务部署时候使用，否则默认为空)，主机名也编辑在这里
+            required string entity_idx = 4; // 汇报服务标识(多实例服务部署时候使用)，如果需要主机名也编辑在这里
 
             repeated ev_data_t data = 10;
         }

@@ -30,6 +30,7 @@
 // 类似于做一个handler的事件处理分发
 
 class EventHandler;
+struct EventHandlerConf;
 
 class EventRepos: public boost::noncopyable {
 
@@ -48,44 +49,44 @@ public:
     // forward request to specified handlers
     int add_event(const event_report_t& evs);
     int get_event(const event_cond_t& cond, event_select_t& stat);
-    int get_metrics();
 
-    int get_event_linger() {
-        return conf_.event_linger_;
-    }
+    // key:service
+    int get_metrics(std::map<std::string, service_metric_t> metrics);
 
     void add_additional_task(const tzrpc::TaskRunnable& func) {
-        task_helper_->add_additional_task(func);
-    }
-
-    std::unique_ptr<StoreIf>& store() {
-        return store_;
+        support_task_helper_->add_additional_task(func);
     }
 
 private:
 
 
     std::mutex lock_;
-    std::map<std::string, std::shared_ptr<EventHandler>> handlers_;
+    // key service&entity_idx
+    typedef std::map<std::string, std::shared_ptr<EventHandler>> HandlerType;
+    std::shared_ptr<HandlerType> handlers_;
 
-    int find_or_create_event_handler(const event_report_t& evs, std::shared_ptr<EventHandler>& handler);
-
-    // should be call with lock already hold
-    int do_create_event_handler(const event_report_t& evs, std::shared_ptr<EventHandler>& new_handler);
+    int find_create_event_handler(const std::string& service, const std::string& entity_idx,
+                                  std::shared_ptr<EventHandler>& handler);
 
     // 额外处理线程组，用于辅助增强处理能力
-    int support_task_size_;  // 目前不支持动态
+    int support_process_task_size_;  // 目前不支持动态
     std::shared_ptr<tzrpc::TinyTask> support_task_helper_;
+
+    EventHandlerConf get_default_handler_conf();
+    std::shared_ptr<EventHandlerConf> default_handler_conf_;
+
 
 private:
     EventRepos():
         lock_(),
         handlers_(),
-        support_task_size_(1),
-        support_task_helper_() {
+        support_process_task_size_(1),
+        support_task_helper_(),
+        default_handler_conf_() {
     }
 
-    ~EventRepos(){}
+    ~EventRepos(){
+    }
 };
 
 

@@ -12,10 +12,14 @@
 
 #include <Network/NetConn.h>
 
-namespace tzrpc_client {
+namespace tzmonitor_client {
+
+using tzrpc::Message;
+using tzrpc::NetConn;
+using tzrpc::IOBound;
+using tzrpc::ConnStat;
 
 class RpcClientSetting;
-using namespace tzrpc;
 
 class TcpConnSync: public NetConn, public boost::noncopyable,
                    public std::enable_shared_from_this<TcpConnSync> {
@@ -88,7 +92,7 @@ private:
 };
 
 
-} // end namespace tzrpc_client
+} // end namespace tzmonitor_client
 
 
 #endif // __NETWORK_TCP_CONN_SYNC_H__

@@ -24,6 +24,8 @@
 
 #include <Utils/Log.h>
 
+namespace tzrpc {
+
 template <typename T>
 struct conn_ptr_compare {
 public:
@@ -204,5 +206,6 @@ private:
 
 };
 
+} // end namespace tzrpc
 
 #endif  // _CONNECT_POOL_H_

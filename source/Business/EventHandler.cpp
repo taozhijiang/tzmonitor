@@ -13,13 +13,82 @@
 #include <Business/EventHandler.h>
 #include <Business/EventRepos.h>
 
-extern int stateless_process_event(events_ptr_t event, event_insert_t copy_stat);
+using namespace tzrpc;
 
 // EventHandler
 
 bool EventHandler::init() {
 
-    if (identity_.empty()) {
+    if (service_.empty()) {
+        log_err("service not initialized %s", service_.c_str());
+        return false;
+    }
+
+    // 首先加载默认配置
+    conf_ = EventRepos::instance().get_default_handler_conf();
+
+    // 检测是否有覆盖配置
+    auto conf_ptr = ConfHelper::instance().get_conf();
+    if (!conf_ptr) {
+        log_err("ConfHelper not initialized, please check your initialize order.");
+        return false;
+    }
+
+    try {
+
+        const libconfig::Setting& rpc_handlers = conf_ptr->lookup("rpc_business.services");
+
+        for(int i = 0; i < rpc_handlers.getLength(); ++i) {
+
+            const libconfig::Setting& handler_conf = rpc_handlers[i];
+            std::string instance_name;
+            ConfUtil::conf_value(handler_conf, "instance_name", instance_name);
+
+            if (instance_name == service_) {
+
+                int value_i;
+                ConfUtil::conf_value(handler_conf, "event_linger", value_i);
+                if (value_i > 0) {
+                    conf_.event_linger_ = value_i;
+                }
+
+                ConfUtil::conf_value(handler_conf, "event_step", value_i);
+                if (value_i > 0) {
+                    conf_.event_step_ = value_i;
+                }
+
+                ConfUtil::conf_value(handler_conf, "additional_process_queue_size", value_i);
+                if (value_i > 0) {
+                    conf_.additional_process_queue_size_ = value_i;
+                }
+
+                std::string store_type;
+                ConfUtil::conf_value(handler_conf, "store_type", store_type);
+                if (store_type == "mysql" || store_type == "redis" || store_type == "leveldb") {
+                    conf_.store_type_ = store_type;
+                }
+
+                log_debug("EventHandlerConf for %s info \n"
+                          "event_linger %d, event_step %d, process_queue_size %d, store_type %s",
+                          service_.c_str(),
+                          conf_.event_linger_.load(),
+                          conf_.event_step_.load(),
+                          conf_.additional_process_queue_size_.load(),
+                          conf_.store_type_.c_str());
+
+                break;
+            }
+        }
+
+    } catch (...) {
+        log_err("find setting of rpc_business.services failed.");
+        return false;
+    }
+
+    store_ = StoreFactory(conf_.store_type_);
+    if (!store_) {
+        log_err("store implement %s for %s not OK!",
+                conf_.store_type_.c_str(), service_.c_str());
         return false;
     }
 
@@ -33,59 +102,63 @@ bool EventHandler::init() {
 }
 
 
-EventHandler::~EventHandler() {
-    log_err("EventHandler %s destroied...", identity_.c_str());
-}
-
-
 int EventHandler::add_event(const event_report_t& ev) {
 
-    if (ev.service != service_ || ev.entity_idx != entity_idx_) {
-        log_err("Error for identity check, expect (%s, %s), but get (%s, %s)",
-                service_.c_str(), entity_idx_.c_str(),
-                ev.entity_idx.c_str(), ev.entity_idx.c_str());
+    if (ev.service != service_) {
+        log_err("error for service check, expect %s != %s",
+                ev.service.c_str(), service_.c_str());
+        return -1;
+    }
+
+    time_t now = ::time(NULL);
+    if (now - ev.timestamp > conf_.event_linger_) {
+        log_err("critical... too old report: %s %ld - %ld = %ld, drop it!",
+                service_.c_str(), now, ev.timestamp, (now, ev.timestamp));
         return -1;
     }
 
     std::lock_guard<std::mutex> lock(lock_);
-    time_t now = ::time(NULL);
-    if (now - ev.timestamp > EventRepos::instance().get_event_linger()) {
-        log_err("Too old report: %s %ld - %ld, drop it!", identity_.c_str(), now, ev.timestamp);
-        return -1;
-    }
-
     return do_add_event(ev.timestamp, ev.data);
 }
+
 
 int EventHandler::do_add_event(time_t ev_time, const std::vector<event_data_t>& data) {
 
     auto timed_iter = events_.find(ev_time);
     if (timed_iter == events_.end()) {
         log_debug("create new time slot: %ld", ev_time);
-        events_[ev_time] = std::make_shared<events_t>(ev_time);
+        events_[ev_time] = std::make_shared<events_by_time_t>(ev_time);
         timed_iter = events_.find(ev_time);
     }
 
     SAFE_ASSERT(timed_iter != events_.end());
-    std::map<std::string, std::vector<event_data_t>>& timed_slot = timed_iter->second->data_;
+
+    // key: metric
+    auto& timed_slot = timed_iter->second->data_;
 
     for (auto iter = data.begin(); iter != data.end(); ++iter) {
-        std::map<std::string, std::vector<event_data_t>>::iterator event_iter = timed_slot.find(iter->metric);
-        if (event_iter == timed_slot.end()) {
-            log_debug("create new event slot: %s in %s@%ld", iter->metric.c_str(), identity_.c_str(), ev_time);
+        auto metric_iter = timed_slot.find(iter->metric);
+        if (metric_iter == timed_slot.end()) {
+            log_debug("create new metric %s at time_slot: %ld in %s",
+                      iter->metric.c_str(), ev_time, service_.c_str(), ev_time);
+
             timed_slot[iter->metric] = std::vector<event_data_t>();
-            event_iter = timed_slot.find(iter->metric);
+            metric_iter = timed_slot.find(iter->metric);
         }
 
-        event_iter->second.push_back(*iter);
+        metric_iter->second.push_back(*iter);
     }
+
     return 0;
 }
 
 
+int EventHandler::get_event(const event_cond_t& cond, event_select_t& stat) {
 
+    return -1;
+}
 
-void EventHandler::run_once_task(std::vector<events_ptr_t> events) {
+void EventHandler::run_once_task(std::vector<events_by_time_ptr_t> events) {
 
     log_debug("MonitorEventHandler run_once_task thread %#lx begin to run ...", (long)pthread_self());
 
@@ -96,7 +169,7 @@ void EventHandler::run_once_task(std::vector<events_ptr_t> events) {
         stat.entity_idx = entity_idx_;
         stat.timestamp = (*iter)->timestamp_;
 
-        stateless_process_event(*iter, stat);
+        do_process_event(*iter, stat);
     }
 }
 
@@ -116,10 +189,11 @@ void EventHandler::run() {
 
     while (true) {
 
-        int process_queue_size = EventRepos::instance().conf_.process_queue_size_;
-        while (process_queue_.SIZE() > 2 * process_queue_size) {
-            std::vector<events_ptr_t> ev_inserts;
-            size_t ret = process_queue_.POP(ev_inserts, process_queue_size, 5000);
+        int queue_size = conf_.additional_process_queue_size_.load();
+
+        while (process_queue_.SIZE() > 2 * queue_size) {
+            std::vector<events_by_time_ptr_t> ev_inserts;
+            size_t ret = process_queue_.POP(ev_inserts, queue_size, 5000);
             if (!ret) {
                 log_err("Pop support task failed.");
                 break;
@@ -129,17 +203,146 @@ void EventHandler::run() {
             EventRepos::instance().add_additional_task(func);
         }
 
-        events_ptr_t event;
+        events_by_time_ptr_t event;
         if( !process_queue_.POP(event, 5000) ){
             continue;
         }
 
-        stat.service = service_;
-        stat.entity_idx = entity_idx_;
         stat.timestamp = event->timestamp_;
 
         // do actual handle
-        stateless_process_event(event, stat);
+        do_process_event(event, stat);
     }
 }
 
+
+
+// 数据处理部分
+
+
+// 内部使用临时结构体
+struct stat_info_t {
+    int count;
+    int64_t value_sum;
+    int64_t value_avg;
+    double  value_std;
+    std::vector<int64_t> values;
+};
+
+static
+void aggregate_by_tag(const event_data_t& data, std::map<std::string, stat_info_t>& infos) {
+    if (infos.find(data.tag) == infos.end()) {
+        infos[data.tag] = stat_info_t {};
+    }
+    infos[data.tag].values.push_back(data.value);
+    infos[data.tag].count += 1;
+    infos[data.tag].value_sum += data.value;
+}
+
+static
+void calc_event_info_each_metric(std::vector<event_data_t>& data,
+                                 std::map<std::string, stat_info_t>& infos) {
+
+    // 消息检查和排重
+    std::set<int64_t> ids;
+    for (auto iter = data.begin(); iter != data.end(); ++iter) {
+        ids.insert(iter->msgid);
+    }
+
+    if (ids.size() != data.size()) {
+        log_err("mismatch size, may contain duplicate items: %d - %d",
+                static_cast<int>(ids.size()), static_cast<int>(data.size()));
+
+        // dump出重复的事件
+        for(size_t i=0; i<data.size(); ++i) {
+            for(size_t j=i+1; j<data.size(); ++j) {
+                if (data[i].msgid == data[j].msgid) {
+                    log_err("found dumpicate message: %lu - %lu, (%ld %ld %s), (%ld %ld %s)", i, j,
+                            data[i].msgid, data[i].value, data[i].tag.c_str(),
+                            data[j].msgid, data[j].value, data[j].tag.c_str());
+                }
+            }
+        }
+
+        size_t expected_size = ids.size();
+        // 进行去重复
+        std::vector<event_data_t> new_data;
+        for (auto iter = data.begin(); iter != data.end(); ++iter) {
+            if (ids.find(iter->msgid) != ids.end()) {
+                new_data.push_back(*iter);
+                ids.erase(iter->msgid);
+            }
+        }
+
+        SAFE_ASSERT(new_data.size() == expected_size);
+        data = std::move(new_data);
+    }
+
+
+    std::for_each(data.begin(), data.end(),
+                  std::bind(aggregate_by_tag, std::placeholders::_1, std::ref(infos)));
+
+
+    // calc avg and std
+    for (auto iter = infos.begin(); iter!= infos.end(); ++iter) {
+
+        auto& info = iter->second;
+        if (info.count == 0) {
+            log_err("info.count == 0 ???");
+            continue;
+        }
+
+        info.value_avg = info.value_sum / info.count;
+
+        double sum = 0;
+        for (size_t i=0; i< info.values.size(); ++i) {
+            sum += ::pow(info.values[i] - info.value_avg, 2);
+        }
+        info.value_std = ::sqrt(sum / info.values.size());
+    }
+}
+
+// 无状态的处理函数
+int EventHandler::do_process_event(events_by_time_ptr_t event, event_insert_t copy_stat) {
+
+    auto& event_slot = event->data_;
+
+    // process event
+    for (auto iter = event_slot.begin(); iter != event_slot.end(); ++iter) {
+        auto& events_metric = iter->first;
+        auto& events_info = iter->second;
+        log_debug("process event %s, count %d", events_metric.c_str(), static_cast<int>(events_info.size()));
+
+        std::map<std::string, stat_info_t> tag_info;
+        calc_event_info_each_metric(events_info, tag_info);
+
+        // log_debug("process reuslt for event: %s", events_name.c_str());
+        for (auto it = tag_info.begin(); it != tag_info.end(); ++it) {
+            log_debug("tag %s, count %d, value %ld",
+                      it->first.c_str(),
+                      static_cast<int>(tag_info[it->first].count), tag_info[it->first].value_sum);
+
+            SAFE_ASSERT(tag_info[it->first].count != 0);
+
+            copy_stat.metric = events_metric;
+            copy_stat.tag = it->first;
+            copy_stat.count = tag_info[it->first].count;
+            copy_stat.value_sum = tag_info[it->first].value_sum;
+            copy_stat.value_avg = tag_info[it->first].value_avg;
+            copy_stat.value_std = tag_info[it->first].value_std;
+
+            if (store_->insert_ev_stat(copy_stat) != 0) {
+                log_err("store for (%s, %s) - %ld name:%s, flag:%s failed!",
+                        copy_stat.service.c_str(), copy_stat.entity_idx.c_str(),
+                        copy_stat.timestamp, copy_stat.metric.c_str(), copy_stat.tag.c_str());
+            } else {
+                log_debug("store for (%s, %s) - %ld name:%s, flag:%s ok!",
+                          copy_stat.service.c_str(), copy_stat.entity_idx.c_str(),
+                          copy_stat.timestamp, copy_stat.metric.c_str(), copy_stat.tag.c_str());
+            }
+        }
+    }
+
+    return 0;
+
+}

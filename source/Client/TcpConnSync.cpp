@@ -10,14 +10,18 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include "include/RpcClient.h"
+#include <Client/RpcClient.h>
 #include <Client/TcpConnSync.h>
 
-#define log_info printf
-#define log_notice printf
-#define log_err printf
+#include <Client/LogClient.h>
 
-namespace tzrpc_client {
+namespace tzmonitor_client {
+
+using tzrpc::Header;
+using tzrpc::kHeaderMagic;
+using tzrpc::kHeaderVersion;
+using tzrpc::kFixedIoBufferSize;
+using tzrpc::ShutdownType;
 
 TcpConnSync::TcpConnSync(std::shared_ptr<ip::tcp::socket> socket,
                          boost::asio::io_service& io_service,
@@ -293,4 +297,4 @@ void TcpConnSync::ops_cancel_timeout_call(const boost::system::error_code& ec) {
 
 
 
-} // end namespace tzrpc_client
+} // end namespace tzmonitor_client

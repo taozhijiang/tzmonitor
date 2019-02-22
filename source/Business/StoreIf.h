@@ -31,4 +31,7 @@ public:
 };
 
 
+std::shared_ptr<StoreIf> StoreFactory(const std::string& storeType);
+
+
 #endif // __BUSINESS_STORE_IF_H__

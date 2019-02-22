@@ -39,16 +39,32 @@ struct service_metric_t {
 };
 
 // 相同timestamp内的事件汇聚
-struct events_t {
+// 主要是删除了service数据
+
+// key:metric
+typedef std::map<std::string, std::vector<event_data_t>> events_by_metric_t;
+typedef std::shared_ptr<events_by_metric_t>              events_by_metric_ptr_t;
+
+struct events_by_time_t {
 public:
-    explicit events_t(time_t tm):
-        timestamp_(tm) {}
+    events_by_time_t(time_t tm):
+        timestamp_(tm) {
+    }
 
-    time_t      timestamp_;
-    std::map<std::string, std::vector<event_data_t>> data_;
+public:
+    time_t             timestamp_;
+    events_by_metric_t data_;
 };
+typedef std::shared_ptr<events_by_time_t>                events_by_time_ptr_t;
 
-typedef std::shared_ptr<events_t>       events_ptr_t;
-typedef std::map<time_t, events_ptr_t>  timed_events_ptr_t;
+typedef std::map<time_t, events_by_time_ptr_t>           timed_events_ptr_t;
+
+
+static inline
+std::string construct_identity(const std::string& service, const std::string& entity_idx) {
+    std::stringstream ss;
+    ss << service << "_" << entity_idx;
+    return ss.str();
+}
 
 #endif // __BUSINESS_EVENT_ITEM_H__

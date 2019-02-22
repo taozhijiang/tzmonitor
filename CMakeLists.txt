@@ -26,15 +26,16 @@ ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 
 
 # mysqlcppconn如果使用C开发会在释放的时候段错误
-set (XTRA_RHEL6x /home/nicol/workDir/svnclient/xtra_rhel6.x)
+#set (XTRA_RHEL6x /home/nicol/workDir/svnclient/xtra_rhel6.x)
+set (XTRA_RHEL6x /home/aliuser/svnclient/xtra_rhel6.x)
 set (PROTOBUF_GEN_CMD "cp -fr ${XTRA_RHEL6x}/bin/protoc-2.5.0 ${PROJECT_SOURCE_DIR}/bin/protoc && chmod a+x ${PROJECT_SOURCE_DIR}/bin/protoc && cd ${CMAKE_CURRENT_SOURCE_DIR}/source/Protocol/source && rm -fr ../gen-cpp && mkdir -p ../gen-cpp && make ")
 exec_program(${PROTOBUF_GEN_CMD})
 
 # 拷贝重要文件供创建客户端库使用
 set (CLIENT_BUILD_CMDS
-    "cp ${CMAKE_CURRENT_SOURCE_DIR}/source/Protocol/Common.h ${CMAKE_CURRENT_SOURCE_DIR}/source/Client/include"
-    "cp ${CMAKE_CURRENT_SOURCE_DIR}/source/Core/ProtoBuf.h ${CMAKE_CURRENT_SOURCE_DIR}/source/Client/include"
-    "cp ${CMAKE_CURRENT_SOURCE_DIR}/source/Protocol/gen-cpp/*.h ${CMAKE_CURRENT_SOURCE_DIR}/source/Client/include"
+    "cp ${CMAKE_CURRENT_SOURCE_DIR}/source/Protocol/Common.h ${CMAKE_CURRENT_SOURCE_DIR}/source/Client/"
+    "cp ${CMAKE_CURRENT_SOURCE_DIR}/source/Core/ProtoBuf.h ${CMAKE_CURRENT_SOURCE_DIR}/source/Client/"
+    "cp ${CMAKE_CURRENT_SOURCE_DIR}/source/Protocol/gen-cpp/*.h ${CMAKE_CURRENT_SOURCE_DIR}/source/Client/"
     "cp ${CMAKE_CURRENT_SOURCE_DIR}/source/Protocol/gen-cpp/*.cc ${CMAKE_CURRENT_SOURCE_DIR}/source/Client/"
     )
 foreach(CLIENT_BUILD ${CLIENT_BUILD_CMDS} )

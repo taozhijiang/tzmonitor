@@ -7,21 +7,25 @@
 
 #include <xtra_asio.h>
 
-#include "include/RpcClient.h"
 
 #include <Core/Message.h>
 
 #include <RPC/RpcRequestMessage.h>
 #include <RPC/RpcResponseMessage.h>
 
+#include <Client/RpcClientStatus.h>
+#include <Client/RpcClient.h>
 #include <Client/TcpConnSync.h>
 
-// 异常情况，直接发送到终端上
-#define log_err printf
+#include <Client/LogClient.h>
 
-namespace tzrpc_client {
+namespace tzmonitor_client {
 
-using namespace tzrpc;
+using tzrpc::RpcRequestMessage;
+using tzrpc::RpcResponseMessage;
+using tzrpc::RpcResponseStatus;
+
+using tzrpc::kRpcHeaderMagic;
 
 // 创建一个静态对象，用于全部的同步IO请求
 static boost::asio::io_service IO_SERVICE;
@@ -168,4 +172,4 @@ RpcClientStatus RpcClient::call_RPC(uint16_t service_id, uint16_t opcode,
     return impl_->call_RPC(service_id, opcode, payload, respload);
 }
 
-} // end namespace tzrpc_client
+} // end namespace tzmonitor_client

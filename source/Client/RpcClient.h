@@ -11,9 +11,9 @@
 #include <memory>
 #include <string>
 
-#include "RpcClientStatus.h"
+#include <Client/RpcClientStatus.h>
 
-namespace tzrpc_client {
+namespace tzmonitor_client {
 
 struct RpcClientSetting {
     std::string addr_ip_;
@@ -41,7 +41,7 @@ private:
     std::unique_ptr<RpcClientImpl> impl_;
 };
 
-}  // end namespace tzrpc_client
+}  // end namespace tzmonitor_client
 
 
 #endif // __RPC_CLIENT_H__
