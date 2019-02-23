@@ -101,4 +101,4 @@ target_link_libraries( tzmonitor -lrt -rdynamic -ldl
     ${EXTRA_LIBS}
 )
 
-# add_subdirectory( test )
+add_subdirectory( examples )

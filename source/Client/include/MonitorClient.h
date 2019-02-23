@@ -30,6 +30,9 @@ public:
 
     bool init(const std::string& cfgFile, CP_log_store_func_t log_func);
     bool init(const libconfig::Setting& setting, CP_log_store_func_t log_func);
+    bool init(const std::string& addr,  uint16_t port, CP_log_store_func_t log_func);  // 简易，使用默认参数
+
+    int ping();
 
     int report_event(const std::string& metric, int64_t value, std::string tag = "T");
 
@@ -42,7 +45,10 @@ public:
     int select_stat_by_time(const std::string& metric, const std::string& tag, event_select_t& stat, time_t tm_intervel = 60);
 
     // 最底层的接口，可以做更加精细化的查询
-    int select_stat(const event_cond_t& cond, event_select_t& stat);
+    int select_stat(event_cond_t& cond, event_select_t& stat);
+
+    // 查询所有已经上报的metrics
+    int known_metrics(metrics_t& metrics, std::string service = "",time_t tm_intervel = 24*60*60);
 
 private:
     class Impl;

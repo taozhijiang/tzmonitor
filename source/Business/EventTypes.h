@@ -76,6 +76,7 @@ struct event_info_t {
 
 struct event_select_t {
     std::string version;
+
     time_t      timestamp;
     time_t      tm_interval;
     std::string service;
@@ -89,5 +90,16 @@ struct event_select_t {
     event_info_t summary;
     std::vector<event_info_t> info;
 };
+
+// 检索metrics信息
+
+struct metrics_cond_t {
+    std::string version;
+    std::string service;
+    int64_t     tm_interval;
+};
+
+// service, metric
+typedef std::map<std::string, std::string> metrics_t;
 
 #endif // __BUSINESS_EVENT_TYPES_H__

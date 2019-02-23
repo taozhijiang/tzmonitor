@@ -21,7 +21,6 @@
 #include <boost/noncopyable.hpp>
 
 #include <Utils/EQueue.h>
-#include <Utils/Log.h>
 
 namespace tzrpc {
 
@@ -40,7 +39,7 @@ public:
     bool init(){
         thread_run_.reset(new boost::thread(std::bind(&TinyTask::run, shared_from_this())));
         if (!thread_run_){
-            log_err("create run work thread failed! ");
+            printf("create run work thread failed! ");
             return false;
         }
 
@@ -51,11 +50,11 @@ public:
         tasks_.PUSH(func);
     }
 
-	
+
 private:
     void run() {
 
-        log_debug("TinyTask thread %#lx begin to run ...", (long)pthread_self());
+        printf("TinyTask thread %#lx begin to run ...", (long)pthread_self());
 
         while (true) {
 
@@ -75,7 +74,7 @@ private:
                     thread_group[i].join();
             }
 
-            log_debug("count %d task process done!", static_cast<int>(task.size()));
+            printf("count %d task process done!", static_cast<int>(task.size()));
         }
     }
 

@@ -86,7 +86,8 @@ message MonitorReadOps {
 
         message ev_metrics_t {
             required string version = 1;      // 1.0.0
-            optional int64  tm_interval = 2;  // 如果请求条件约束，则原样返回校验
+            optional string service = 2;
+            optional int64  tm_interval = 3;  // 如果请求条件约束，则原样返回校验
 
             repeated ev_metric_t metrics = 5;
         }

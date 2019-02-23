@@ -26,8 +26,11 @@ public:
     MonitorRpcClientHelper(const std::string& ip, uint16_t port);
     ~MonitorRpcClientHelper();
 
+    int rpc_ping();
+
     int rpc_event_submit(const event_report_t& report);
     int rpc_event_select(const event_cond_t& cond, event_select_t& resp_info);
+    int rpc_known_metrics(const metrics_cond_t& cond, metrics_t& metric);
 
 private:
     class Impl;

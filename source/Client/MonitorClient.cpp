@@ -70,11 +70,15 @@ public:
 
     ~Impl() {}
 
+    bool init(const std::string& addr, uint16_t port, CP_log_store_func_t log_func);
     bool init(const std::string& cfgFile, CP_log_store_func_t log_func);
     bool init(const libconfig::Setting& setting, CP_log_store_func_t log_func);
 
+    int ping();
     int report_event(const std::string& metric, int64_t value, const std::string& tag);
-    int select_stat(const event_cond_t& cond, event_select_t& stat);
+    int select_stat(event_cond_t& cond, event_select_t& stat);
+    int known_metrics(metrics_cond_t& cond, metrics_t& metric);
+
 
 private:
 
@@ -159,26 +163,39 @@ bool MonitorClient::Impl::init(const libconfig::Setting& setting, CP_log_store_f
 
     // init log first
     set_checkpoint_log_store_func(log_func);
+    log_init(7);
 
     std::string serv_addr;
     int listen_port = 0;
     if (!setting.lookupValue("serv_addr", serv_addr) ||
         !setting.lookupValue("listen_port", listen_port) ||
         serv_addr.empty() || listen_port <= 0) {
-        log_err("get rpc server addr config failed.");
+        printf("get rpc server addr config failed.");
+        return false;
     }
 
-    client_agent_ = std::make_shared<MonitorRpcClientHelper>(serv_addr, listen_port);
+    // load other conf
+
+    return init(serv_addr, listen_port, log_func);
+}
+
+
+bool MonitorClient::Impl::init(const std::string& addr, uint16_t port, CP_log_store_func_t log_func) {
+
+    // init log first
+    set_checkpoint_log_store_func(log_func);
+    log_init(7);
+
+    client_agent_ = std::make_shared<MonitorRpcClientHelper>(addr, port);
     if (!client_agent_) {
         log_err("not available agent found!");
         return false;
     }
 
-
-    // ping test
-
-    // load conf
-
+    if (ping() != 0) {
+        log_err("client agent ping test failed...");
+        return false;
+    }
 
     thread_run_.reset(new boost::thread(std::bind(&MonitorClient::Impl::run, shared_from_this())));
     if (!thread_run_){
@@ -195,6 +212,24 @@ bool MonitorClient::Impl::init(const libconfig::Setting& setting, CP_log_store_f
     log_info("MonitorClient init ok!");
     return true;
 }
+
+int MonitorClient::Impl::ping() {
+
+    if (!client_agent_) {
+        log_err("MonitorRpcClientHelper not initialized, fatal!");
+        return -1;
+    }
+
+    auto code = client_agent_->rpc_ping();
+    if (code == 0) {
+        log_debug("ping test ok.");
+        return 0;
+    }
+
+    log_err("ping return code: %d", code);
+    return code;
+}
+
 
 int MonitorClient::Impl::report_event(const std::string& metric, int64_t value, const std::string& tag) {
 
@@ -259,14 +294,35 @@ int MonitorClient::Impl::report_event(const std::string& metric, int64_t value, 
     return 0;
 }
 
-int MonitorClient::Impl::select_stat(const event_cond_t& cond, event_select_t& stat) {
+int MonitorClient::Impl::select_stat(event_cond_t& cond, event_select_t& stat) {
 
     if (!client_agent_) {
         log_err("MonitorRpcClientHelper not initialized, fatal!");
         return -1;
     }
 
+    cond.service = service_;
     auto code = client_agent_->rpc_event_select(cond, stat);
+    if (code == 0) {
+        log_debug("event select ok.");
+        return 0;
+    }
+
+    log_err("event select return code: %d", code);
+    return code;
+}
+
+
+int MonitorClient::Impl::known_metrics(metrics_cond_t& cond, metrics_t& metric) {
+    if (!client_agent_) {
+        log_err("MonitorRpcClientHelper not initialized, fatal!");
+        return -1;
+    }
+
+    if (!cond.service.empty()) {
+        cond.service = service_;
+    }
+    auto code = client_agent_->rpc_known_metrics(cond, metric);
     if (code == 0) {
         log_debug("event select ok.");
         return 0;
@@ -339,11 +395,19 @@ bool MonitorClient::init(const libconfig::Setting& setting, CP_log_store_func_t 
     return impl_ptr_->init(setting, log_func);
 }
 
+bool MonitorClient::init(const std::string& addr,  uint16_t port, CP_log_store_func_t log_func) {
+    return impl_ptr_->init(addr, port, log_func);
+}
+
 int MonitorClient::report_event(const std::string& name, int64_t value, std::string flag ) {
     return impl_ptr_->report_event(name, value, flag);
 }
 
-int MonitorClient::select_stat(const event_cond_t& cond, event_select_t& stat) {
+int MonitorClient::ping() {
+    return impl_ptr_->ping();
+}
+
+int MonitorClient::select_stat(event_cond_t& cond, event_select_t& stat) {
     return impl_ptr_->select_stat(cond, stat);
 }
 
@@ -351,6 +415,7 @@ int MonitorClient::select_stat(const event_cond_t& cond, event_select_t& stat) {
 int MonitorClient::select_stat(const std::string& metric, int64_t& count, int64_t& avg, time_t tm_intervel) {
 
     event_cond_t cond {};
+
     cond.version =  "1.0.0";
     cond.metric  = metric;
     cond.tm_interval = tm_intervel;
@@ -392,6 +457,7 @@ int MonitorClient::select_stat_by_tag(const std::string& metric,
                                       event_select_t& stat, time_t tm_intervel) {
 
     event_cond_t cond {};
+
     cond.version =  "1.0.0";
     cond.metric = metric;
     cond.tm_interval = tm_intervel;
@@ -404,6 +470,7 @@ int MonitorClient::select_stat_by_time(const std::string& metric,
                                        event_select_t& stat, time_t tm_intervel) {
 
     event_cond_t cond {};
+
     cond.version =  "1.0.0";
     cond.metric = metric;
     cond.tm_interval = tm_intervel;
@@ -417,6 +484,7 @@ int MonitorClient::select_stat_by_time(const std::string& metric, const std::str
                                        event_select_t& stat, time_t tm_intervel) {
 
     event_cond_t cond {};
+
     cond.version =  "1.0.0";
     cond.metric = metric;
     cond.tag = tag;
@@ -426,6 +494,19 @@ int MonitorClient::select_stat_by_time(const std::string& metric, const std::str
     return impl_ptr_->select_stat(cond, stat);
 }
 
+
+int MonitorClient::known_metrics(metrics_t& metrics, std::string service, time_t tm_interval) {
+
+    metrics_cond_t cond {};
+
+    cond.version = "1.0.0";
+    cond.tm_interval = tm_interval;
+    if (!service.empty()) {
+        cond.service = service;
+    }
+
+    return impl_ptr_->known_metrics(cond, metrics);
+}
 
 
 } // end namespace tzmonitor_client

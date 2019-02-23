@@ -222,9 +222,9 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
             response.mutable_ping()->set_msg("[[[pong]]]");
             break;
         } else if (request.has_select()) {
-
+            log_debug("MonitorTask::MonitorReadOps::report -> %s", tzrpc::ProtoBuf::dump(request).c_str());
         } else if (request.has_metrics()) {
-
+            log_debug("MonitorTask::MonitorReadOps::report -> %s", tzrpc::ProtoBuf::dump(request).c_str());
         } else {
             log_err("undetected specified service call.");
             rpc_instance->reject(RpcResponseStatus::INVALID_REQUEST);
@@ -265,7 +265,7 @@ void MonitorTaskService::write_ops_impl(std::shared_ptr<RpcInstance> rpc_instanc
 
         // 相同类目下的子RPC调用分发
         if (request.has_report()) {
-            log_debug("MonitorTask::MonitorWriteOps::report ->");
+            log_debug("MonitorTask::MonitorWriteOps::report -> %s", tzrpc::ProtoBuf::dump(request).c_str());
             break;
         } else {
             log_err("undetected specified service call.");
