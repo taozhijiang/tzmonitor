@@ -101,6 +101,23 @@ private:
         return code;
     }
 
+    // 新的线程创建新的提交连接，否则并没有增加并发量
+    int do_additional_report(std::shared_ptr<MonitorRpcClientHelper>& client_agent, event_report_ptr_t report_ptr) {
+
+        if (!report_ptr || !client_agent) {
+            return -1;
+        }
+
+        auto code = client_agent->rpc_event_submit(*report_ptr);
+        if (code == 0) {
+            log_debug("report submit ok.");
+            return 0;
+        }
+
+        log_err("report submit return code: %d", code);
+        return code;
+    }
+
 private:
     // 确保 service和entity_idx已经是定义良好的了
     MonitorClientImpl(std::string service, std::string entity_idx) :
@@ -113,6 +130,8 @@ private:
         current_slot_(),
         submit_queue_(),
         already_initialized_(false),
+        monitor_addr_(),
+        monitor_port_(),
         conf_() {
     }
 
@@ -145,6 +164,8 @@ private:
     bool already_initialized_;
     std::string service_;
     std::string entity_idx_;
+    std::string monitor_addr_;
+    uint16_t    monitor_port_;
 
     MonitorClientConf conf_;
 };
@@ -194,6 +215,7 @@ bool MonitorClientImpl::init(const libconfig::Setting& setting, CP_log_store_fun
         return false;
     }
 
+
     std::string service;
     std::string entity_idx;
     setting.lookupValue("service", service);
@@ -230,13 +252,16 @@ bool MonitorClientImpl::init(const std::string& service, const std::string& enti
         entity_idx_ = entity_idx;
     }
 
-    if (service_.empty() || addr.empty() || port == 0) {
+    monitor_addr_ = addr;
+    monitor_port_ = port;
+
+    if (service_.empty() || monitor_addr_.empty() || monitor_port_ == 0) {
         log_err("critical param error: service %s, addr %s, port %u",
-                service_.c_str(), addr.c_str(), port);
+                service_.c_str(), monitor_addr_.c_str(), monitor_port_);
         return false;
     }
 
-    client_agent_ = std::make_shared<MonitorRpcClientHelper>(addr, port);
+    client_agent_ = std::make_shared<MonitorRpcClientHelper>(monitor_addr_, monitor_port_);
     if (!client_agent_) {
         log_err("not available agent found!");
         return false;
@@ -333,6 +358,7 @@ int MonitorClientImpl::report_event(const std::string& metric, int64_t value, co
         submit_queue_.SHRINK_FRONT(conf_.report_queue_limit_);
     }
 
+
     while (submit_queue_.SIZE() > 2 * conf_.size_per_report_) {
         std::vector<event_report_ptr_t> reports;
         size_t ret = submit_queue_.POP(reports, conf_.size_per_report_, 2000);
@@ -343,6 +369,7 @@ int MonitorClientImpl::report_event(const std::string& metric, int64_t value, co
         std::function<void()> func = std::bind(&MonitorClientImpl::run_once_task, this, reports);
         task_helper_->add_additional_task(func);
     }
+
     return 0;
 }
 
@@ -429,8 +456,20 @@ void MonitorClientImpl::run() {
 void MonitorClientImpl::run_once_task(std::vector<event_report_ptr_t> reports) {
 
     log_debug("MonitorClient run_once_task thread %#lx begin to run ...", (long)pthread_self());
+
+    auto client_agent = std::make_shared<MonitorRpcClientHelper>(monitor_addr_, monitor_port_);
+    if (!client_agent) {
+        log_err("not available agent found!");
+        return;
+    }
+
+    if (ping() != 0) {
+        log_err("client agent ping test failed...");
+        return;
+    }
+
     for(auto iter = reports.begin(); iter != reports.end(); ++iter) {
-        do_report(*iter);
+        do_additional_report(client_agent, *iter);
     }
 }
 

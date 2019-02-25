@@ -107,6 +107,8 @@ int MonitorRpcClientHelper::rpc_event_submit(const event_report_t& report) {
         return -1;
     }
 
+    log_notice("report count %lu with marshal size: %lu", report.data.size(), mar_str.size());
+
     if (!rpc_client_) {
         rpc_client_.reset(new RpcClient(ip_, port_));
         if (!rpc_client_) {

@@ -93,8 +93,9 @@ bool NetConf::load_conf(const libconfig::Config& conf) {
     service_enabled_ = value_b;
     service_speed_ = value_i;
 
+    // 如果是0，就不限制
     ConfUtil::conf_value(conf, "rpc_network.max_msg_size", value_i);
-    if (value_i <= 32 /*actual sizeof RpcRequestMessage, RpcResponseMessage*/){
+    if (value_i != 0 && value_i <= 32 /*actual sizeof RpcRequestMessage, RpcResponseMessage*/){
         log_err("invalid rpc_network.max_msg_size value.");
         return false;
     }

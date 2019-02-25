@@ -57,7 +57,7 @@ void* perf_run(void* x_void_ptr) {
         reporter->report_event("event2", random_int(), "tag_F");
         reporter->report_event("event3", random_int(), "tag_T");
         reporter->report_event("event3", random_int(), "tag_F");
-		::usleep(100*1000);
+		::usleep(500);
 
         // increment success case
         count += 12;

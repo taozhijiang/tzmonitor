@@ -121,7 +121,7 @@ int EventHandler::add_event(const event_report_t& ev) {
     time_t now = ::time(NULL);
     if (now - ev.timestamp > conf_.event_linger_) {
         log_err("critical... too old report: %s %ld - %ld = %ld, drop it!",
-                service_.c_str(), now, ev.timestamp, (now, ev.timestamp));
+                service_.c_str(), now, ev.timestamp, (now - ev.timestamp));
         return -1;
     }
 

@@ -55,7 +55,7 @@ private:
 
     boost::atomic<int64_t> service_token_;
 
-    boost::atomic<int>     max_msg_size_;
+    boost::atomic<int>     max_msg_size_;       // 如果为0，则不限制
 
     bool check_safe_ip(const std::string& ip) {
         std::lock_guard<std::mutex> lock(lock_);
