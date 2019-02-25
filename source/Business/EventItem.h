@@ -60,10 +60,11 @@ typedef std::shared_ptr<events_by_time_t>                events_by_time_ptr_t;
 typedef std::map<time_t, events_by_time_ptr_t>           timed_events_ptr_t;
 
 
+// ! 是比较小的ascii码，用它来做分隔符
 static inline
 std::string construct_identity(const std::string& service, const std::string& entity_idx) {
     std::stringstream ss;
-    ss << service << "_" << entity_idx;
+    ss << service << "!" << entity_idx;
     return ss.str();
 }
 

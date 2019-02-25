@@ -2,6 +2,9 @@
 
 #include <Core/ProtoBuf.h>
 
+#include <Business/EventTypes.h>
+#include <Business/EventRepos.h>
+
 #include "MonitorTaskService.h"
 
 namespace tzrpc {
@@ -212,9 +215,11 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
         if (!ProtoBuf::unmarshalling_from_string(rpc_request_message.payload_, &request)) {
             log_err("unmarshal request failed.");
             response.set_code(-1);
-            response.set_desc("参数错误");
+            response.set_desc("unmarshalling failed.");
             break;
         }
+
+        log_debug("ReadRequest: %s", ProtoBuf::dump(request).c_str());
 
         // 相同类目下的子RPC调用分发
         if (request.has_ping()) {
@@ -222,9 +227,118 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
             response.mutable_ping()->set_msg("[[[pong]]]");
             break;
         } else if (request.has_select()) {
-            log_debug("MonitorTask::MonitorReadOps::report -> %s", tzrpc::ProtoBuf::dump(request).c_str());
+
+            event_cond_t cond {};
+
+            cond.version = request.select().version();
+            cond.tm_interval = request.select().tm_interval();
+            cond.service = request.select().service();
+            cond.metric = request.select().metric();
+            cond.tm_start = request.select().tm_start();
+            cond.entity_idx = request.select().entity_idx();
+            cond.tag = request.select().tag();
+
+            std::string groupby = request.select().groupby();
+            if (groupby == "tag") {
+                cond.groupby = GroupType::kGroupbyTag;
+            } else if(groupby == "timestamp") {
+                cond.groupby = GroupType::kGroupbyTimestamp;
+            } else {
+                cond.groupby = GroupType::kGroupNone;
+            }
+
+            event_select_t stat {};
+            int ret = EventRepos::instance().get_event(cond, stat);
+            if (ret != 0) {
+                log_err("call select return: %d",  ret);
+                response.set_code(ret);
+                response.set_desc("get_event error");
+                return;
+            }
+
+            response.set_code(0);
+            response.set_desc("OK");
+            response.mutable_select()->set_version(stat.version);
+            response.mutable_select()->set_service(stat.service);
+            response.mutable_select()->set_timestamp(stat.timestamp);
+            response.mutable_select()->set_metric(stat.metric);
+            response.mutable_select()->set_tm_interval(stat.tm_interval);
+            response.mutable_select()->set_tm_start(stat.timestamp);
+            response.mutable_select()->set_entity_idx(stat.entity_idx);
+            response.mutable_select()->set_tag(stat.tag);
+
+            response.mutable_select()->mutable_summary()->set_timestamp(stat.summary.timestamp);
+            response.mutable_select()->mutable_summary()->set_tag(stat.summary.tag);
+            response.mutable_select()->mutable_summary()->set_count(stat.summary.count);
+            response.mutable_select()->mutable_summary()->set_value_sum(stat.summary.value_sum);
+            response.mutable_select()->mutable_summary()->set_value_avg(stat.summary.value_avg);
+            response.mutable_select()->mutable_summary()->set_value_std(stat.summary.value_std);
+
+            for (auto iter = stat.info.begin(); iter != stat.info.end(); ++iter) {
+                auto item = response.mutable_select()->add_info();
+
+                item->set_timestamp(iter->timestamp);
+                item->set_tag(iter->tag);
+                item->set_count(iter->count);
+                item->set_value_sum(iter->value_sum);
+                item->set_value_avg(iter->value_avg);
+                item->set_value_std(iter->value_std);
+            }
+
+            break;
+
         } else if (request.has_metrics()) {
-            log_debug("MonitorTask::MonitorReadOps::report -> %s", tzrpc::ProtoBuf::dump(request).c_str());
+
+            std::string version = request.metrics().version();
+            std::string service = request.metrics().service();
+
+            std::vector<std::string> metric_stat;
+
+            int ret = EventRepos::instance().get_metrics(version, service, metric_stat);
+            if (ret != 0) {
+                log_err("call metrics return: %d",  ret);
+                response.set_code(ret);
+                response.set_desc("get_metrics failed.");
+                response.mutable_metrics()->set_version(version);
+                response.mutable_metrics()->set_service(service);
+                return;
+            }
+
+            response.set_code(0);
+            response.set_desc("OK");
+            response.mutable_metrics()->set_version(version);
+            response.mutable_metrics()->set_service(service);
+
+            for (auto iter = metric_stat.begin(); iter != metric_stat.end(); ++ iter) {
+                response.mutable_metrics()->add_metric(*iter);
+            }
+
+            break;
+
+        } else if (request.has_services()) {
+
+            std::string version = request.services().version();
+            std::vector<std::string> service_stat;
+
+            int ret = EventRepos::instance().get_services(version, service_stat);
+            if (ret != 0) {
+                log_err("call metrics return: %d",  ret);
+                response.set_code(ret);
+                response.set_desc("get_services failed.");
+                response.mutable_services()->set_version(version);
+                return;
+            }
+
+            response.set_code(0);
+            response.set_desc("OK");
+            response.mutable_services()->set_version(version);
+
+            for (auto iter = service_stat.begin(); iter != service_stat.end(); ++iter) {
+                response.mutable_services()->add_service(*iter);
+            }
+
+            break;
+
         } else {
             log_err("undetected specified service call.");
             rpc_instance->reject(RpcResponseStatus::INVALID_REQUEST);
@@ -232,6 +346,8 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
         }
 
     } while (0);
+
+    log_debug("ReadRequest: return\n%s", ProtoBuf::dump(response).c_str());
 
     std::string response_str;
     ProtoBuf::marshalling_to_string(response, &response_str);
@@ -259,14 +375,43 @@ void MonitorTaskService::write_ops_impl(std::shared_ptr<RpcInstance> rpc_instanc
         if (!ProtoBuf::unmarshalling_from_string(rpc_request_message.payload_, &request)) {
             log_err("unmarshal request failed.");
             response.set_code(-1);
-            response.set_desc("参数错误");
+            response.set_desc("unmarshalling failed");
             break;
         }
 
+        log_debug("WriteRequest: %s", ProtoBuf::dump(request).c_str());
+
         // 相同类目下的子RPC调用分发
         if (request.has_report()) {
-            log_debug("MonitorTask::MonitorWriteOps::report -> %s", tzrpc::ProtoBuf::dump(request).c_str());
+
+            event_report_t report{};
+            report.version = request.report().version();
+            report.timestamp = request.report().timestamp();
+            report.service = request.report().service();
+            report.entity_idx = request.report().entity_idx();
+
+            int size = request.report().data_size();
+            for (int i=0; i<size; ++i) {
+                event_data_t item {};
+
+                auto p_data = request.report().data(i);
+                item.msgid = p_data.msgid();
+                item.metric = p_data.metric();
+                item.tag = p_data.tag();
+                item.value = p_data.value();
+
+                report.data.emplace_back(item);
+            }
+
+            auto ret = EventRepos::instance().add_event(report);
+            if (ret != 0) {
+                log_err("add event failed with return: %d", ret);
+                response.set_code(ret);
+                response.set_desc("add_event failed.");
+            }
+
             break;
+
         } else {
             log_err("undetected specified service call.");
             rpc_instance->reject(RpcResponseStatus::INVALID_REQUEST);
@@ -274,6 +419,8 @@ void MonitorTaskService::write_ops_impl(std::shared_ptr<RpcInstance> rpc_instanc
         }
 
     } while (0);
+
+    log_debug("WriteRequest: return\n%s", ProtoBuf::dump(response).c_str());
 
     std::string response_str;
     ProtoBuf::marshalling_to_string(response, &response_str);

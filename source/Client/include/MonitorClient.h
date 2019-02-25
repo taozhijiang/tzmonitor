@@ -40,15 +40,16 @@ public:
     int select_stat(const std::string& metric, int64_t& count, int64_t& avg, time_t tm_intervel = 60);
     int select_stat(const std::string& metric, const std::string& tag, int64_t& count, int64_t& avg, time_t tm_intervel = 60);
 
-    int select_stat_by_tag (const std::string& metric, event_select_t& stat, time_t tm_intervel = 60);
-    int select_stat_by_time(const std::string& metric, event_select_t& stat, time_t tm_intervel = 60);
-    int select_stat_by_time(const std::string& metric, const std::string& tag, event_select_t& stat, time_t tm_intervel = 60);
+    int select_stat_groupby_tag (const std::string& metric, event_select_t& stat, time_t tm_intervel = 60);
+    int select_stat_groupby_time(const std::string& metric, event_select_t& stat, time_t tm_intervel = 60);
+    int select_stat_groupby_time(const std::string& metric, const std::string& tag, event_select_t& stat, time_t tm_intervel = 60);
 
     // 最底层的接口，可以做更加精细化的查询
     int select_stat(event_cond_t& cond, event_select_t& stat);
 
-    // 查询所有已经上报的metrics
-    int known_metrics(metrics_t& metrics, std::string service = "",time_t tm_intervel = 24*60*60);
+    // 查询所有已经上报的metrics, service == ""就默认是自己的service
+    int known_metrics(std::vector<std::string>& metrics, std::string service = "");
+    int known_services(std::vector<std::string>& services);
 
 private:
     class Impl;

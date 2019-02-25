@@ -9,32 +9,43 @@
 #ifndef __MONITOR_RPC_CLIENT_HELPER_H__
 #define __MONITOR_RPC_CLIENT_HELPER_H__
 
-// 产生一个编译防火墙
-
 #include <string>
 #include <vector>
 
 #include <memory>
 
+
+#include <boost/noncopyable.hpp>
+
 #include <Client/include/EventTypes.h>
 
 namespace tzmonitor_client {
 
-class MonitorRpcClientHelper {
+class MonitorRpcClientHelper: private boost::noncopyable {
 public:
 
-    MonitorRpcClientHelper(const std::string& ip, uint16_t port);
-    ~MonitorRpcClientHelper();
+    MonitorRpcClientHelper(const std::string& ip, uint16_t port):
+        ip_(ip),
+        port_(port),
+        rpc_client_() {
+    }
+
+    ~MonitorRpcClientHelper() {
+    }
 
     int rpc_ping();
 
     int rpc_event_submit(const event_report_t& report);
     int rpc_event_select(const event_cond_t& cond, event_select_t& resp_info);
-    int rpc_known_metrics(const metrics_cond_t& cond, metrics_t& metric);
+
+    int rpc_known_metrics(const std::string& version, const std::string& service, std::vector<std::string>& metrics);
+    int rpc_known_services(const std::string& version, std::vector<std::string>& services);
 
 private:
-    class Impl;
-    std::unique_ptr<Impl> impl_ptr_;
+    std::string ip_;
+    uint16_t    port_;
+
+    std::unique_ptr<RpcClient> rpc_client_;
 };
 
 } // end namespace tzmonitor_client

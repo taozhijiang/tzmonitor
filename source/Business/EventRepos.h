@@ -51,7 +51,8 @@ public:
     int get_event(const event_cond_t& cond, event_select_t& stat);
 
     // key:service
-    int get_metrics(std::map<std::string, service_metric_t> metrics);
+    int get_metrics(const std::string& version, const std::string& service, std::vector<std::string>& metric_stat);
+    int get_services(const std::string& version, std::vector<std::string>& service_stat);
 
     void add_additional_task(const tzrpc::TaskRunnable& func) {
         support_task_helper_->add_additional_task(func);

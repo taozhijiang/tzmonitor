@@ -9,6 +9,8 @@
 #include <functional>
 
 #include <Utils/Log.h>
+#include <Utils/Timer.h>
+
 
 #include <Business/EventHandler.h>
 #include <Business/EventRepos.h>
@@ -68,17 +70,18 @@ bool EventHandler::init() {
                     conf_.store_type_ = store_type;
                 }
 
-                log_debug("EventHandlerConf for %s info \n"
-                          "event_linger %d, event_step %d, process_queue_size %d, store_type %s",
-                          service_.c_str(),
-                          conf_.event_linger_.load(),
-                          conf_.event_step_.load(),
-                          conf_.additional_process_queue_size_.load(),
-                          conf_.store_type_.c_str());
-
                 break;
+
             }
         }
+
+        log_debug("EventHandlerConf for %s final info \n"
+                  "event_linger %d, event_step %d, process_queue_size %d, store_type %s",
+                  service_.c_str(),
+                  conf_.event_linger_.load(),
+                  conf_.event_step_.load(),
+                  conf_.additional_process_queue_size_.load(),
+                  conf_.store_type_.c_str());
 
     } catch (...) {
         log_err("find setting of rpc_business.services failed.");
@@ -95,6 +98,11 @@ bool EventHandler::init() {
     thread_ptr_.reset(new boost::thread(std::bind(&EventHandler::run, shared_from_this())));
     if (!thread_ptr_){
         log_err("create work thread failed! ");
+        return false;
+    }
+
+    if (!Timer::instance().add_timer(std::bind(&EventHandler::linger_check_run, shared_from_this()), 500, true)) {
+        log_err("add linger_check_run failed.");
         return false;
     }
 
@@ -152,10 +160,35 @@ int EventHandler::do_add_event(time_t ev_time, const std::vector<event_data_t>& 
     return 0;
 }
 
+void EventHandler::linger_check_run() {
+
+    std::lock_guard<std::mutex> lock(lock_);
+    time_t now = ::time(NULL);
+
+    for (auto iter = events_.begin(); iter != events_.end(); /*nop*/) {
+        if (iter->first + conf_.event_linger_ < now) {
+
+            process_queue_.PUSH(iter->second);
+
+            // References and iterators to the erased elements are invalidated.
+            // Other references and iterators are not affected.
+            events_.erase(iter++);
+
+        } else {
+            break;
+        }
+    }
+}
+
 
 int EventHandler::get_event(const event_cond_t& cond, event_select_t& stat) {
 
-    return -1;
+    if (!store_) {
+        log_err("store not initialized with storetype: %s", conf_.store_type_.c_str());
+        return -1;
+    }
+
+    return store_->select_ev_stat(cond, stat, conf_.event_linger_);
 }
 
 void EventHandler::run_once_task(std::vector<events_by_time_ptr_t> events) {
@@ -331,7 +364,7 @@ int EventHandler::do_process_event(events_by_time_ptr_t event, event_insert_t co
             copy_stat.value_avg = tag_info[it->first].value_avg;
             copy_stat.value_std = tag_info[it->first].value_std;
 
-            if (store_->insert_ev_stat(copy_stat) != 0) {
+            if (!store_ || store_->insert_ev_stat(copy_stat) != 0) {
                 log_err("store for (%s, %s) - %ld name:%s, flag:%s failed!",
                         copy_stat.service.c_str(), copy_stat.entity_idx.c_str(),
                         copy_stat.timestamp, copy_stat.metric.c_str(), copy_stat.tag.c_str());

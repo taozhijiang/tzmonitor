@@ -23,10 +23,13 @@ public:
     virtual int insert_ev_stat(const event_insert_t& stat) = 0;
 
     // 查询事件
-    virtual int select_ev_stat(const event_cond_t& cond, event_select_t& stat) = 0;
+    // 因为linger会有一部分事件肯定是在途的，所以查询的时候将这部分时间优化掉
+    virtual int select_ev_stat(const event_cond_t& cond, event_select_t& stat,
+                               time_t linger_hint) = 0;
 
     // 获取所有的metrics列表
-    virtual int select_ev_metrics(std::map<std::string, service_metric_t>& metrics) = 0;
+    virtual int select_metrics(const std::string& service, std::vector<std::string>& metrics) = 0;
+    virtual int select_services(std::vector<std::string>& services) = 0;
 
 };
 

@@ -77,7 +77,10 @@ public:
     int ping();
     int report_event(const std::string& metric, int64_t value, const std::string& tag);
     int select_stat(event_cond_t& cond, event_select_t& stat);
-    int known_metrics(metrics_cond_t& cond, metrics_t& metric);
+
+    int known_metrics(const std::string& version,
+                      const std::string& service, std::vector<std::string>& metrics);
+    int known_services(const std::string& version, std::vector<std::string>& services);
 
 
 private:
@@ -313,24 +316,46 @@ int MonitorClient::Impl::select_stat(event_cond_t& cond, event_select_t& stat) {
 }
 
 
-int MonitorClient::Impl::known_metrics(metrics_cond_t& cond, metrics_t& metric) {
+int MonitorClient::Impl::known_metrics(const std::string& version,
+                                       const std::string& service, std::vector<std::string>& metrics) {
+
     if (!client_agent_) {
         log_err("MonitorRpcClientHelper not initialized, fatal!");
         return -1;
     }
 
-    if (!cond.service.empty()) {
-        cond.service = service_;
+    std::string service_t = service_;
+    if (!service.empty()) {
+        service_t = service;
     }
-    auto code = client_agent_->rpc_known_metrics(cond, metric);
+    auto code = client_agent_->rpc_known_metrics(version, service_t, metrics);
     if (code == 0) {
-        log_debug("event select ok.");
+        log_debug("known metrics ok.");
         return 0;
     }
 
-    log_err("event select return code: %d", code);
+    log_err("known metrics return code: %d", code);
     return code;
 }
+
+int MonitorClient::Impl::known_services(const std::string& version, std::vector<std::string>& services) {
+
+    if (!client_agent_) {
+        log_err("MonitorRpcClientHelper not initialized, fatal!");
+        return -1;
+    }
+
+    auto code = client_agent_->rpc_known_services(version, services);
+    if (code == 0) {
+        log_debug("known services ok.");
+        return 0;
+    }
+
+    log_err("known services return code: %d", code);
+    return code;
+}
+
+
 
 void MonitorClient::Impl::run() {
 
@@ -453,8 +478,8 @@ int MonitorClient::select_stat(const std::string& metric, const std::string& tag
     return 0;
 }
 
-int MonitorClient::select_stat_by_tag(const std::string& metric,
-                                      event_select_t& stat, time_t tm_intervel) {
+int MonitorClient::select_stat_groupby_tag(const std::string& metric,
+                                           event_select_t& stat, time_t tm_intervel) {
 
     event_cond_t cond {};
 
@@ -466,8 +491,8 @@ int MonitorClient::select_stat_by_tag(const std::string& metric,
     return impl_ptr_->select_stat(cond, stat);
 }
 
-int MonitorClient::select_stat_by_time(const std::string& metric,
-                                       event_select_t& stat, time_t tm_intervel) {
+int MonitorClient::select_stat_groupby_time(const std::string& metric,
+                                            event_select_t& stat, time_t tm_intervel) {
 
     event_cond_t cond {};
 
@@ -480,8 +505,8 @@ int MonitorClient::select_stat_by_time(const std::string& metric,
 }
 
 
-int MonitorClient::select_stat_by_time(const std::string& metric, const std::string& tag,
-                                       event_select_t& stat, time_t tm_intervel) {
+int MonitorClient::select_stat_groupby_time(const std::string& metric, const std::string& tag,
+                                            event_select_t& stat, time_t tm_intervel) {
 
     event_cond_t cond {};
 
@@ -495,19 +520,17 @@ int MonitorClient::select_stat_by_time(const std::string& metric, const std::str
 }
 
 
-int MonitorClient::known_metrics(metrics_t& metrics, std::string service, time_t tm_interval) {
+int MonitorClient::known_metrics(std::vector<std::string>& metrics, std::string service) {
 
-    metrics_cond_t cond {};
-
-    cond.version = "1.0.0";
-    cond.tm_interval = tm_interval;
-    if (!service.empty()) {
-        cond.service = service;
-    }
-
-    return impl_ptr_->known_metrics(cond, metrics);
+    std::string version = "1.0.0";
+    return impl_ptr_->known_metrics(version, service, metrics);
 }
 
+int MonitorClient::known_services(std::vector<std::string>& services) {
+
+    std::string version = "1.0.0";
+    return impl_ptr_->known_services(version, services);
+}
 
 } // end namespace tzmonitor_client
 

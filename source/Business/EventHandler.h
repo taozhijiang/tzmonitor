@@ -91,6 +91,8 @@ private:
     // should be called with lock already hold
     int do_add_event(time_t ev_time, const std::vector<event_data_t>& data);
 
+    // 大于linger时间之后，就会将信息进行聚合合并操作
+    void linger_check_run();
     int do_process_event(events_by_time_ptr_t event, event_insert_t copy_stat);
 
 private:

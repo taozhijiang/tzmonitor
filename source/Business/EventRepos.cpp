@@ -13,7 +13,7 @@
 #include <Utils/StrUtil.h>
 
 #include <Business/EventHandler.h>
-#include <Business/StoreSql.h>
+#include <Business/StoreIf.h>
 
 
 #include <Business/EventRepos.h>
@@ -147,8 +147,7 @@ int EventRepos::destory_handlers() {
 int EventRepos::add_event(const event_report_t& evs) {
 
     if (evs.version != "1.0.0" ||
-        evs.timestamp <= 0 ||
-        evs.service.empty() || evs.entity_idx.empty() || evs.data.empty()) {
+        evs.timestamp <= 0 || evs.service.empty() || evs.data.empty()) {
         log_err("add_event param check failed!");
         return -1;
     }
@@ -183,6 +182,92 @@ int EventRepos::get_event(const event_cond_t& cond, event_select_t& stat) {
     SAFE_ASSERT(handler);
     return handler->get_event(cond, stat);
 }
+
+int EventRepos::get_metrics(const std::string& version,
+                            const std::string& service, std::vector<std::string>& metric_stat) {
+
+    if (version != "1.0.0" || service.empty()) {
+        return -1;
+    }
+
+    std::set<std::string> unique_store;
+    std::vector<std::string> tmp_store;
+
+    auto store = StoreFactory("mysql");
+    tmp_store.clear();
+    if (!store || store->select_metrics(service, tmp_store) != 0) {
+        log_notice("get mysql store failed.");
+    } else {
+        unique_store.insert(tmp_store.cbegin(), tmp_store.cend());
+    }
+
+    store = StoreFactory("redis");
+    tmp_store.clear();
+    if (!store || store->select_metrics(service, tmp_store) != 0) {
+        log_notice("get redis store failed.");
+    } else {
+        unique_store.insert(tmp_store.cbegin(), tmp_store.cend());
+    }
+
+    store = StoreFactory("leveldb");
+    tmp_store.clear();
+    if (!store || store->select_metrics(service, tmp_store) != 0) {
+        log_notice("get leveldb store failed.");
+    } else {
+        unique_store.insert(tmp_store.cbegin(), tmp_store.cend());
+    }
+
+    metric_stat.clear();
+    metric_stat.assign(unique_store.cbegin(), unique_store.cend());
+
+    return 0;
+}
+
+
+
+int EventRepos::get_services(const std::string& version,
+                             std::vector<std::string>& service_stat) {
+
+    if (version != "1.0.0") {
+        return -1;
+    }
+
+    std::set<std::string> unique_store;
+    std::vector<std::string> tmp_store;
+
+    auto store = StoreFactory("mysql");
+    tmp_store.clear();
+    if (!store || store->select_services(tmp_store) != 0) {
+        log_notice("get mysql store failed.");
+    } else {
+        log_debug("mysql return service %d item", static_cast<int>(tmp_store.size()));
+        unique_store.insert(tmp_store.cbegin(), tmp_store.cend());
+    }
+
+    store = StoreFactory("redis");
+    tmp_store.clear();
+    if (!store || store->select_services(tmp_store) != 0) {
+        log_notice("get redis store failed.");
+    } else {
+        log_debug("redis return service %d item", static_cast<int>(tmp_store.size()));
+        unique_store.insert(tmp_store.cbegin(), tmp_store.cend());
+    }
+
+    store = StoreFactory("leveldb");
+    tmp_store.clear();
+    if (!store || store->select_services(tmp_store) != 0) {
+        log_notice("get leveldb store failed.");
+    } else {
+        log_debug("leveldb return service %d item", static_cast<int>(tmp_store.size()));
+        unique_store.insert(tmp_store.cbegin(), tmp_store.cend());
+    }
+
+    service_stat.clear();
+    service_stat.assign(unique_store.cbegin(), unique_store.cend());
+
+    return 0;
+}
+
 
 
 // 只会增加handler
