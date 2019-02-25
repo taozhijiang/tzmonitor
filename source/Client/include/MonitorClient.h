@@ -9,6 +9,7 @@
 #ifndef __MONITOR_CLIENT_H__
 #define __MONITOR_CLIENT_H__
 
+#include <syslog.h>
 #include <errno.h>
 #include <libconfig.h++>
 
@@ -19,6 +20,10 @@
 
 typedef void(* CP_log_store_func_t)(int priority, const char *format, ...);
 
+// 可以创建多个MonitorClient的客户端，但是后台实现只会使用
+// 一个单例来实现，否则产生的msgid会重复，导致消息被丢弃
+
+// 为什么不直接使用单例？单例用起来是在太臭了
 namespace tzmonitor_client {
 
 class MonitorClient: public boost::noncopyable {
@@ -28,9 +33,12 @@ public:
 
     ~MonitorClient();
 
-    bool init(const std::string& cfgFile, CP_log_store_func_t log_func);
-    bool init(const libconfig::Setting& setting, CP_log_store_func_t log_func);
-    bool init(const std::string& addr,  uint16_t port, CP_log_store_func_t log_func);  // 简易，使用默认参数
+    bool init(const std::string& cfgFile, CP_log_store_func_t log_func = ::syslog);
+    bool init(const libconfig::Setting& setting, CP_log_store_func_t log_func = ::syslog);
+    bool init(const std::string& addr, uint16_t port, CP_log_store_func_t log_func = ::syslog);  // 简易，使用默认参数
+    bool init(const std::string& service, const std::string& entity_idx,
+              const std::string& addr, uint16_t port,
+              CP_log_store_func_t log_func = ::syslog);
 
     int ping();
 
@@ -50,10 +58,6 @@ public:
     // 查询所有已经上报的metrics, service == ""就默认是自己的service
     int known_metrics(std::vector<std::string>& metrics, std::string service = "");
     int known_services(std::vector<std::string>& services);
-
-private:
-    class Impl;
-    std::shared_ptr<Impl> impl_ptr_;
 };
 
 } // end namespace tzmonitor_client

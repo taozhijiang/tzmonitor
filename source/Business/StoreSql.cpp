@@ -142,11 +142,11 @@ int StoreSql::insert_ev_stat(sql_conn_ptr& conn, const event_insert_t& stat) {
     std::string sql = va_format(
                    " INSERT INTO %s.%s__%s__events_%s "
                    " SET F_entity_idx = '%s', F_timestamp = %ld, "
-                   " F_metric = '%s', F_tag = '%s', "
+                   " F_metric = '%s', F_tag = '%s', F_step = %d, "
                    " F_count = %d, F_value_sum = %ld, F_value_avg = %ld, F_value_std = %f; ",
                    database_.c_str(), table_prefix_.c_str(), stat.service.c_str(), table_suffix.c_str(),
                    entity_idx.c_str(), stat.timestamp,
-                   stat.metric.c_str(), tag.c_str(),
+                   stat.metric.c_str(), tag.c_str(), stat.step,
                    stat.count, stat.value_sum, stat.value_avg, stat.value_std);
 
     int nAffected = conn->sqlconn_execute_update(sql);

@@ -103,11 +103,11 @@ int main(int argc, char* argv[]) {
     std::cout << std::endl;
 
     snprintf(buffer, sizeof(buffer), "summray: tag:%s, count:%d, sum:%ld, avg:%ld, std:%f",
-             stat.summary.tag.c_str(), stat.summary.count, stat.summary.value_sum,
-             stat.summary.value_avg, stat.summary.value_std);
+             stat2.summary.tag.c_str(), stat2.summary.count, stat2.summary.value_sum,
+             stat2.summary.value_avg, stat2.summary.value_std);
     std::cout << buffer << std::endl;
 
-    for (auto iter = stat.info.begin(); iter != stat.info.end(); ++iter) {
+    for (auto iter = stat2.info.begin(); iter != stat2.info.end(); ++iter) {
         snprintf(buffer, sizeof(buffer), "detail=> timestamp:%ld, count:%d, sum:%ld, avg:%ld, std:%f",
                  iter->timestamp, iter->count, iter->value_sum,
                  iter->value_avg, iter->value_std);

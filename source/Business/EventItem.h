@@ -23,6 +23,7 @@ struct event_insert_t {
 
     std::string entity_idx;
     time_t      timestamp;
+    time_t      step;
 
     std::string metric;
     std::string tag;
@@ -47,12 +48,14 @@ typedef std::shared_ptr<events_by_metric_t>              events_by_metric_ptr_t;
 
 struct events_by_time_t {
 public:
-    events_by_time_t(time_t tm):
-        timestamp_(tm) {
+    events_by_time_t(time_t tm, time_t step):
+        timestamp_(tm),
+        step_(step) {
     }
 
 public:
     time_t             timestamp_;
+    time_t             step_;
     events_by_metric_t data_;
 };
 typedef std::shared_ptr<events_by_time_t>                events_by_time_ptr_t;

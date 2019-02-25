@@ -54,6 +54,11 @@ struct EventHandlerConf {
         additional_process_queue_size_ = other.additional_process_queue_size_.load();
         store_type_   = other.store_type_;
     }
+
+    // 按照event_step_的形式进行时间规约
+    time_t nice_step(time_t t) {
+        return t + ( event_step_  -  t % event_step_);
+    }
 };
 
 
@@ -104,10 +109,10 @@ private:
     tzrpc::EQueue<events_by_time_ptr_t> process_queue_;
     std::shared_ptr<boost::thread> thread_ptr_;
 
-    std::mutex lock_;
     EventHandlerConf conf_;
 
     // 当前
+    std::mutex lock_;
     timed_events_ptr_t events_;
 
     std::shared_ptr<StoreIf> store_;

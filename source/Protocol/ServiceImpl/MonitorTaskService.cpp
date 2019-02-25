@@ -258,7 +258,8 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
 
             response.set_code(0);
             response.set_desc("OK");
-            response.mutable_select()->set_version(stat.version);
+
+            response.mutable_select()->set_version(cond.version);
             response.mutable_select()->set_service(stat.service);
             response.mutable_select()->set_timestamp(stat.timestamp);
             response.mutable_select()->set_metric(stat.metric);

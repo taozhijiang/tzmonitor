@@ -65,6 +65,8 @@ struct event_cond_t {
 // 查询结果信息
 
 struct event_info_t {
+
+    // groupby的时候会返回对应group信息
     time_t      timestamp;
     std::string tag;
 

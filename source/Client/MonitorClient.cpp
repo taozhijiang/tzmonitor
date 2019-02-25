@@ -54,25 +54,16 @@ struct MonitorClientConf {
     }
 };
 
-class MonitorClient::Impl : public std::enable_shared_from_this<Impl> {
-public:
-    Impl(std::string service, std::string entity_idx) :
-        service_(service), entity_idx_(entity_idx),
-        client_agent_(),
-        thread_run_(),
-        task_helper_(),
-        lock_(),
-        msgid_(0), current_time_(0),
-        current_slot_(),
-        submit_queue_(),
-        conf_() {
-    }
+class MonitorClientImpl: public boost::noncopyable {
 
-    ~Impl() {}
+    friend class MonitorClient;
 
-    bool init(const std::string& addr, uint16_t port, CP_log_store_func_t log_func);
+private:
+
     bool init(const std::string& cfgFile, CP_log_store_func_t log_func);
     bool init(const libconfig::Setting& setting, CP_log_store_func_t log_func);
+    bool init(const std::string& service, const std::string& entity_idx,
+              const std::string& addr, uint16_t port, CP_log_store_func_t log_func);
 
     int ping();
     int report_event(const std::string& metric, int64_t value, const std::string& tag);
@@ -111,8 +102,25 @@ private:
     }
 
 private:
-    const std::string service_;
-    const std::string entity_idx_;
+    // 确保 service和entity_idx已经是定义良好的了
+    MonitorClientImpl(std::string service, std::string entity_idx) :
+        service_(service), entity_idx_(entity_idx),
+        client_agent_(),
+        thread_run_(),
+        task_helper_(),
+        lock_(),
+        msgid_(0), current_time_(0),
+        current_slot_(),
+        submit_queue_(),
+        already_initialized_(false),
+        conf_() {
+    }
+
+    ~MonitorClientImpl() {}
+
+    static MonitorClientImpl& instance();
+
+private:
 
     std::shared_ptr<MonitorRpcClientHelper> client_agent_;
 
@@ -133,14 +141,23 @@ private:
 
     tzrpc::EQueue<event_report_ptr_t> submit_queue_;
 
+    // 该单例只允许初始化一次
+    bool already_initialized_;
+    std::string service_;
+    std::string entity_idx_;
+
     MonitorClientConf conf_;
 };
 
 
 // Impl member function
 
+MonitorClientImpl& MonitorClientImpl::instance() {
+    static MonitorClientImpl helper(program_invocation_short_name, "");
+    return helper;
+}
 
-bool MonitorClient::Impl::init(const std::string& cfgFile, CP_log_store_func_t log_func) {
+bool MonitorClientImpl::init(const std::string& cfgFile, CP_log_store_func_t log_func) {
 
     libconfig::Config cfg;
     try {
@@ -162,7 +179,7 @@ bool MonitorClient::Impl::init(const std::string& cfgFile, CP_log_store_func_t l
     return false;
 }
 
-bool MonitorClient::Impl::init(const libconfig::Setting& setting, CP_log_store_func_t log_func) {
+bool MonitorClientImpl::init(const libconfig::Setting& setting, CP_log_store_func_t log_func) {
 
     // init log first
     set_checkpoint_log_store_func(log_func);
@@ -177,17 +194,47 @@ bool MonitorClient::Impl::init(const libconfig::Setting& setting, CP_log_store_f
         return false;
     }
 
+    std::string service;
+    std::string entity_idx;
+    setting.lookupValue("service", service);
+    setting.lookupValue("entity_idx", entity_idx);
+
     // load other conf
 
-    return init(serv_addr, listen_port, log_func);
+    return init(service, entity_idx, serv_addr, listen_port, log_func);
 }
 
 
-bool MonitorClient::Impl::init(const std::string& addr, uint16_t port, CP_log_store_func_t log_func) {
+bool MonitorClientImpl::init(const std::string& service, const std::string& entity_idx,
+                             const std::string& addr, uint16_t port, CP_log_store_func_t log_func) {
+
+
+    std::lock_guard<std::mutex> lock(lock_);
+
+    if (already_initialized_) {
+        log_err("MonitorClientImpl already successfully initialized...");
+        return true;
+    }
 
     // init log first
     set_checkpoint_log_store_func(log_func);
     log_init(7);
+
+    if (!service.empty()) {
+        log_notice("override service from %s to %s", service_.c_str(), service.c_str());
+        service_ = service;
+    }
+
+    if (!entity_idx.empty()) {
+        log_notice("override entity_idx from %s to %s", entity_idx_.c_str(), entity_idx.c_str());
+        entity_idx_ = entity_idx;
+    }
+
+    if (service_.empty() || addr.empty() || port == 0) {
+        log_err("critical param error: service %s, addr %s, port %u",
+                service_.c_str(), addr.c_str(), port);
+        return false;
+    }
 
     client_agent_ = std::make_shared<MonitorRpcClientHelper>(addr, port);
     if (!client_agent_) {
@@ -200,7 +247,7 @@ bool MonitorClient::Impl::init(const std::string& addr, uint16_t port, CP_log_st
         return false;
     }
 
-    thread_run_.reset(new boost::thread(std::bind(&MonitorClient::Impl::run, shared_from_this())));
+    thread_run_.reset(new boost::thread(std::bind(&MonitorClientImpl::run, this)));
     if (!thread_run_){
         log_err("create run work thread failed! ");
         return false;
@@ -212,11 +259,13 @@ bool MonitorClient::Impl::init(const std::string& addr, uint16_t port, CP_log_st
         return false;
     }
 
-    log_info("MonitorClient init ok!");
+    log_info("MonitorClientImpl init ok!");
+    already_initialized_ = true;
+
     return true;
 }
 
-int MonitorClient::Impl::ping() {
+int MonitorClientImpl::ping() {
 
     if (!client_agent_) {
         log_err("MonitorRpcClientHelper not initialized, fatal!");
@@ -234,7 +283,7 @@ int MonitorClient::Impl::ping() {
 }
 
 
-int MonitorClient::Impl::report_event(const std::string& metric, int64_t value, const std::string& tag) {
+int MonitorClientImpl::report_event(const std::string& metric, int64_t value, const std::string& tag) {
 
     if (!conf_.report_enabled_) {
         return 0;
@@ -291,13 +340,13 @@ int MonitorClient::Impl::report_event(const std::string& metric, int64_t value, 
             break;
         }
 
-        std::function<void()> func = std::bind(&MonitorClient::Impl::run_once_task, shared_from_this(), reports);
+        std::function<void()> func = std::bind(&MonitorClientImpl::run_once_task, this, reports);
         task_helper_->add_additional_task(func);
     }
     return 0;
 }
 
-int MonitorClient::Impl::select_stat(event_cond_t& cond, event_select_t& stat) {
+int MonitorClientImpl::select_stat(event_cond_t& cond, event_select_t& stat) {
 
     if (!client_agent_) {
         log_err("MonitorRpcClientHelper not initialized, fatal!");
@@ -316,7 +365,7 @@ int MonitorClient::Impl::select_stat(event_cond_t& cond, event_select_t& stat) {
 }
 
 
-int MonitorClient::Impl::known_metrics(const std::string& version,
+int MonitorClientImpl::known_metrics(const std::string& version,
                                        const std::string& service, std::vector<std::string>& metrics) {
 
     if (!client_agent_) {
@@ -338,7 +387,7 @@ int MonitorClient::Impl::known_metrics(const std::string& version,
     return code;
 }
 
-int MonitorClient::Impl::known_services(const std::string& version, std::vector<std::string>& services) {
+int MonitorClientImpl::known_services(const std::string& version, std::vector<std::string>& services) {
 
     if (!client_agent_) {
         log_err("MonitorRpcClientHelper not initialized, fatal!");
@@ -357,7 +406,7 @@ int MonitorClient::Impl::known_services(const std::string& version, std::vector<
 
 
 
-void MonitorClient::Impl::run() {
+void MonitorClientImpl::run() {
 
     log_debug("MonitorClient submit thread %#lx begin to run ...", (long)pthread_self());
 
@@ -377,7 +426,7 @@ void MonitorClient::Impl::run() {
     }
 }
 
-void MonitorClient::Impl::run_once_task(std::vector<event_report_ptr_t> reports) {
+void MonitorClientImpl::run_once_task(std::vector<event_report_ptr_t> reports) {
 
     log_debug("MonitorClient run_once_task thread %#lx begin to run ...", (long)pthread_self());
     for(auto iter = reports.begin(); iter != reports.end(); ++iter) {
@@ -389,55 +438,74 @@ void MonitorClient::Impl::run_once_task(std::vector<event_report_ptr_t> reports)
 
 // call forward
 MonitorClient::MonitorClient(std::string entity_idx) {
-
-    char host[64 + 1] {};
-    ::gethostname(host, 64);
-
-    impl_ptr_.reset(new Impl(program_invocation_short_name, entity_idx));
-    if (!impl_ptr_) {
-         log_crit("create impl failed, CRITICAL!!!!");
-         ::abort();
-     }
+    (void)MonitorClientImpl::instance();
 }
 
 MonitorClient::MonitorClient(std::string service, std::string entity_idx){
-
-    impl_ptr_.reset(new Impl(service, entity_idx));
-    if (!impl_ptr_) {
-         log_crit("create impl failed, CRITICAL!!!!");
-         ::abort();
-     }
+    (void)MonitorClientImpl::instance();
 }
 
 MonitorClient::~MonitorClient(){}
 
 
 bool MonitorClient::init(const std::string& cfgFile, CP_log_store_func_t log_func) {
-    return impl_ptr_->init(cfgFile, log_func);
+    return MonitorClientImpl::instance().init(cfgFile, log_func);
 }
 
 bool MonitorClient::init(const libconfig::Setting& setting, CP_log_store_func_t log_func) {
-    return impl_ptr_->init(setting, log_func);
+    return MonitorClientImpl::instance().init(setting, log_func);
 }
 
 bool MonitorClient::init(const std::string& addr,  uint16_t port, CP_log_store_func_t log_func) {
-    return impl_ptr_->init(addr, port, log_func);
+    return MonitorClientImpl::instance().init("", "", addr, port, log_func);
 }
 
+bool MonitorClient::init(const std::string& service, const std::string& entity_idx,
+                         const std::string& addr, uint16_t port,
+                         CP_log_store_func_t log_func) {
+    return MonitorClientImpl::instance().init(service, entity_idx, addr, port, log_func);
+}
+
+
+// 初始化检查提前做，将开销分担到各个调用线程中去。
+
 int MonitorClient::report_event(const std::string& name, int64_t value, std::string flag ) {
-    return impl_ptr_->report_event(name, value, flag);
+
+    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
+        log_err("MonitorClientImpl not initialized...");
+        return -1;
+    }
+
+    return MonitorClientImpl::instance().report_event(name, value, flag);
 }
 
 int MonitorClient::ping() {
-    return impl_ptr_->ping();
+
+    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
+        log_err("MonitorClientImpl not initialized...");
+        return -1;
+    }
+
+    return MonitorClientImpl::instance().ping();
 }
 
 int MonitorClient::select_stat(event_cond_t& cond, event_select_t& stat) {
-    return impl_ptr_->select_stat(cond, stat);
+
+    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
+        log_err("MonitorClientImpl not initialized...");
+        return -1;
+    }
+
+    return MonitorClientImpl::instance().select_stat(cond, stat);
 }
 
 
 int MonitorClient::select_stat(const std::string& metric, int64_t& count, int64_t& avg, time_t tm_intervel) {
+
+    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
+        log_err("MonitorClientImpl not initialized...");
+        return -1;
+    }
 
     event_cond_t cond {};
 
@@ -447,7 +515,7 @@ int MonitorClient::select_stat(const std::string& metric, int64_t& count, int64_
     cond.groupby = GroupType::kGroupNone;
 
     event_select_t stat {};
-    if (impl_ptr_->select_stat(cond, stat) != 0) {
+    if (MonitorClientImpl::instance().select_stat(cond, stat) != 0) {
         return -1;
     }
 
@@ -460,6 +528,11 @@ int MonitorClient::select_stat(const std::string& metric, int64_t& count, int64_
 int MonitorClient::select_stat(const std::string& metric, const std::string& tag,
                                int64_t& count, int64_t& avg, time_t tm_intervel) {
 
+    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
+        log_err("MonitorClientImpl not initialized...");
+        return -1;
+    }
+
     event_cond_t cond {};
     cond.version =  "1.0.0";
     cond.metric = metric;
@@ -468,7 +541,7 @@ int MonitorClient::select_stat(const std::string& metric, const std::string& tag
     cond.groupby = GroupType::kGroupNone;
 
     event_select_t stat {};
-    if (impl_ptr_->select_stat(cond, stat) != 0) {
+    if (MonitorClientImpl::instance().select_stat(cond, stat) != 0) {
         return -1;
     }
 
@@ -481,6 +554,11 @@ int MonitorClient::select_stat(const std::string& metric, const std::string& tag
 int MonitorClient::select_stat_groupby_tag(const std::string& metric,
                                            event_select_t& stat, time_t tm_intervel) {
 
+    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
+        log_err("MonitorClientImpl not initialized...");
+        return -1;
+    }
+
     event_cond_t cond {};
 
     cond.version =  "1.0.0";
@@ -488,11 +566,16 @@ int MonitorClient::select_stat_groupby_tag(const std::string& metric,
     cond.tm_interval = tm_intervel;
     cond.groupby = GroupType::kGroupbyTag;
 
-    return impl_ptr_->select_stat(cond, stat);
+    return MonitorClientImpl::instance().select_stat(cond, stat);
 }
 
 int MonitorClient::select_stat_groupby_time(const std::string& metric,
                                             event_select_t& stat, time_t tm_intervel) {
+
+    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
+        log_err("MonitorClientImpl not initialized...");
+        return -1;
+    }
 
     event_cond_t cond {};
 
@@ -501,12 +584,17 @@ int MonitorClient::select_stat_groupby_time(const std::string& metric,
     cond.tm_interval = tm_intervel;
     cond.groupby = GroupType::kGroupbyTimestamp;
 
-    return impl_ptr_->select_stat(cond, stat);
+    return MonitorClientImpl::instance().select_stat(cond, stat);
 }
 
 
 int MonitorClient::select_stat_groupby_time(const std::string& metric, const std::string& tag,
                                             event_select_t& stat, time_t tm_intervel) {
+
+    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
+        log_err("MonitorClientImpl not initialized...");
+        return -1;
+    }
 
     event_cond_t cond {};
 
@@ -516,20 +604,30 @@ int MonitorClient::select_stat_groupby_time(const std::string& metric, const std
     cond.tm_interval = tm_intervel;
     cond.groupby = GroupType::kGroupbyTimestamp;
 
-    return impl_ptr_->select_stat(cond, stat);
+    return MonitorClientImpl::instance().select_stat(cond, stat);
 }
 
 
 int MonitorClient::known_metrics(std::vector<std::string>& metrics, std::string service) {
 
+    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
+        log_err("MonitorClientImpl not initialized...");
+        return -1;
+    }
+
     std::string version = "1.0.0";
-    return impl_ptr_->known_metrics(version, service, metrics);
+    return MonitorClientImpl::instance().known_metrics(version, service, metrics);
 }
 
 int MonitorClient::known_services(std::vector<std::string>& services) {
 
+    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
+        log_err("MonitorClientImpl not initialized...");
+        return -1;
+    }
+
     std::string version = "1.0.0";
-    return impl_ptr_->known_services(version, services);
+    return MonitorClientImpl::instance().known_services(version, services);
 }
 
 } // end namespace tzmonitor_client

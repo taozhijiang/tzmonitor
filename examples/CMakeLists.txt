@@ -25,6 +25,7 @@ link_directories( /usr/lib64/mysql/
 )
 
 add_executable( startup startup.cpp)
+add_executable( fast_report fast_report.cpp)
 
 set (EXTRA_LIBS MonitorClient )
 
@@ -35,4 +36,5 @@ set (EXTRA_LIBS ${EXTRA_LIBS} protoc protobuf )
 
 
 target_link_libraries( startup -lrt -rdynamic -ldl ${EXTRA_LIBS} )
+target_link_libraries( fast_report -lrt -rdynamic -ldl ${EXTRA_LIBS} )
 

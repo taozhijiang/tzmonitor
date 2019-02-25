@@ -132,10 +132,13 @@ int EventHandler::add_event(const event_report_t& ev) {
 
 int EventHandler::do_add_event(time_t ev_time, const std::vector<event_data_t>& data) {
 
+    // optimize
+    ev_time = conf_.nice_step(ev_time);
+
     auto timed_iter = events_.find(ev_time);
     if (timed_iter == events_.end()) {
         log_debug("create new time slot: %ld", ev_time);
-        events_[ev_time] = std::make_shared<events_by_time_t>(ev_time);
+        events_[ev_time] = std::make_shared<events_by_time_t>(ev_time, conf_.event_step_);
         timed_iter = events_.find(ev_time);
     }
 
@@ -201,6 +204,7 @@ void EventHandler::run_once_task(std::vector<events_by_time_ptr_t> events) {
         stat.service = service_;
         stat.entity_idx = entity_idx_;
         stat.timestamp = (*iter)->timestamp_;
+        stat.step = (*iter)->step_;
 
         do_process_event(*iter, stat);
     }
@@ -242,6 +246,7 @@ void EventHandler::run() {
         }
 
         stat.timestamp = event->timestamp_;
+        stat.step = event->step_;
 
         // do actual handle
         do_process_event(event, stat);
