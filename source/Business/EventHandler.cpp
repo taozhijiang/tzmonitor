@@ -83,9 +83,10 @@ bool EventHandler::init() {
                   conf_.additional_process_queue_size_.load(),
                   conf_.store_type_.c_str());
 
-    } catch (...) {
-        log_err("find setting of rpc_business.services failed.");
-        return false;
+    } catch (const libconfig::SettingNotFoundException &nfex) {
+        log_err("rpc_business.services not found!");
+    } catch (std::exception& e) {
+        log_err("execptions catched for %s",  e.what());
     }
 
     store_ = StoreFactory(conf_.store_type_);

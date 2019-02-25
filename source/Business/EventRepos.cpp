@@ -115,9 +115,10 @@ bool EventRepos::init() {
         }
 
 
-    } catch (...) {
-        log_err("find setting of rpc_business.services failed.");
-        return false;
+    } catch (const libconfig::SettingNotFoundException &nfex) {
+        log_err("rpc_business.services not found!");
+    } catch (std::exception& e) {
+        log_err("execptions catched for %s",  e.what());
     }
 
 
