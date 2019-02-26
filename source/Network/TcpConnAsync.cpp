@@ -155,7 +155,7 @@ int TcpConnAsync::parse_msg_body(Message& msg) {
 
     // need to read again!
     if (recv_bound_.buffer_.get_length() < recv_bound_.header_.length) {
-        log_err("we expect at least message read: %d, but get %d",
+        log_debug("we expect at least message read: %d, but get %d",
                 static_cast<int>(recv_bound_.header_.length), static_cast<int>(recv_bound_.buffer_.get_length()));
         return 1;
     }

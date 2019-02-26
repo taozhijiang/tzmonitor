@@ -2,7 +2,7 @@
 package tzrpc.MonitorTask;
 
 enum OpCode {
-    CMD_READ_EVENT  = 1;
+    CMD_READ_EVENT = 1;
     CMD_WRIT_EVENT = 2;
 };
 

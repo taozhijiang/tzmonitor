@@ -128,7 +128,7 @@ protected:
 
 
 
-const static uint32_t kFixedIoBufferSize = 2048;
+const static uint32_t kFixedIoBufferSize = 4096;
 
 struct IOBound {
     IOBound():

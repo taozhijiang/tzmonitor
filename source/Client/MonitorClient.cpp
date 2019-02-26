@@ -42,14 +42,14 @@ struct MonitorClientConf {
     boost::atomic<int> report_queue_limit_;
     boost::atomic<int> size_per_report_;
 
-    boost::atomic<int> additional_report_queue_size_;
+    boost::atomic<int> additional_report_step_size_;
     boost::atomic<int> support_report_task_size_;
 
     MonitorClientConf():
         report_enabled_(true),
         report_queue_limit_(0),
-        size_per_report_(200),
-        additional_report_queue_size_(10),
+        size_per_report_(5000),
+        additional_report_step_size_(10),
         support_report_task_size_(5) {
     }
 };
@@ -215,6 +215,39 @@ bool MonitorClientImpl::init(const libconfig::Setting& setting, CP_log_store_fun
         return false;
     }
 
+    // conf update
+    bool value_b;
+    int  value_i;
+
+    if (setting.lookupValue("report_enabled", value_b)) {
+        log_notice("update report_enabled from %s to %s",
+                   (conf_.report_enabled_ ? "on" : "off"), (value_b ? "on" : "off") );
+        conf_.report_enabled_ = value_b;
+    }
+
+    if (setting.lookupValue("report_queue_limit", value_i) && value_i >= 0) {
+        log_notice("update report_queue_limit from %d to %d",
+                   conf_.report_queue_limit_.load(), value_i );
+        conf_.report_queue_limit_ = value_i;
+    }
+
+    if (setting.lookupValue("size_per_report", value_i) && value_i > 0) {
+        log_notice("update size_per_report from %d to %d",
+                   conf_.size_per_report_.load(), value_i );
+        conf_.size_per_report_ = value_i;
+    }
+
+    if (setting.lookupValue("additional_report_step_size", value_i) && value_i >= 0) {
+        log_notice("update additional_report_step_size from %d to %d",
+                   conf_.additional_report_step_size_.load(), value_i );
+        conf_.additional_report_step_size_ = value_i;
+    }
+
+    if (setting.lookupValue("support_report_task_size", value_i) && value_i > 0) {
+        log_notice("update support_report_task_size from %d to %d",
+                   conf_.support_report_task_size_.load(), value_i );
+        conf_.support_report_task_size_ = value_i;
+    }
 
     std::string service;
     std::string entity_idx;
@@ -267,7 +300,7 @@ bool MonitorClientImpl::init(const std::string& service, const std::string& enti
         return false;
     }
 
-    if (ping() != 0) {
+    if (client_agent_->rpc_ping() != 0) {
         log_err("client agent ping test failed...");
         return false;
     }
@@ -344,7 +377,12 @@ int MonitorClientImpl::report_event(const std::string& metric, int64_t value, co
     // reset these things
     if (now != current_time_) {
         current_time_ = now;
-        msgid_ = 0;
+
+        // 32位超过后回转，如果每一秒回转会在linger优化中判为重复消息
+        if (msgid_ >= std::numeric_limits<int32_t>::max()) {
+            msgid_ = 0;
+        }
+
         item.msgid = ++ msgid_; // 新时间，新起点
     }
 
@@ -354,18 +392,14 @@ int MonitorClientImpl::report_event(const std::string& metric, int64_t value, co
         current_slot_.emplace_back(item);
     }
 
-    if (conf_.report_queue_limit_ != 0) {
-        submit_queue_.SHRINK_FRONT(conf_.report_queue_limit_);
-    }
-
-
-    while (submit_queue_.SIZE() > 2 * conf_.size_per_report_) {
+    while (submit_queue_.SIZE() > 2 * conf_.additional_report_step_size_) {
         std::vector<event_report_ptr_t> reports;
-        size_t ret = submit_queue_.POP(reports, conf_.size_per_report_, 2000);
+        size_t ret = submit_queue_.POP(reports, conf_.additional_report_step_size_, 10);
         if (!ret) {
             break;
         }
 
+        log_notice("MonitorClient additional task with item %lu", ret);
         std::function<void()> func = std::bind(&MonitorClientImpl::run_once_task, this, reports);
         task_helper_->add_additional_task(func);
     }
@@ -450,6 +484,12 @@ void MonitorClientImpl::run() {
         if (::time(NULL) != start) {
             report_empty_event(); // 触发事件提交
         }
+
+        if (conf_.report_queue_limit_ != 0 && submit_queue_.SIZE() > conf_.report_queue_limit_) {
+            log_err("about to shrink submit_queue, current %lu, limit %d",
+                    submit_queue_.SIZE(), conf_.report_queue_limit_.load());
+            submit_queue_.SHRINK_FRONT(conf_.report_queue_limit_);
+        }
     }
 }
 
@@ -463,13 +503,19 @@ void MonitorClientImpl::run_once_task(std::vector<event_report_ptr_t> reports) {
         return;
     }
 
-    if (ping() != 0) {
+    if (client_agent->rpc_ping() != 0) {
         log_err("client agent ping test failed...");
         return;
     }
 
     for(auto iter = reports.begin(); iter != reports.end(); ++iter) {
         do_additional_report(client_agent, *iter);
+    }
+
+    if (conf_.report_queue_limit_ != 0 && submit_queue_.SIZE() > conf_.report_queue_limit_) {
+        log_err("about to shrink submit_queue, current %lu, limit %d",
+                submit_queue_.SIZE(), conf_.report_queue_limit_.load());
+        submit_queue_.SHRINK_FRONT(conf_.report_queue_limit_);
     }
 }
 

@@ -29,7 +29,8 @@ int random_int() {
 }
 
 void* perf_run(void* x_void_ptr) {
-    
+
+#if 0
     std::string addr_ip = "127.0.0.1";
     uint16_t    addr_port = 8435;
     
@@ -38,6 +39,15 @@ void* perf_run(void* x_void_ptr) {
         std::cout << "init client failed." << std::endl;
         return NULL;
     }
+#else
+    std::string cfgFile = "tzmonitor.conf";
+
+    auto reporter = std::make_shared<MonitorClient>();
+    if (!reporter || !reporter ->init(cfgFile, ::syslog)) {
+        std::cout << "init client failed." << std::endl;
+        return NULL;
+    }
+#endif
     
     while(!start)
         ::usleep(1);
@@ -57,7 +67,7 @@ void* perf_run(void* x_void_ptr) {
         reporter->report_event("event2", random_int(), "tag_F");
         reporter->report_event("event3", random_int(), "tag_T");
         reporter->report_event("event3", random_int(), "tag_F");
-        ::usleep(500);
+        ::usleep(1000);
 
         // increment success case
         count += 12;
@@ -72,8 +82,6 @@ int main(int argc, char* argv[]) {
         usage();
         return 0;
     }
-    
-
     
     
     std::vector<pthread_t> tids( thread_num,  0);

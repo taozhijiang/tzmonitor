@@ -26,6 +26,7 @@ using tzrpc::RpcResponseMessage;
 using tzrpc::RpcResponseStatus;
 
 using tzrpc::kRpcHeaderMagic;
+using tzrpc::kRpcHeaderVersion;
 
 // 创建一个静态对象，用于全部的同步IO请求
 static boost::asio::io_service IO_SERVICE;
@@ -133,6 +134,8 @@ RpcClientStatus RpcClientImpl::call_RPC(uint16_t service_id, uint16_t opcode,
         rpc_response_message.header_.service_id != service_id ||
         rpc_response_message.header_.opcode != opcode ) {
         log_err("rpc_response_message header check error: %s", rpc_response_message.header_.dump().c_str());
+        log_err("header expect: magic %02x, version %02x, service_id %02x, opcode %02x",
+                kRpcHeaderMagic, kRpcHeaderVersion, service_id, opcode);
         return RpcClientStatus::RECV_FORMAT_ERROR;
     }
 
