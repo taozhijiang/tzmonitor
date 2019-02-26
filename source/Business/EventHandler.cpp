@@ -111,6 +111,74 @@ bool EventHandler::init() {
 }
 
 
+int EventHandler::update_runtime_conf(const libconfig::Config& conf) {
+
+    try {
+
+        // initialize event handler default conf
+        const libconfig::Setting& rpc_handlers = conf.lookup("rpc_business.services");
+
+        // 遍历，找出默认配置信息
+        for(int i = 0; i < rpc_handlers.getLength(); ++i) {
+
+            const libconfig::Setting& handler_conf = rpc_handlers[i];
+            std::string instance_name;
+
+            ConfUtil::conf_value(handler_conf, "service_name", instance_name);
+            if (instance_name == service_) {
+
+                log_notice("find specific conf for service %s", service_.c_str());
+
+                int value_i;
+                if (handler_conf.lookupValue("event_linger", value_i) && value_i > 0) {
+                    log_notice("update default event_linger from %d to %d",
+                               conf_.event_linger_.load(), value_i );
+                    conf_.event_linger_ = value_i;
+                }
+
+                if (handler_conf.lookupValue("event_step", value_i) && value_i > 0) {
+                    log_notice("update default event_step from %d to %d",
+                               conf_.event_step_.load(), value_i );
+                    conf_.event_step_ = value_i;
+                }
+
+                if (handler_conf.lookupValue("additional_process_step_size", value_i) && value_i > 0) {
+                    log_notice("update default additional_process_step_size from %d to %d",
+                               conf_.additional_process_step_size_.load(), value_i );
+                    conf_.additional_process_step_size_ = value_i;
+                }
+
+                log_debug("EventHandlerConf for service %s template info \n"
+                          "event_linger %d, event_step %d, process_step_size %d, store_type %s",
+                          service_.c_str(),
+                          conf_.event_linger_.load(),
+                          conf_.event_step_.load(),
+                          conf_.additional_process_step_size_.load(),
+                          conf_.store_type_.c_str());
+
+                break;
+            }
+        }
+
+
+    } catch (const libconfig::SettingNotFoundException &nfex) {
+        log_err("rpc_business.services not found!");
+    } catch (std::exception& e) {
+        log_err("execptions catched for %s",  e.what());
+    }
+
+    return 0;
+}
+
+int EventHandler::module_status(std::string& strModule, std::string& strKey, std::string& strValue) {
+
+    // empty
+
+    return 0;
+}
+
+
+
 int EventHandler::add_event(const event_report_t& ev) {
 
     if (ev.service != service_) {
@@ -229,9 +297,10 @@ void EventHandler::run() {
 
         int queue_size = conf_.additional_process_step_size_.load();
 
+        // 如果积累的待处理任务比较多，就取出来给辅助线程处理
         while (process_queue_.SIZE() > 2 * queue_size) {
             std::vector<events_by_time_ptr_t> ev_inserts;
-            size_t ret = process_queue_.POP(ev_inserts, queue_size, 5000);
+            size_t ret = process_queue_.POP(ev_inserts, queue_size, 10);
             if (!ret) {
                 log_err("Pop support task failed.");
                 break;
@@ -242,7 +311,7 @@ void EventHandler::run() {
         }
 
         events_by_time_ptr_t event;
-        if( !process_queue_.POP(event, 5000) ){
+        if( !process_queue_.POP(event, 1000) ){
             continue;
         }
 

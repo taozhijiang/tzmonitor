@@ -9,6 +9,8 @@
 #include <functional>
 
 #include <Scaffold/ConfHelper.h>
+#include <Scaffold/Status.h>
+
 #include <Utils/Utils.h>
 #include <Utils/StrUtil.h>
 
@@ -133,6 +135,19 @@ bool EventRepos::init() {
         log_err("default store implement %s not OK!", default_handler_conf_->store_type_.c_str());
         return false;
     }
+
+
+    // 注册配置动态更新的回调函数
+    ConfHelper::instance().register_conf_callback(
+            std::bind(&EventRepos::update_runtime_conf, this,
+                      std::placeholders::_1));
+
+    // 系统状态展示相关的初始化
+    Status::instance().register_status_callback(
+            "eventrepos",
+            std::bind(&EventRepos::module_status, this,
+                      std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+
 
     return true;
 }
@@ -267,6 +282,107 @@ int EventRepos::get_services(const std::string& version,
     service_stat.clear();
     service_stat.assign(unique_store.cbegin(), unique_store.cend());
 
+    return 0;
+}
+
+
+int EventRepos::update_runtime_conf(const libconfig::Config& conf) {
+
+    try {
+
+        // initialize event handler default conf
+        const libconfig::Setting& rpc_handlers = conf.lookup("rpc_business.services");
+
+        // 遍历，找出默认配置信息
+        for(int i = 0; i < rpc_handlers.getLength(); ++i) {
+
+            const libconfig::Setting& handler_conf = rpc_handlers[i];
+            std::string instance_name;
+
+            ConfUtil::conf_value(handler_conf, "service_name", instance_name);
+            if (instance_name == "[default]") {
+
+
+                int value_i;
+                if (handler_conf.lookupValue("event_linger", value_i) && value_i > 0) {
+                    log_notice("update default event_linger from %d to %d",
+                               default_handler_conf_->event_linger_.load(), value_i );
+                    default_handler_conf_->event_linger_ = value_i;
+                }
+
+                if (handler_conf.lookupValue("event_step", value_i) && value_i > 0) {
+                    log_notice("update default event_step from %d to %d",
+                               default_handler_conf_->event_step_.load(), value_i );
+                    default_handler_conf_->event_step_ = value_i;
+                }
+
+                if (handler_conf.lookupValue("additional_process_step_size", value_i) && value_i > 0) {
+                    log_notice("update default additional_process_step_size from %d to %d",
+                               default_handler_conf_->additional_process_step_size_.load(), value_i );
+                    default_handler_conf_->additional_process_step_size_ = value_i;
+                }
+
+                log_debug("EventHandlerConf default template info \n"
+                          "event_linger %d, event_step %d, process_step_size %d, store_type %s",
+                          default_handler_conf_->event_linger_.load(),
+                          default_handler_conf_->event_step_.load(),
+                          default_handler_conf_->additional_process_step_size_.load(),
+                          default_handler_conf_->store_type_.c_str());
+
+                break;
+            }
+        }
+
+
+    } catch (const libconfig::SettingNotFoundException &nfex) {
+        log_err("rpc_business.services not found!");
+    } catch (std::exception& e) {
+        log_err("execptions catched for %s",  e.what());
+    }
+
+
+    // following specify handlers
+    std::shared_ptr<HandlerType> handlers;
+    {
+        std::unique_lock<std::mutex> lock(lock_);
+        handlers = handlers_;
+    }
+
+    int ret = 0;
+    for (auto iter = handlers->begin(); iter != handlers->end(); ++iter) {
+        log_notice("update conf for: %s", iter->first.c_str());
+        ret += iter->second->update_runtime_conf(conf);
+    }
+
+    return ret;
+}
+
+int EventRepos::module_status(std::string& strModule, std::string& strKey, std::string& strValue) {
+
+    strModule = "EventRepos";
+    strKey    = "eventrepos";
+
+    std::stringstream ss;
+    std::vector<std::string> total_services;
+    std::vector<std::string> total_metrics;
+
+    if (get_services("1.0.0", total_services) == 0) {
+        for (size_t i=0; i<total_services.size(); ++i) {
+            ss << "service: " << total_services[i] << std::endl;
+            ss << "metrics: " << std::endl;
+            ss << "\t";
+
+            total_metrics.clear();
+            if (get_metrics("1.0.0", total_services[i], total_metrics) == 0) {
+                for (size_t j=0; j<total_metrics.size(); ++j) {
+                    ss << total_metrics[j] << ", ";
+                }
+            }
+            ss << std::endl << std::endl;
+        }
+    }
+
+    strValue = ss.str();
     return 0;
 }
 

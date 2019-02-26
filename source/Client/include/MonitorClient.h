@@ -58,6 +58,10 @@ public:
     // 查询所有已经上报的metrics, service == ""就默认是自己的service
     int known_metrics(std::vector<std::string>& metrics, std::string service = "");
     int known_services(std::vector<std::string>& services);
+
+    // 通用扩展接口
+    int update_runtime_conf(const libconfig::Config& conf);
+    int module_status(std::string& strModule, std::string& strKey, std::string& strValue);
 };
 
 } // end namespace tzmonitor_client

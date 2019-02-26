@@ -59,7 +59,7 @@ private:
         while (true) {
 
             std::vector<TaskRunnable> task;
-            size_t count = tasks_.POP(task, max_spawn_task_, 5000);
+            size_t count = tasks_.POP(task, max_spawn_task_, 1000);
             if( !count ){  // 空闲
                 continue;
             }

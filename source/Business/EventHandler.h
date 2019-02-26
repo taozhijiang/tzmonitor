@@ -85,6 +85,9 @@ public:
     int add_event(const event_report_t& evs);
     int get_event(const event_cond_t& cond, event_select_t& stat);
 
+    int update_runtime_conf(const libconfig::Config& conf);
+    int module_status(std::string& strModule, std::string& strKey, std::string& strValue);
+
 private:
 
     // 正常线程工作函数

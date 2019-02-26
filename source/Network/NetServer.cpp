@@ -275,7 +275,7 @@ int NetServer::module_status(std::string& strModule, std::string& strKey, std::s
     ss << "\t" << std::endl;
 
     ss << "\t" << "service_enabled: " << (conf_.service_enabled_  ? "true" : "false") << std::endl;
-    ss << "\t" << "service_speed(tps): " << conf_.service_speed_ << std::endl;
+    ss << "\t" << "service_speed_limit(tps): " << conf_.service_speed_ << std::endl;
     ss << "\t" << "session_cancel_time_out: " << conf_.session_cancel_time_out_ << std::endl;
     ss << "\t" << "ops_cancel_time_out: " << conf_.ops_cancel_time_out_ << std::endl;
 

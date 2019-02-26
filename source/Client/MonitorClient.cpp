@@ -73,6 +73,8 @@ private:
                       const std::string& service, std::vector<std::string>& metrics);
     int known_services(const std::string& version, std::vector<std::string>& services);
 
+    int update_runtime_conf(const libconfig::Config& conf);
+    int module_status(std::string& strModule, std::string& strKey, std::string& strValue);
 
 private:
 
@@ -322,6 +324,85 @@ bool MonitorClientImpl::init(const std::string& service, const std::string& enti
 
     return true;
 }
+
+// rpc_monitor_client
+int MonitorClientImpl::update_runtime_conf(const libconfig::Config& conf) {
+
+    try {
+
+        // initialize client conf
+        const libconfig::Setting& setting = conf.lookup("rpc_monitor_client");
+
+        // conf update
+        bool value_b;
+        int  value_i;
+
+        if (setting.lookupValue("report_enabled", value_b)) {
+            log_notice("update report_enabled from %s to %s",
+                       (conf_.report_enabled_ ? "on" : "off"), (value_b ? "on" : "off") );
+            conf_.report_enabled_ = value_b;
+        }
+
+        if (setting.lookupValue("report_queue_limit", value_i) && value_i >= 0) {
+            log_notice("update report_queue_limit from %d to %d",
+                       conf_.report_queue_limit_.load(), value_i );
+            conf_.report_queue_limit_ = value_i;
+        }
+
+        if (setting.lookupValue("size_per_report", value_i) && value_i > 0) {
+            log_notice("update size_per_report from %d to %d",
+                       conf_.size_per_report_.load(), value_i );
+            conf_.size_per_report_ = value_i;
+        }
+
+        if (setting.lookupValue("additional_report_step_size", value_i) && value_i >= 0) {
+            log_notice("update additional_report_step_size from %d to %d",
+                       conf_.additional_report_step_size_.load(), value_i );
+            conf_.additional_report_step_size_ = value_i;
+        }
+
+        return 0;
+
+    } catch (const libconfig::SettingNotFoundException &nfex) {
+        log_err("rpc_monitor_client not found!");
+    } catch (std::exception& e) {
+        log_err("execptions catched for %s",  e.what());
+    }
+
+    return -1;
+}
+
+int MonitorClientImpl::module_status(std::string& strModule, std::string& strKey, std::string& strValue) {
+
+    strModule = "tzmonitor_client";
+    // service + entity_idx
+
+    strKey = service_;
+    if (!entity_idx_.empty()) {
+        strKey += "!";
+        strKey += entity_idx_;
+    }
+
+    std::stringstream ss;
+
+    ss << "\t" << "service: " << service_ << std::endl;
+    ss << "\t" << "entity_idx: " << entity_idx_ << std::endl;
+
+    ss << "\t" << "report_enable: " << (conf_.report_enabled_ ? "true" : "false") << std::endl;
+    ss << "\t" << "size_per_report: " << conf_.size_per_report_ << std::endl;
+    ss << "\t" << "report_queue_limit: " << conf_.report_queue_limit_ << std::endl;
+    ss << "\t" << "current_queue: " << submit_queue_.SIZE() << std::endl;
+
+    ss << "\t" << std::endl;
+
+    ss << "\t" << "additional_step_size: " << conf_.additional_report_step_size_ << std::endl;
+    ss << "\t" << "support_task_size: " << conf_.support_report_task_size_ << std::endl;
+
+    strValue = ss.str();
+
+    return 0;
+}
+
 
 int MonitorClientImpl::ping() {
 
@@ -713,6 +794,26 @@ int MonitorClient::known_services(std::vector<std::string>& services) {
 
     std::string version = "1.0.0";
     return MonitorClientImpl::instance().known_services(version, services);
+}
+
+int MonitorClient::update_runtime_conf(const libconfig::Config& conf) {
+
+    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
+        log_err("MonitorClientImpl not initialized...");
+        return -1;
+    }
+
+    return MonitorClientImpl::instance().update_runtime_conf(conf);
+}
+
+int MonitorClient::module_status(std::string& strModule, std::string& strKey, std::string& strValue) {
+
+    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
+        log_err("MonitorClientImpl not initialized...");
+        return -1;
+    }
+
+    return MonitorClientImpl::instance().module_status(strModule, strKey, strValue);
 }
 
 } // end namespace tzmonitor_client

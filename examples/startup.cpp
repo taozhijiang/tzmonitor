@@ -114,6 +114,20 @@ int main(int argc, char* argv[]) {
         std::cout << buffer << std::endl;
     }
 
+
+    std::cout << "client status ====================>" << std::endl;
+    std::string strModule;
+    std::string strKey;
+    std::string strValue;
+    if (reporter->module_status(strModule, strKey, strValue) != 0) {
+        std::cout << "call module_status failed" << std::endl;
+        return -1;
+    }
+
+    std::cout << "MODULE: " << strModule << std::endl;
+    std::cout << "KEY: " << strKey << std::endl;
+    std::cout << "VALUE: " << strValue << std::endl;
+
     ::sleep(10);
 
     std::cout << "startup ok" << std::endl;
