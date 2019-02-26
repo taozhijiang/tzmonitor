@@ -59,9 +59,9 @@ bool EventHandler::init() {
                     conf_.event_step_ = value_i;
                 }
 
-                ConfUtil::conf_value(handler_conf, "additional_process_queue_size", value_i);
+                ConfUtil::conf_value(handler_conf, "additional_process_step_size", value_i);
                 if (value_i > 0) {
-                    conf_.additional_process_queue_size_ = value_i;
+                    conf_.additional_process_step_size_ = value_i;
                 }
 
                 std::string store_type;
@@ -76,11 +76,11 @@ bool EventHandler::init() {
         }
 
         log_debug("EventHandlerConf for %s final info \n"
-                  "event_linger %d, event_step %d, process_queue_size %d, store_type %s",
+                  "event_linger %d, event_step %d, process_step_size %d, store_type %s",
                   service_.c_str(),
                   conf_.event_linger_.load(),
                   conf_.event_step_.load(),
-                  conf_.additional_process_queue_size_.load(),
+                  conf_.additional_process_step_size_.load(),
                   conf_.store_type_.c_str());
 
     } catch (const libconfig::SettingNotFoundException &nfex) {
@@ -227,7 +227,7 @@ void EventHandler::run() {
 
     while (true) {
 
-        int queue_size = conf_.additional_process_queue_size_.load();
+        int queue_size = conf_.additional_process_step_size_.load();
 
         while (process_queue_.SIZE() > 2 * queue_size) {
             std::vector<events_by_time_ptr_t> ev_inserts;

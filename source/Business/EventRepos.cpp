@@ -88,12 +88,12 @@ bool EventRepos::init() {
                 default_handler_conf_->event_step_ = value_i;
 
 
-                ConfUtil::conf_value(handler_conf, "additional_process_queue_size", value_i);
+                ConfUtil::conf_value(handler_conf, "additional_process_step_size", value_i);
                 if (value_i <= 0) {
-                    log_err("Invalid additional_process_queue_size: %l ", value_i);
+                    log_err("Invalid additional_process_step_size: %d ", value_i);
                     return false;
                 }
-                default_handler_conf_->additional_process_queue_size_ = value_i;
+                default_handler_conf_->additional_process_step_size_ = value_i;
 
                 std::string store_type;
                 ConfUtil::conf_value(handler_conf, "store_type", store_type);
@@ -104,10 +104,10 @@ bool EventRepos::init() {
                 default_handler_conf_->store_type_ = store_type;
 
                 log_debug("EventHandlerConf default template info \n"
-                          "event_linger %d, event_step %d, process_queue_size %d, store_type %s",
+                          "event_linger %d, event_step %d, process_step_size %d, store_type %s",
                           default_handler_conf_->event_linger_.load(),
                           default_handler_conf_->event_step_.load(),
-                          default_handler_conf_->additional_process_queue_size_.load(),
+                          default_handler_conf_->additional_process_step_size_.load(),
                           default_handler_conf_->store_type_.c_str());
 
                 break;
@@ -164,7 +164,8 @@ int EventRepos::add_event(const event_report_t& evs) {
     return handler->add_event(evs);
 }
 
-
+// 因为不同的handler可能采用不同的存储实现，所以get操作还是不能直接下放
+// 到存储层去执行
 int EventRepos::get_event(const event_cond_t& cond, event_select_t& stat) {
 
     if (cond.version != "1.0.0" ||

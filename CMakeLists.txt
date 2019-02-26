@@ -26,8 +26,7 @@ ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 
 
 # mysqlcppconn如果使用C开发会在释放的时候段错误
-#set (XTRA_RHEL6x /home/nicol/workDir/svnclient/xtra_rhel6.x)
-set (XTRA_RHEL6x /home/aliuser/svnclient/xtra_rhel6.x)
+
 set (PROTOBUF_GEN_CMD "cp -fr ${XTRA_RHEL6x}/bin/protoc-2.5.0 ${PROJECT_SOURCE_DIR}/bin/protoc && chmod a+x ${PROJECT_SOURCE_DIR}/bin/protoc && cd ${CMAKE_CURRENT_SOURCE_DIR}/source/Protocol/source && rm -fr ../gen-cpp && mkdir -p ../gen-cpp && make ")
 exec_program(${PROTOBUF_GEN_CMD})
 
@@ -50,11 +49,11 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 set (INCLUDE_DIRS
         ${PROJECT_SOURCE_DIR}/include/
         ${PROJECT_SOURCE_DIR}/source/
-        ${XTRA_RHEL6x}/include/
-        ${XTRA_RHEL6x}/include/google/
+        ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/include/
+        ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/include/google/
 )
 include_directories( ${INCLUDE_DIRS} )
-	
+
 add_subdirectory( source/RPC )
 add_subdirectory( source/Utils )
 add_subdirectory( source/Scaffold )
@@ -68,10 +67,10 @@ add_subdirectory( source/Client)
 
 link_directories(
         /usr/lib64/mysql/
-        ${XTRA_RHEL6x}/libs/
-        ${XTRA_RHEL6x}/libs/boost/
-        ${XTRA_RHEL6x}/libs/google/
-        ${XTRA_RHEL6x}/libs/google/protobuf-2.5.0/
+        ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/libs/
+        ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/libs/boost/
+        ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/libs/google/
+        ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/libs/google/protobuf-2.5.0/
 )
 
 # local temp generated file

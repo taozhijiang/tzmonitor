@@ -49,8 +49,8 @@ struct MonitorClientConf {
         report_enabled_(true),
         report_queue_limit_(0),
         size_per_report_(200),
-        additional_report_queue_size_(5),
-        support_report_task_size_(2) {
+        additional_report_queue_size_(10),
+        support_report_task_size_(5) {
     }
 };
 

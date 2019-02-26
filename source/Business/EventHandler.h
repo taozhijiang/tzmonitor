@@ -30,13 +30,13 @@ struct EventHandlerConf {
     boost::atomic<int> event_linger_;
     boost::atomic<int> event_step_;
 
-    boost::atomic<int> additional_process_queue_size_;
+    boost::atomic<int> additional_process_step_size_;
     std::string store_type_;
 
     EventHandlerConf():
         event_linger_(0),
         event_step_(0),
-        additional_process_queue_size_(0),
+        additional_process_step_size_(0),
         store_type_("mysql") {
     }
 
@@ -44,14 +44,14 @@ struct EventHandlerConf {
     EventHandlerConf(const EventHandlerConf& other) {
         event_linger_ = other.event_linger_.load();
         event_step_   = other.event_step_.load();
-        additional_process_queue_size_ = other.additional_process_queue_size_.load();
+        additional_process_step_size_ = other.additional_process_step_size_.load();
         store_type_   = other.store_type_;
     }
 
     EventHandlerConf& operator=(const EventHandlerConf& other) {
         event_linger_ = other.event_linger_.load();
         event_step_   = other.event_step_.load();
-        additional_process_queue_size_ = other.additional_process_queue_size_.load();
+        additional_process_step_size_ = other.additional_process_step_size_.load();
         store_type_   = other.store_type_;
     }
 
