@@ -6,6 +6,7 @@
 
 #include <Business/StoreIf.h>
 #include <Business/StoreSql.h>
+#include <Business/StoreLevelDB.h>
 
 using namespace tzrpc;
 
@@ -51,7 +52,28 @@ std::shared_ptr<StoreIf> StoreFactory(const std::string& storeType) {
 
     } else if (storeType == "leveldb") {
 
-        log_err("leveldb store not implemented yet!");
+        if (leveldb_) {
+            return leveldb_;
+        }
+
+        std::lock_guard<std::mutex> lock(init_lock_);
+        if (leveldb_) {
+            return leveldb_;
+        }
+
+        // 初始化
+        auto conf_ptr = ConfHelper::instance().get_conf();
+        if (!conf_ptr) {
+            log_err("ConfHelper not initialized, please check your initialize order.");
+            return NULLPTR;
+        }
+        std::shared_ptr<StoreIf> leveldb = std::make_shared<StoreLevelDB>();
+        if (leveldb && leveldb->init(*conf_ptr)) {
+            log_debug("create and initialized StoreLevelDB OK!");
+            leveldb_.swap(leveldb);
+            return leveldb_;
+        }
+
         return NULLPTR;
 
     } else {

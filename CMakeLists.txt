@@ -71,6 +71,7 @@ link_directories(
         ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/libs/boost/
         ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/libs/google/
         ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/libs/google/protobuf-2.5.0/
+        ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/libs/leveldb/
 )
 
 # local temp generated file
@@ -90,7 +91,7 @@ set (EXTRA_LIBS ${EXTRA_LIBS} ssl config++)
 set (EXTRA_LIBS ${EXTRA_LIBS} pthread)
 set (EXTRA_LIBS ${EXTRA_LIBS} boost_system boost_thread boost_chrono boost_regex)
 set (EXTRA_LIBS ${EXTRA_LIBS} protoc protobuf )
-set (EXTRA_LIBS ${EXTRA_LIBS} mysqlcppconn hiredis)
+set (EXTRA_LIBS ${EXTRA_LIBS} mysqlcppconn hiredis leveldb snappy)
 
 
 

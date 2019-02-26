@@ -128,11 +128,6 @@ int StoreSql::insert_ev_stat(sql_conn_ptr& conn, const event_insert_t& stat) {
         return -1;
     }
 
-    std::string entity_idx = stat.entity_idx;
-    if (entity_idx.empty()) {
-        entity_idx = "1";
-    }
-
     std::string tag = stat.tag;
     if (tag.empty()) {
         tag = "T";
@@ -145,7 +140,7 @@ int StoreSql::insert_ev_stat(sql_conn_ptr& conn, const event_insert_t& stat) {
                    " F_metric = '%s', F_tag = '%s', F_step = %d, "
                    " F_count = %d, F_value_sum = %ld, F_value_avg = %ld, F_value_std = %f; ",
                    database_.c_str(), table_prefix_.c_str(), stat.service.c_str(), table_suffix.c_str(),
-                   entity_idx.c_str(), stat.timestamp,
+                   stat.entity_idx.c_str(), stat.timestamp,
                    stat.metric.c_str(), tag.c_str(), stat.step,
                    stat.count, stat.value_sum, stat.value_avg, stat.value_std);
 

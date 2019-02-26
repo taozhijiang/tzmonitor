@@ -22,3 +22,10 @@ CREATE TABLE `t_tzmonitor_[service]_events_2019xx` (
 
 
 service_entityidx -> timestamp_metric_tag
+
+
+// leveldb 存储表设计思路
+// tzmonitor/tzmonitor__service__events_201902
+//           key: timestamp#metric#tag#entity_idx
+//           val: step#count#sum#avg#std
+
