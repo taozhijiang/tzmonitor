@@ -74,10 +74,15 @@ struct event_info_t {
     int32_t     count;
     int64_t     value_sum;
     int64_t     value_avg;
-    double      value_std;
+    int64_t     value_std;
+    int64_t     value_min;
+    int64_t     value_max;
+    int64_t     value_p50;
+    int64_t     value_p90;
 };
 
 struct event_select_t {
+
     std::string version;
 
     time_t      timestamp;
@@ -89,6 +94,7 @@ struct event_select_t {
 
     std::string entity_idx;
     std::string tag;
+    int32_t     step;
 
     event_info_t summary;
     std::vector<event_info_t> info;

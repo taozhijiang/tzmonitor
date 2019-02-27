@@ -5,6 +5,8 @@
  *
  */
 
+#include <algorithm>
+
 #include <xtra_rhel6.h>
 #include <functional>
 
@@ -333,7 +335,11 @@ struct stat_info_t {
     int count;
     int64_t value_sum;
     int64_t value_avg;
-    double  value_std;
+    int64_t value_std;
+    int64_t value_min;
+    int64_t value_max;
+    int64_t value_p50;
+    int64_t value_p90;
     std::vector<int64_t> values;
 };
 
@@ -406,7 +412,26 @@ void calc_event_info_each_metric(std::vector<event_data_t>& data,
         for (size_t i=0; i< info.values.size(); ++i) {
             sum += ::pow(info.values[i] - info.value_avg, 2);
         }
-        info.value_std = ::sqrt(sum / info.values.size());
+
+        // std
+        info.value_std = static_cast<int64_t>(::sqrt(sum / info.values.size()));
+
+        // 采用 nth_element算法
+        // 计算 p50, p90
+        size_t len = info.values.size();
+
+        std::nth_element(info.values.begin(), info.values.begin(), info.values.end());
+        info.value_min = info.values[0];
+        std::nth_element(info.values.begin(), info.values.begin(), info.values.end(), std::greater<int64_t>());
+        info.value_max = info.values[0];
+
+        size_t p50_idx = len * 0.5;
+        std::nth_element(info.values.begin(), info.values.begin() + p50_idx, info.values.end());
+        info.value_p50 = info.values[p50_idx];
+
+        size_t p90_idx = len * 0.9;
+        std::nth_element(info.values.begin(), info.values.begin() + p90_idx, info.values.end());
+        info.value_p90 = info.values[p90_idx];
     }
 }
 
@@ -438,6 +463,10 @@ int EventHandler::do_process_event(events_by_time_ptr_t event, event_insert_t co
             copy_stat.value_sum = tag_info[it->first].value_sum;
             copy_stat.value_avg = tag_info[it->first].value_avg;
             copy_stat.value_std = tag_info[it->first].value_std;
+            copy_stat.value_min = tag_info[it->first].value_min;
+            copy_stat.value_max = tag_info[it->first].value_max;
+            copy_stat.value_p50 = tag_info[it->first].value_p50;
+            copy_stat.value_p90 = tag_info[it->first].value_p90;
 
             if (!store_ || store_->insert_ev_stat(copy_stat) != 0) {
                 log_err("store for (%s, %s) - %ld name:%s, flag:%s failed!",

@@ -247,6 +247,10 @@ void EventStatHandler::print_head() override {
     ss_ << "<td>" << "F_value_sum" << "</td>" << std::endl;
     ss_ << "<td>" << "F_value_avg" << "</td>" << std::endl;
     ss_ << "<td>" << "F_value_std" << "</td>" << std::endl;
+    ss_ << "<td>" << "F_value_min" << "</td>" << std::endl;
+    ss_ << "<td>" << "F_value_max" << "</td>" << std::endl;
+    ss_ << "<td>" << "F_value_p50" << "</td>" << std::endl;
+    ss_ << "<td>" << "F_value_p90" << "</td>" << std::endl;
 
     ss_ << "</tr>" << std::endl;
 }
@@ -263,6 +267,10 @@ static std::string build_record(size_t idx, const event_info_t& info) {
     ss << "<td>" << info.value_sum << "</td>" << std::endl;
     ss << "<td>" << info.value_avg << "</td>" << std::endl;
     ss << "<td>" << info.value_std << "</td>" << std::endl;
+    ss << "<td>" << info.value_min << "</td>" << std::endl;
+    ss << "<td>" << info.value_max << "</td>" << std::endl;
+    ss << "<td>" << info.value_p50 << "</td>" << std::endl;
+    ss << "<td>" << info.value_p90 << "</td>" << std::endl;
     ss << "<tr>" << std::endl;
 
     return ss.str();

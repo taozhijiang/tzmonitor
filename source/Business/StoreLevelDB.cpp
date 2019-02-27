@@ -149,12 +149,13 @@ int StoreLevelDB::insert_ev_stat(const event_insert_t& stat) override {
     char cstr_val[4096] {};
 
     // key: metric#timestamp#tag#entity_idx
-    // val: step#count#sum#avg#std
+    // val: step#count#sum#avg#std#min#max#p50#p90
     snprintf(cstr_key, sizeof(cstr_key), "%s#%lu#%s#%s",
              stat.metric.c_str(), timestamp_exchange(stat.timestamp),
              tag.c_str(), stat.entity_idx.c_str());
-    snprintf(cstr_val, sizeof(cstr_key), "%d#%d#%ld#%ld#%f",
-             stat.step, stat.count, stat.value_sum, stat.value_avg, stat.value_std);
+    snprintf(cstr_val, sizeof(cstr_key), "%d#%d#%ld#%ld#%ld#%ld#%ld#%ld#%ld",
+             stat.step, stat.count, stat.value_sum, stat.value_avg, stat.value_std,
+             stat.value_min, stat.value_max, stat.value_p50, stat.value_p90);
 
     auto handler = get_leveldb_handler(stat.service);
     if (!handler) {
@@ -197,6 +198,8 @@ int StoreLevelDB::select_ev_stat_by_timestamp(const event_cond_t& cond, event_se
 
     // 聚合信息
     std::map<time_t, std::vector<event_info_t>> infos_by_timestamp;
+    stat.summary.value_min = std::numeric_limits<int64_t>::max();
+    stat.summary.value_max = std::numeric_limits<int64_t>::min();
 
     for (it->Seek(t_upper); it->Valid(); it->Next()) {
 
@@ -224,11 +227,12 @@ int StoreLevelDB::select_ev_stat_by_timestamp(const event_cond_t& cond, event_se
         if (!cond.entity_idx.empty() && vec[3] != cond.entity_idx)
             continue;
 
-        // step#count#sum#avg#std
+        // step#count#sum#avg#std#min#max#p50#p90
         std::string str_val = it->value().ToString();
         event_info_t item {};
-        if (::sscanf(str_val.c_str(), "%d#%d#%ld#%ld#%f",
-                     &item.step, &item.count, &item.value_sum, &item.value_avg, &item.value_std) != 5) {
+        if (::sscanf(str_val.c_str(), "%d#%d#%ld#%ld#%ld#%ld#%ld#%ld#%ld",
+                     &item.step, &item.count, &item.value_sum, &item.value_avg, &item.value_std,
+                     &item.value_min, &item.value_max, &item.value_p50, &item.value_p90) != 9) {
             log_err("scan err for: %s", str_val.c_str());
             continue;
         }
@@ -246,32 +250,66 @@ int StoreLevelDB::select_ev_stat_by_timestamp(const event_cond_t& cond, event_se
 
         stat.summary.count += item.count;
         stat.summary.value_sum += item.value_sum;
-        stat.summary.value_std += item.value_std * item.count;
+        stat.summary.value_std += item.value_std;
+        stat.summary.value_p50 += item.value_p50;
+        stat.summary.value_p90 += item.value_p90;
 
-    }
+        if (item.value_min < stat.summary.value_min) {
+            stat.summary.value_min = item.value_min;
+        }
+
+        if (item.value_max > stat.summary.value_max) {
+            stat.summary.value_max = item.value_max;
+        }
+
+    }  // end for
 
     if (stat.summary.count != 0) {
         stat.summary.value_avg = stat.summary.value_sum / stat.summary.count;
-        stat.summary.value_std = stat.summary.value_std / stat.summary.count;   // not very well
+        stat.summary.value_std = stat.summary.value_std / stat.info.size();   // not very well
+        stat.summary.value_p50 = stat.summary.value_p50 / stat.info.size();
+        stat.summary.value_p90 = stat.summary.value_p90 / stat.info.size();
+    } else {
+        // avoid display confusing value.
+        stat.summary.value_min = 0;
+        stat.summary.value_max = 0;
     }
-
 
     for (auto iter = infos_by_timestamp.begin(); iter != infos_by_timestamp.end(); ++iter) {
 
         event_info_t collect {};
         collect.timestamp = iter->first;
 
+        collect.value_min = std::numeric_limits<int64_t>::max();
+        collect.value_max = std::numeric_limits<int64_t>::min();
+
         for (size_t i=0; i<iter->second.size(); ++i) {
             collect.count ++;
             collect.step += iter->second[i].step;
             collect.value_sum += iter->second[i].value_sum;
             collect.value_std += iter->second[i].value_std;
+            collect.value_p50 += iter->second[i].value_p50;
+            collect.value_p90 += iter->second[i].value_p90;
+
+            if (iter->second[i].value_min < collect.value_min) {
+                collect.value_min = iter->second[i].value_min;
+            }
+
+            if (iter->second[i].value_max > collect.value_max) {
+                collect.value_max = iter->second[i].value_max;
+            }
         }
 
         if (collect.count > 0) {
             collect.step = collect.value_avg / collect.count;
             collect.value_avg = collect.value_sum / collect.count;
             collect.value_std = collect.value_std / collect.count;
+            collect.value_p50 = collect.value_p50 / collect.count;
+            collect.value_p90 = collect.value_p90 / collect.count;
+        } else {
+            // avoid display confusing value.
+            collect.value_min = 0;
+            collect.value_max = 0;
         }
 
         stat.info.emplace_back(collect);
@@ -303,6 +341,9 @@ int StoreLevelDB::select_ev_stat_by_tag(const event_cond_t& cond, event_select_t
 
     // 聚合信息
     std::map<std::string, std::vector<event_info_t>> infos_by_tag;
+    stat.summary.value_min = std::numeric_limits<int64_t>::max();
+    stat.summary.value_max = std::numeric_limits<int64_t>::min();
+
 
     for (it->Seek(t_upper); it->Valid(); it->Next()) {
 
@@ -352,13 +393,29 @@ int StoreLevelDB::select_ev_stat_by_tag(const event_cond_t& cond, event_select_t
 
         stat.summary.count += item.count;
         stat.summary.value_sum += item.value_sum;
-        stat.summary.value_std += item.value_std * item.count;
+        stat.summary.value_std += item.value_std;
+        stat.summary.value_p50 += item.value_p50;
+        stat.summary.value_p90 += item.value_p90;
 
-    }
+        if (item.value_min < stat.summary.value_min) {
+            stat.summary.value_min = item.value_min;
+        }
+
+        if (item.value_max > stat.summary.value_max) {
+            stat.summary.value_max = item.value_max;
+        }
+    } // end for
+
 
     if (stat.summary.count != 0) {
         stat.summary.value_avg = stat.summary.value_sum / stat.summary.count;
-        stat.summary.value_std = stat.summary.value_std / stat.summary.count;   // not very well
+        stat.summary.value_std = stat.summary.value_std / stat.info.size();   // not very well
+        stat.summary.value_p50 = stat.summary.value_p50 / stat.info.size();
+        stat.summary.value_p90 = stat.summary.value_p90 / stat.info.size();
+    } else {
+        // avoid display confusing value.
+        stat.summary.value_min = 0;
+        stat.summary.value_max = 0;
     }
 
 
@@ -367,17 +424,36 @@ int StoreLevelDB::select_ev_stat_by_tag(const event_cond_t& cond, event_select_t
         event_info_t collect {};
         collect.tag = iter->first;
 
+        collect.value_min = std::numeric_limits<int64_t>::max();
+        collect.value_max = std::numeric_limits<int64_t>::min();
+
         for (size_t i=0; i<iter->second.size(); ++i) {
             collect.count ++;
             collect.step += iter->second[i].step;
             collect.value_sum += iter->second[i].value_sum;
             collect.value_std += iter->second[i].value_std;
+            collect.value_p50 += iter->second[i].value_p50;
+            collect.value_p90 += iter->second[i].value_p90;
+
+            if (iter->second[i].value_min < collect.value_min) {
+                collect.value_min = iter->second[i].value_min;
+            }
+
+            if (iter->second[i].value_max > collect.value_max) {
+                collect.value_max = iter->second[i].value_max;
+            }
         }
 
         if (collect.count > 0) {
             collect.step = collect.value_avg / collect.count;
             collect.value_avg = collect.value_sum / collect.count;
             collect.value_std = collect.value_std / collect.count;
+            collect.value_p50 = collect.value_p50 / collect.count;
+            collect.value_p90 = collect.value_p90 / collect.count;
+        } else {
+            // avoid display confusing value.
+            collect.value_min = 0;
+            collect.value_max = 0;
         }
 
         stat.info.emplace_back(collect);
@@ -408,6 +484,9 @@ int StoreLevelDB::select_ev_stat_by_none(const event_cond_t& cond, event_select_
     leveldb::Options options;
     std::unique_ptr<leveldb::Iterator> it(handler->NewIterator(leveldb::ReadOptions()));
 
+    stat.summary.value_min = std::numeric_limits<int64_t>::max();
+    stat.summary.value_max = std::numeric_limits<int64_t>::min();
+
     for (it->Seek(t_upper); it->Valid(); it->Next()) {
 
         leveldb::Slice key = it->key();
@@ -437,21 +516,31 @@ int StoreLevelDB::select_ev_stat_by_none(const event_cond_t& cond, event_select_
         // step#count#sum#avg#std
         std::string str_val = it->value().ToString();
         event_info_t item {};
-        if (::sscanf(str_val.c_str(), "%d#%d#%ld#%ld#%f",
-                     &item.step, &item.count, &item.value_sum, &item.value_avg, &item.value_std) != 5) {
+        if (::sscanf(str_val.c_str(), "%d#%d#%ld#%ld#%ld#%ld#%ld#%ld#%ld",
+                     &item.step, &item.count, &item.value_sum, &item.value_avg, &item.value_std,
+                     &item.value_min, &item.value_max, &item.value_p50, &item.value_p90) != 9) {
             log_err("scan err for: %s", str_val.c_str());
             continue;
         }
 
         stat.summary.count += item.count;
         stat.summary.value_sum += item.value_sum;
-        stat.summary.value_std += item.value_std * item.count;
+        stat.summary.value_std += item.value_std;
+        stat.summary.value_p50 += item.value_p50;
+        stat.summary.value_p90 += item.value_p90;
 
     }
 
     if (stat.summary.count != 0) {
         stat.summary.value_avg = stat.summary.value_sum / stat.summary.count;
-        stat.summary.value_std = stat.summary.value_std / stat.summary.count;   // not very well
+        stat.summary.value_std = stat.summary.value_std / stat.info.size();   // not very well
+        stat.summary.value_p50 = stat.summary.value_p50 / stat.info.size();
+        stat.summary.value_p90 = stat.summary.value_p90 / stat.info.size();
+    } else {
+
+        // avoid display confusing value.
+        stat.summary.value_min = 0;
+        stat.summary.value_max = 0;
     }
 
     return 0;

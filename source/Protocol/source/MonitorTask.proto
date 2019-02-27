@@ -16,7 +16,9 @@ message MonitorReadOps {
         // interface
         optional ping_t ping = 3;
 
-        // service timestamp_metric_tag_entity_idx count,sum,avg,std
+        // service timestamp_metric_tag_entity_idx
+        // step,count,sum,avg,std,min,max,p50,p90
+
         message ev_select_t {
             required string version = 1;      // 1.0.0
             required string service = 2;
@@ -28,7 +30,7 @@ message MonitorReadOps {
             optional int64  tm_start = 11;
             optional string entity_idx = 12;
             optional string tag = 13;
-            optional string groupby = 14; // none,flag,time
+            optional string groupby = 14;     // none,tag,timestamp
         }
         // interface
         optional ev_select_t select = 4;
@@ -67,6 +69,10 @@ message MonitorReadOps {
             required int64  value_sum = 6;
             required int64  value_avg = 7;
             required int64  value_std = 8;
+            required int64  value_min = 9;
+            required int64  value_max = 10;
+            required int64  value_p50 = 11;
+            required int64  value_p90 = 12;
         }
 
         message ev_select_t {
@@ -76,6 +82,7 @@ message MonitorReadOps {
             required int64  timestamp = 3;  // 实际数据开始取的时间
             required string metric = 4;
             required int64  tm_interval = 5;
+            required int32  step = 6;
 
             optional int64  tm_start = 10;  // 如果请求条件约束，则原样返回校验
             optional string entity_idx = 11;// 如果请求条件约束，则原样返回校验

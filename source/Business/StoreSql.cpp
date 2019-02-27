@@ -91,7 +91,11 @@ int StoreSql::create_table(sql_conn_ptr& conn,
         "  `F_count` int(11) NOT NULL COMMENT '当前间隔内事件总个数', "
         "  `F_value_sum` bigint(20) NOT NULL COMMENT '数值累计', "
         "  `F_value_avg` bigint(20) NOT NULL COMMENT '数值均值', "
-        "  `F_value_std` double NOT NULL COMMENT '数值方差', "
+        "  `F_value_std` bigint(20) NOT NULL COMMENT '数值方差', "
+        "  `F_value_min` bigint(20) NOT NULL COMMENT 'MIN', "
+        "  `F_value_max` bigint(20) NOT NULL COMMENT 'MAX', "
+        "  `F_value_p50` bigint(20) NOT NULL COMMENT 'P50', "
+        "  `F_value_p90` bigint(20) NOT NULL COMMENT 'P90', "
         "  `F_update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, "
         "  PRIMARY KEY (`F_increment_id`), "
         "  KEY `F_index` (`F_timestamp`, `F_metric`, `F_tag`) "
@@ -138,11 +142,13 @@ int StoreSql::insert_ev_stat(sql_conn_ptr& conn, const event_insert_t& stat) {
                    " INSERT INTO %s.%s__%s__events_%s "
                    " SET F_entity_idx = '%s', F_timestamp = %ld, "
                    " F_metric = '%s', F_tag = '%s', F_step = %d, "
-                   " F_count = %d, F_value_sum = %ld, F_value_avg = %ld, F_value_std = %f; ",
+                   " F_count = %d, F_value_sum = %ld, F_value_avg = %ld, F_value_std = %ld,"
+                   " F_value_min = %ld, F_value_max = %ld, F_value_p50 = %ld, F_value_p90 = %ld; ",
                    database_.c_str(), table_prefix_.c_str(), stat.service.c_str(), table_suffix.c_str(),
                    stat.entity_idx.c_str(), stat.timestamp,
                    stat.metric.c_str(), tag.c_str(), stat.step,
-                   stat.count, stat.value_sum, stat.value_avg, stat.value_std);
+                   stat.count, stat.value_sum, stat.value_avg, stat.value_std,
+                   stat.value_min, stat.value_max, stat.value_p50, stat.value_p90);
 
     int nAffected = conn->sqlconn_execute_update(sql);
     if (nAffected == 1) {
@@ -168,11 +174,17 @@ std::string StoreSql::build_sql(const event_cond_t& cond, time_t linger_hint, ti
     }
 
     if (cond.groupby == GroupType::kGroupbyTimestamp) {
-        ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), IFNULL(AVG(F_value_std), 0), IFNULL(MAX(F_step), 0), F_timestamp FROM ";
+        ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), IFNULL(AVG(F_value_std), 0), "
+                    " IFNULL(MIN(F_value_min), 0), IFNULL(MAX(F_value_max), 0), IFNULL(AVG(F_value_p50), 0), IFNULL(AVG(F_value_p90), 0), "
+                    " IFNULL(MAX(F_step), 0), F_timestamp FROM ";
     } else if (cond.groupby == GroupType::kGroupbyTag) {
-        ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), IFNULL(AVG(F_value_std), 0), IFNULL(MAX(F_step), 0), F_tag FROM ";
+        ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), IFNULL(AVG(F_value_std), 0), "
+                    " IFNULL(MIN(F_value_min), 0), IFNULL(MAX(F_value_max), 0), IFNULL(AVG(F_value_p50), 0), IFNULL(AVG(F_value_p90), 0), "
+                    " IFNULL(MAX(F_step), 0), F_tag FROM ";
     } else {
-        ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), IFNULL(AVG(F_value_std), 0), IFNULL(MAX(F_step), 0) FROM ";
+        ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), IFNULL(AVG(F_value_std), 0), "
+                    " IFNULL(MIN(F_value_min), 0), IFNULL(MAX(F_value_max), 0), IFNULL(AVG(F_value_p50), 0), IFNULL(AVG(F_value_p90), 0), "
+                    " IFNULL(MAX(F_step), 0) FROM ";
     }
 
     ss << database_ << "." << table_prefix_ << "__" << cond.service << "__events_" << get_table_suffix(real_start_time) ;
@@ -244,17 +256,27 @@ int StoreSql::select_ev_stat(sql_conn_ptr& conn, const event_cond_t& cond, event
 
       // 可能会有某个时刻没有数据的情况，这留给客户端去填充
       // 服务端不进行填充，减少网络数据的传输
+
+    stat.summary.value_min = std::numeric_limits<int64_t>::max();
+    stat.summary.value_max = std::numeric_limits<int64_t>::min();
+
     while (result->next()) {
 
         event_info_t item {};
 
         bool success = false;
         if (cond.groupby == GroupType::kGroupbyTimestamp) {
-            success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std, item.step, item.timestamp);
+            success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std,
+                                     item.value_min, item.value_max, item.value_p50, item.value_p90,
+                                     item.step, item.timestamp);
         } else if (cond.groupby == GroupType::kGroupbyTag) {
-            success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std, item.step, item.tag);
+            success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std,
+                                     item.value_min, item.value_max, item.value_p50, item.value_p90,
+                                     item.step, item.tag);
         } else {
-            success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std, item.step);
+            success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std,
+                                     item.value_min, item.value_max, item.value_p50, item.value_p90,
+                                     item.step);
         }
 
         if (!success) {
@@ -270,14 +292,31 @@ int StoreSql::select_ev_stat(sql_conn_ptr& conn, const event_cond_t& cond, event
 
         stat.summary.count += item.count;
         stat.summary.value_sum += item.value_sum;
-        stat.summary.value_std += item.value_std * item.count;
+        stat.summary.value_std += item.value_std;
+        stat.summary.value_p50 += item.value_p50;
+        stat.summary.value_p90 += item.value_p90;
+
+        if (item.value_min < stat.summary.value_min) {
+            stat.summary.value_min = item.value_min;
+        }
+
+        if (item.value_max > stat.summary.value_max) {
+            stat.summary.value_max = item.value_max;
+        }
 
         stat.info.push_back(item);
     }
 
     if (stat.summary.count != 0) {
         stat.summary.value_avg = stat.summary.value_sum / stat.summary.count;
-        stat.summary.value_std = stat.summary.value_std / stat.summary.count;   // not very well
+        stat.summary.value_std = stat.summary.value_std / stat.info.size();   // not very well
+        stat.summary.value_p50 = stat.summary.value_p50 / stat.info.size();
+        stat.summary.value_p90 = stat.summary.value_p90 / stat.info.size();
+    } else {
+
+        // avoid display confusing value.
+        stat.summary.value_min = 0;
+        stat.summary.value_max = 0;
     }
 
     return 0;

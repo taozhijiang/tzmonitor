@@ -286,6 +286,8 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
             response.mutable_select()->set_tm_start(stat.timestamp);
             response.mutable_select()->set_entity_idx(stat.entity_idx);
             response.mutable_select()->set_tag(stat.tag);
+            response.mutable_select()->set_step(stat.step);
+
 
             response.mutable_select()->mutable_summary()->set_timestamp(stat.summary.timestamp);
             response.mutable_select()->mutable_summary()->set_tag(stat.summary.tag);
@@ -293,16 +295,25 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
             response.mutable_select()->mutable_summary()->set_value_sum(stat.summary.value_sum);
             response.mutable_select()->mutable_summary()->set_value_avg(stat.summary.value_avg);
             response.mutable_select()->mutable_summary()->set_value_std(stat.summary.value_std);
+            response.mutable_select()->mutable_summary()->set_value_min(stat.summary.value_min);
+            response.mutable_select()->mutable_summary()->set_value_max(stat.summary.value_max);
+            response.mutable_select()->mutable_summary()->set_value_p50(stat.summary.value_p50);
+            response.mutable_select()->mutable_summary()->set_value_p90(stat.summary.value_p90);
 
             for (auto iter = stat.info.begin(); iter != stat.info.end(); ++iter) {
                 auto item = response.mutable_select()->add_info();
 
                 item->set_timestamp(iter->timestamp);
                 item->set_tag(iter->tag);
+
                 item->set_count(iter->count);
                 item->set_value_sum(iter->value_sum);
                 item->set_value_avg(iter->value_avg);
                 item->set_value_std(iter->value_std);
+                item->set_value_min(iter->value_min);
+                item->set_value_max(iter->value_max);
+                item->set_value_p50(iter->value_p50);
+                item->set_value_p90(iter->value_p90);
             }
 
             break;

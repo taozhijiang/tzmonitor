@@ -23,7 +23,7 @@ struct event_insert_t {
 
     std::string entity_idx;
     time_t      timestamp;
-    time_t      step;
+    int32_t     step;
 
     std::string metric;
     std::string tag;
@@ -31,7 +31,11 @@ struct event_insert_t {
     int         count;
     int64_t     value_sum;
     int64_t     value_avg;
-    double      value_std;
+    int64_t     value_std;
+    int64_t     value_min;
+    int64_t     value_max;
+    int64_t     value_p50;
+    int64_t     value_p90;
 };
 
 struct service_metric_t {
