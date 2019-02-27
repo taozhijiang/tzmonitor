@@ -495,7 +495,10 @@ int MonitorClientImpl::select_stat(event_cond_t& cond, event_select_t& stat) {
         return -1;
     }
 
-    cond.service = service_;
+    // 如果为空才覆盖
+    if (cond.service.empty()) {
+        cond.service = service_;
+    }
     auto code = client_agent_->rpc_event_select(cond, stat);
     if (code == 0) {
         log_debug("event select ok.");
@@ -508,7 +511,7 @@ int MonitorClientImpl::select_stat(event_cond_t& cond, event_select_t& stat) {
 
 
 int MonitorClientImpl::known_metrics(const std::string& version,
-                                       const std::string& service, std::vector<std::string>& metrics) {
+                                     const std::string& service, std::vector<std::string>& metrics) {
 
     if (!client_agent_) {
         log_err("MonitorRpcClientHelper not initialized, fatal!");

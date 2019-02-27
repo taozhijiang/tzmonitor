@@ -270,7 +270,7 @@ int StoreLevelDB::select_ev_stat_by_timestamp(const event_cond_t& cond, event_se
 
         if (collect.count > 0) {
             collect.step = collect.value_avg / collect.count;
-            collect.value_avg = collect.value_avg / collect.count;
+            collect.value_avg = collect.value_sum / collect.count;
             collect.value_std = collect.value_std / collect.count;
         }
 
@@ -376,7 +376,7 @@ int StoreLevelDB::select_ev_stat_by_tag(const event_cond_t& cond, event_select_t
 
         if (collect.count > 0) {
             collect.step = collect.value_avg / collect.count;
-            collect.value_avg = collect.value_avg / collect.count;
+            collect.value_avg = collect.value_sum / collect.count;
             collect.value_std = collect.value_std / collect.count;
         }
 

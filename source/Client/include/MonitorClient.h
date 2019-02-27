@@ -9,7 +9,6 @@
 #ifndef __MONITOR_CLIENT_H__
 #define __MONITOR_CLIENT_H__
 
-#include <syslog.h>
 #include <errno.h>
 #include <libconfig.h++>
 
@@ -33,12 +32,12 @@ public:
 
     ~MonitorClient();
 
-    bool init(const std::string& cfgFile, CP_log_store_func_t log_func = ::syslog);
-    bool init(const libconfig::Setting& setting, CP_log_store_func_t log_func = ::syslog);
-    bool init(const std::string& addr, uint16_t port, CP_log_store_func_t log_func = ::syslog);  // 简易，使用默认参数
+    bool init(const std::string& cfgFile, CP_log_store_func_t log_func);
+    bool init(const libconfig::Setting& setting, CP_log_store_func_t log_func);
+    bool init(const std::string& addr, uint16_t port, CP_log_store_func_t log_func);  // 简易，使用默认参数
     bool init(const std::string& service, const std::string& entity_idx,
               const std::string& addr, uint16_t port,
-              CP_log_store_func_t log_func = ::syslog);
+              CP_log_store_func_t log_func);
 
     int ping();
 
