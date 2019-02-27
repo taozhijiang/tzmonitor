@@ -168,11 +168,11 @@ std::string StoreSql::build_sql(const event_cond_t& cond, time_t linger_hint, ti
     }
 
     if (cond.groupby == GroupType::kGroupbyTimestamp) {
-        ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), IFNULL(AVG(F_value_std), 0), F_timestamp FROM ";
+        ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), IFNULL(AVG(F_value_std), 0), IFNULL(MAX(F_step), 0), F_timestamp FROM ";
     } else if (cond.groupby == GroupType::kGroupbyTag) {
-        ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), IFNULL(AVG(F_value_std), 0), F_tag FROM ";
+        ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), IFNULL(AVG(F_value_std), 0), IFNULL(MAX(F_step), 0), F_tag FROM ";
     } else {
-        ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), IFNULL(AVG(F_value_std), 0) FROM ";
+        ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), IFNULL(AVG(F_value_std), 0), IFNULL(MAX(F_step), 0) FROM ";
     }
 
     ss << database_ << "." << table_prefix_ << "__" << cond.service << "__events_" << get_table_suffix(real_start_time) ;
@@ -250,11 +250,11 @@ int StoreSql::select_ev_stat(sql_conn_ptr& conn, const event_cond_t& cond, event
 
         bool success = false;
         if (cond.groupby == GroupType::kGroupbyTimestamp) {
-            success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std, item.timestamp);
+            success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std, item.step, item.timestamp);
         } else if (cond.groupby == GroupType::kGroupbyTag) {
-            success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std, item.tag);
+            success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std, item.step, item.tag);
         } else {
-            success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std);
+            success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std, item.step);
         }
 
         if (!success) {
@@ -286,15 +286,15 @@ int StoreSql::select_ev_stat(sql_conn_ptr& conn, const event_cond_t& cond, event
 
 int StoreSql::select_metrics(const std::string& service, std::vector<std::string>& metrics) {
 
+    if (service.empty()) {
+        log_err("select_metrics, service can not be empty!");
+        return -1;
+    }
+
     sql_conn_ptr conn;
     sql_pool_ptr_->request_scoped_conn(conn);
     if (!conn) {
         log_err("request sql conn failed!");
-        return -1;
-    }
-
-    if (service.empty()) {
-        log_err("select_metrics, service can not be empty!");
         return -1;
     }
 

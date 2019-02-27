@@ -8,13 +8,20 @@
 #include <cstdlib>
 #include <sstream>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include <dirent.h>
+
+#include <leveldb/comparator.h>
+
 #include <Utils/Log.h>
 #include <Utils/StrUtil.h>
 
 #include <Business/StoreLevelDB.h>
 
 using namespace tzrpc;
-
 
 static std::shared_ptr<leveldb::DB> NULLPTR_HANDLER;
 
@@ -99,6 +106,7 @@ do_create:
 
     leveldb::Options options;
     options.create_if_missing = true;
+    // options.block_cache = leveldb::NewLRUCache(100 * 1048576);  // 100MB cache
     leveldb::DB* db;
     leveldb::Status status = leveldb::DB::Open(options, fullpath, &db);
 
@@ -137,14 +145,15 @@ int StoreLevelDB::insert_ev_stat(const event_insert_t& stat) override {
         tag = "T";
     }
 
-    char str_key[4096] {};
-    char str_val[4096] {};
+    char cstr_key[4096] {};
+    char cstr_val[4096] {};
 
-    // key: timestamp#metric#tag#entity_idx
+    // key: metric#timestamp#tag#entity_idx
     // val: step#count#sum#avg#std
-    snprintf(str_key, sizeof(str_key), "%lu#%s#%s#%s",
-             stat.timestamp, stat.metric.c_str(), tag.c_str(), stat.entity_idx.c_str());
-    snprintf(str_val, sizeof(str_key), "%d#%d#%ld#%ld#%f",
+    snprintf(cstr_key, sizeof(cstr_key), "%s#%lu#%s#%s",
+             stat.metric.c_str(), timestamp_exchange(stat.timestamp),
+             tag.c_str(), stat.entity_idx.c_str());
+    snprintf(cstr_val, sizeof(cstr_key), "%d#%d#%ld#%ld#%f",
              stat.step, stat.count, stat.value_sum, stat.value_avg, stat.value_std);
 
     auto handler = get_leveldb_handler(stat.service);
@@ -154,183 +163,376 @@ int StoreLevelDB::insert_ev_stat(const event_insert_t& stat) override {
     }
 
     leveldb::WriteOptions options;
-    leveldb::Status status = handler->Put(options, std::string(str_key), std::string(str_val));
+    leveldb::Status status = handler->Put(options, std::string(cstr_key), std::string(cstr_val));
     if (!status.ok()) {
-        log_err("leveldb write failed: %s - %s", str_key, str_val);
+        log_err("leveldb write failed: %s - %s", cstr_key, cstr_val);
         return -1;
     }
 
+    log_debug("leveldb service %s store %s:%s success.",
+              stat.service.c_str(), cstr_key, cstr_val);
     return 0;
 }
 
+int StoreLevelDB::select_ev_stat_by_timestamp(const event_cond_t& cond, event_select_t& stat, time_t linger_hint) {
 
-#if 0
-
-std::string StoreSql::build_sql(const event_cond_t& cond, time_t linger_hint, time_t& real_start_time) {
-
-    std::stringstream ss;
-    real_start_time = ::time(NULL);
-    if (cond.tm_start > 0) {
-        real_start_time = std::min(::time(NULL) - linger_hint, cond.tm_start);
-    } else {
-        real_start_time = ::time(NULL) - linger_hint;
-    }
-
-    if (cond.groupby == GroupType::kGroupbyTimestamp) {
-        ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), IFNULL(AVG(F_value_std), 0), F_timestamp FROM ";
-    } else if (cond.groupby == GroupType::kGroupbyTag) {
-        ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), IFNULL(AVG(F_value_std), 0), F_tag FROM ";
-    } else {
-        ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), IFNULL(AVG(F_value_std), 0) FROM ";
-    }
-
-    ss << database_ << "." << table_prefix_ << "__" << cond.service << "__events_" << get_table_suffix(real_start_time) ;
-    ss << " WHERE F_timestamp <= " << real_start_time <<" AND F_timestamp > " << real_start_time - cond.tm_interval;
-    ss << " AND F_metric = '" << cond.metric << "'";
-
-    if (!cond.entity_idx.empty()) {
-        ss << " AND F_entity_idx = '" << cond.entity_idx << "'";
-    }
-
-    if (!cond.tag.empty()) {
-        ss << " AND F_tag = '" << cond.tag << "'";
-    }
-
-    if (cond.groupby == GroupType::kGroupbyTimestamp) {
-        ss << " GROUP BY F_timestamp ORDER BY F_timestamp DESC; ";
-    } else if (cond.groupby == GroupType::kGroupbyTag) {
-        ss << " GROUP BY F_tag; ";
-    }
-
-    std::string sql = ss.str();
-    log_debug("built query str: %s", sql.c_str());
-
-    return sql;
-}
-
-#endif
-
-// group summary
-int StoreLevelDB::select_ev_stat(const event_cond_t& cond, event_select_t& stat, time_t linger_hint) override {
-
-#if 0
-
-    if (!conn) {
-        log_err("request sql conn failed!");
+    auto handler = get_leveldb_handler(cond.service);
+    if (!handler) {
+        log_err("get leveldb handler for %s failed.", cond.service.c_str());
         return -1;
     }
 
-    time_t real_start_time = 0;
-    std::string sql = build_sql(cond, linger_hint, real_start_time);
-    stat.timestamp = real_start_time;
+    std::string metric_upper = cond.metric + "#";
+    std::string metric_lower = cond.metric + "$";
 
-    shared_result_ptr result;
-    result.reset(conn->sqlconn_execute_query(sql));
-    if (!result) {
-        log_err("Failed to query info: %s", sql.c_str());
-        return -1;
+    std::string t_upper = metric_upper + timestamp_exchange_str(stat.timestamp);
+    std::string t_lower = metric_lower;
+    if (stat.tm_interval > 0) {
+        t_lower = metric_upper + timestamp_exchange_str(stat.timestamp - cond.tm_interval);
     }
 
-    if (result->rowsCount() == 0) {
-        log_info("Empty record found!");
-        return 0;
-    }
+    std::vector<std::string> vec {};
+    leveldb::Options options;
+    std::unique_ptr<leveldb::Iterator> it(handler->NewIterator(leveldb::ReadOptions()));
 
-    stat.timestamp = real_start_time;
-    stat.tm_interval = cond.tm_interval;
-    stat.service = cond.service;
-    stat.metric = cond.metric;
-    stat.entity_idx = cond.entity_idx;
-    stat.tag = cond.tag;
+    // 聚合信息
+    std::map<time_t, std::vector<event_info_t>> infos_by_timestamp;
 
-      // 可能会有某个时刻没有数据的情况，这留给客户端去填充
-      // 服务端不进行填充，减少网络数据的传输
-    while (result->next()) {
+    for (it->Seek(t_upper); it->Valid(); it->Next()) {
 
-        event_info_t item {};
+        leveldb::Slice key = it->key();
+        std::string str_key = key.ToString();
 
-        bool success = false;
-        if (cond.groupby == GroupType::kGroupbyTimestamp) {
-            success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std, item.timestamp);
-        } else if (cond.groupby == GroupType::kGroupbyTag) {
-            success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std, item.tag);
-        } else {
-            success = cast_raw_value(result, 1, item.count, item.value_sum, item.value_std);
+        if ( options.comparator->Compare(key, t_lower) > 0) {
+            log_debug("break for: %s", str_key.c_str());
+            break;
         }
 
-        if (!success) {
-            log_err("failed to cast info, skip this ..." );
+        // metric#timestamp#tag#entity_idx
+        boost::split(vec, str_key, boost::is_any_of("#"));
+        if (vec.size() != 4 ||
+            vec[0].empty() || vec[1].empty() || vec[2].empty() ) {
+            log_err("problem item for service %s: %s", cond.service.c_str(), str_key.c_str());
             continue;
         }
 
-        if (item.count != 0) {
-            item.value_avg = item.value_sum / item.count;
-        } else {
-            item.value_avg = 0;
+        SAFE_ASSERT(cond.metric == vec[0]);
+
+        if (!cond.tag.empty() && vec[2] != cond.tag)
+            continue;
+
+        if (!cond.entity_idx.empty() && vec[3] != cond.entity_idx)
+            continue;
+
+        // step#count#sum#avg#std
+        std::string str_val = it->value().ToString();
+        event_info_t item {};
+        if (::sscanf(str_val.c_str(), "%d#%d#%ld#%ld#%f",
+                     &item.step, &item.count, &item.value_sum, &item.value_avg, &item.value_std) != 5) {
+            log_err("scan err for: %s", str_val.c_str());
+            continue;
         }
+
+        item.timestamp = timestamp_exchange(::atoll(vec[0].c_str()));
+
+        auto iter = infos_by_timestamp.find(item.timestamp);
+        if (iter == infos_by_timestamp.end()) {
+            infos_by_timestamp[item.timestamp] = std::vector<event_info_t>();
+            iter = infos_by_timestamp.find(item.timestamp);
+        }
+
+        SAFE_ASSERT(iter != infos_by_timestamp.end());
+        iter->second.push_back(item);
 
         stat.summary.count += item.count;
         stat.summary.value_sum += item.value_sum;
         stat.summary.value_std += item.value_std * item.count;
 
-        stat.info.push_back(item);
     }
 
     if (stat.summary.count != 0) {
         stat.summary.value_avg = stat.summary.value_sum / stat.summary.count;
         stat.summary.value_std = stat.summary.value_std / stat.summary.count;   // not very well
     }
-#endif
+
+
+    for (auto iter = infos_by_timestamp.begin(); iter != infos_by_timestamp.end(); ++iter) {
+
+        event_info_t collect {};
+        collect.timestamp = iter->first;
+
+        for (size_t i=0; i<iter->second.size(); ++i) {
+            collect.count ++;
+            collect.step += iter->second[i].step;
+            collect.value_sum += iter->second[i].value_sum;
+            collect.value_std += iter->second[i].value_std;
+        }
+
+        if (collect.count > 0) {
+            collect.step = collect.value_avg / collect.count;
+            collect.value_avg = collect.value_avg / collect.count;
+            collect.value_std = collect.value_std / collect.count;
+        }
+
+        stat.info.emplace_back(collect);
+    }
+
+    return 0;
+}
+
+int StoreLevelDB::select_ev_stat_by_tag(const event_cond_t& cond, event_select_t& stat, time_t linger_hint) {
+
+    auto handler = get_leveldb_handler(cond.service);
+    if (!handler) {
+        log_err("get leveldb handler for %s failed.", cond.service.c_str());
+        return -1;
+    }
+
+    std::string metric_upper = cond.metric + "#";
+    std::string metric_lower = cond.metric + "$";
+
+    std::string t_upper = metric_upper + timestamp_exchange_str(stat.timestamp);
+    std::string t_lower = metric_lower;
+    if (stat.tm_interval > 0) {
+        t_lower = metric_upper + timestamp_exchange_str(stat.timestamp - cond.tm_interval);
+    }
+
+    std::vector<std::string> vec {};
+    leveldb::Options options;
+    std::unique_ptr<leveldb::Iterator> it(handler->NewIterator(leveldb::ReadOptions()));
+
+    // 聚合信息
+    std::map<std::string, std::vector<event_info_t>> infos_by_tag;
+
+    for (it->Seek(t_upper); it->Valid(); it->Next()) {
+
+        leveldb::Slice key = it->key();
+        std::string str_key = key.ToString();
+
+        if ( options.comparator->Compare(key, t_lower) > 0) {
+            log_debug("break for: %s", str_key.c_str());
+            break;
+        }
+
+        // metric#timestamp#tag#entity_idx
+        boost::split(vec, str_key, boost::is_any_of("#"));
+        if (vec.size() != 4 ||
+            vec[0].empty() || vec[1].empty() || vec[2].empty() ) {
+            log_err("problem item for service %s: %s", cond.service.c_str(), str_key.c_str());
+            continue;
+        }
+
+        SAFE_ASSERT(cond.metric == vec[0]);
+
+        if (!cond.tag.empty() && vec[2] != cond.tag)
+            continue;
+
+        if (!cond.entity_idx.empty() && vec[3] != cond.entity_idx)
+            continue;
+
+        // step#count#sum#avg#std
+        std::string str_val = it->value().ToString();
+        event_info_t item {};
+        if (::sscanf(str_val.c_str(), "%d#%d#%ld#%ld#%f",
+                     &item.step, &item.count, &item.value_sum, &item.value_avg, &item.value_std) != 5) {
+            log_err("scan err for: %s", str_val.c_str());
+            continue;
+        }
+
+        item.tag = vec[2];
+
+        auto iter = infos_by_tag.find(item.tag);
+        if (iter == infos_by_tag.end()) {
+            infos_by_tag[item.tag] = std::vector<event_info_t>();
+            iter = infos_by_tag.find(item.tag);
+        }
+
+        SAFE_ASSERT(iter != infos_by_tag.end());
+        iter->second.push_back(item);
+
+        stat.summary.count += item.count;
+        stat.summary.value_sum += item.value_sum;
+        stat.summary.value_std += item.value_std * item.count;
+
+    }
+
+    if (stat.summary.count != 0) {
+        stat.summary.value_avg = stat.summary.value_sum / stat.summary.count;
+        stat.summary.value_std = stat.summary.value_std / stat.summary.count;   // not very well
+    }
+
+
+    for (auto iter = infos_by_tag.begin(); iter != infos_by_tag.end(); ++iter) {
+
+        event_info_t collect {};
+        collect.tag = iter->first;
+
+        for (size_t i=0; i<iter->second.size(); ++i) {
+            collect.count ++;
+            collect.step += iter->second[i].step;
+            collect.value_sum += iter->second[i].value_sum;
+            collect.value_std += iter->second[i].value_std;
+        }
+
+        if (collect.count > 0) {
+            collect.step = collect.value_avg / collect.count;
+            collect.value_avg = collect.value_avg / collect.count;
+            collect.value_std = collect.value_std / collect.count;
+        }
+
+        stat.info.emplace_back(collect);
+    }
+
+    return 0;
+
+}
+
+int StoreLevelDB::select_ev_stat_by_none(const event_cond_t& cond, event_select_t& stat, time_t linger_hint) {
+
+    auto handler = get_leveldb_handler(cond.service);
+    if (!handler) {
+        log_err("get leveldb handler for %s failed.", cond.service.c_str());
+        return -1;
+    }
+
+    std::string metric_upper = cond.metric + "#";
+    std::string metric_lower = cond.metric + "$";
+
+    std::string t_upper = metric_upper + timestamp_exchange_str(stat.timestamp);
+    std::string t_lower = metric_lower;
+    if (stat.tm_interval > 0) {
+        t_lower = metric_upper + timestamp_exchange_str(stat.timestamp - cond.tm_interval);
+    }
+
+    std::vector<std::string> vec {};
+    leveldb::Options options;
+    std::unique_ptr<leveldb::Iterator> it(handler->NewIterator(leveldb::ReadOptions()));
+
+    for (it->Seek(t_upper); it->Valid(); it->Next()) {
+
+        leveldb::Slice key = it->key();
+        std::string str_key = key.ToString();
+
+        if ( options.comparator->Compare(key, t_lower) > 0) {
+            log_debug("break for: %s", str_key.c_str());
+            break;
+        }
+
+        // metric#timestamp#tag#entity_idx
+        boost::split(vec, str_key, boost::is_any_of("#"));
+        if (vec.size() != 4 ||
+            vec[0].empty() || vec[1].empty() || vec[2].empty() ) {
+            log_err("problem item for service %s: %s", cond.service.c_str(), str_key.c_str());
+            continue;
+        }
+
+        SAFE_ASSERT(cond.metric == vec[0]);
+
+        if (!cond.tag.empty() && vec[2] != cond.tag)
+            continue;
+
+        if (!cond.entity_idx.empty() && vec[3] != cond.entity_idx)
+            continue;
+
+        // step#count#sum#avg#std
+        std::string str_val = it->value().ToString();
+        event_info_t item {};
+        if (::sscanf(str_val.c_str(), "%d#%d#%ld#%ld#%f",
+                     &item.step, &item.count, &item.value_sum, &item.value_avg, &item.value_std) != 5) {
+            log_err("scan err for: %s", str_val.c_str());
+            continue;
+        }
+
+        stat.summary.count += item.count;
+        stat.summary.value_sum += item.value_sum;
+        stat.summary.value_std += item.value_std * item.count;
+
+    }
+
+    if (stat.summary.count != 0) {
+        stat.summary.value_avg = stat.summary.value_sum / stat.summary.count;
+        stat.summary.value_std = stat.summary.value_std / stat.summary.count;   // not very well
+    }
 
     return 0;
 }
 
 
-int StoreLevelDB::select_metrics(const std::string& service, std::vector<std::string>& metrics) {
+// group summary
+int StoreLevelDB::select_ev_stat(const event_cond_t& cond, event_select_t& stat, time_t linger_hint) override {
 
-    #if 0
-
-    sql_conn_ptr conn;
-    sql_pool_ptr_->request_scoped_conn(conn);
-    if (!conn) {
-        log_err("request sql conn failed!");
+    if (cond.service.empty()) {
+        log_err("error check error!");
         return -1;
     }
+
+    stat.timestamp = ::time(NULL);
+    if (cond.tm_start > 0) {
+        stat.timestamp = std::min(::time(NULL) - linger_hint, cond.tm_start);
+    } else {
+        stat.timestamp = ::time(NULL) - linger_hint;
+    }
+
+    stat.service = cond.service;
+    stat.tm_interval = cond.tm_interval;
+    stat.service = cond.service;
+    stat.metric = cond.metric;
+    stat.entity_idx = cond.entity_idx;
+    stat.tag = cond.tag;
+
+    if (cond.groupby == GroupType::kGroupbyTimestamp) {
+        return select_ev_stat_by_timestamp(cond, stat, linger_hint);
+    }
+    else if (cond.groupby == GroupType::kGroupbyTag) {
+        return select_ev_stat_by_tag(cond, stat, linger_hint);
+    }
+    else {
+        return select_ev_stat_by_none(cond, stat, linger_hint);
+    }
+
+    return -1;
+}
+
+
+int StoreLevelDB::select_metrics(const std::string& service, std::vector<std::string>& metrics) {
 
     if (service.empty()) {
         log_err("select_metrics, service can not be empty!");
         return -1;
     }
 
-    std::string table_suffix = get_table_suffix(::time(NULL));
-    std::string sql = va_format(
-               " SELECT distinct(F_metric) FROM %s.%s__%s__events_%s; ",
-               database_.c_str(), table_prefix_.c_str(), service.c_str(), table_suffix.c_str());
-
-    shared_result_ptr result;
-    result.reset(conn->sqlconn_execute_query(sql));
-    if (!result) {
-        log_err("Failed to query info: %s", sql.c_str());
+    auto handler = get_leveldb_handler(service);
+    if (!handler) {
+        log_err("get leveldb handler for %s failed.", service.c_str());
         return -1;
     }
 
-    if (result->rowsCount() == 0) {
-        log_info("Empty record found!");
-        return 0;
-    }
+    std::unique_ptr<leveldb::Iterator> it(handler->NewIterator(leveldb::ReadOptions()));
 
-    while (result->next()) {
+    std::set<std::string> unique_metrics;
+    std::vector<std::string> vec{};
+    std::string cached_metric;
+    for (it->SeekToFirst(); it->Valid(); it->Next()) {
 
-        std::string t_metric;
-        if(!cast_raw_value(result, 1, t_metric)) {
-            log_err("raw cast failed...");
+        std::string str_key = it->key().ToString();
+
+        // metric#timestamp#tag#entity_idx
+        boost::split(vec, str_key, boost::is_any_of("#"));
+        if (vec.size() != 4 ||
+            vec[0].empty() || vec[1].empty() || vec[2].empty() ) {
+            log_err("problem item for service %s: %s", service.c_str(), str_key.c_str());
             continue;
         }
 
-        metrics.emplace_back(t_metric);
+        if (cached_metric != vec[0]) {
+            cached_metric = vec[0];
+            unique_metrics.insert(vec[0]);
+        }
     }
 
-    #endif
+
+    metrics.clear();
+    metrics.assign(unique_metrics.cbegin(),  unique_metrics.cend());
 
     return 0;
 }
@@ -339,16 +541,41 @@ int StoreLevelDB::select_metrics(const std::string& service, std::vector<std::st
 int StoreLevelDB::select_services(std::vector<std::string>& services) {
 
 
-    #if 0
+    // 遍历目录，获取所有服务
+
+    DIR *d = NULL;
+    struct dirent* d_item = NULL;
+    struct stat sb;
+
+    if (!(d = opendir(filepath_.c_str()))) {
+        log_err("opendir for %s failed.",  filepath_.c_str());
+        return -1;
+    }
 
 
-    while (result->next()) {
+    std::vector<std::string> leveldb_files {};
 
-        std::string t_name;
-        if(!cast_raw_value(result, 1, t_name)) {
-            log_err("raw cast failed...");
+    while ( (d_item = readdir(d)) != NULL ) {
+
+        // 跳过隐藏目录
+        if (::strncmp(d_item->d_name, ".", 1) == 0) {
             continue;
         }
+
+        // 取出所有目录
+        if (stat(d_item->d_name, &sb) == 0 && S_ISDIR(sb.st_mode)) {
+            // 满足前缀
+            if (::strncmp(d_item->d_name, table_prefix_.c_str(), table_prefix_.size()) == 0) {
+                leveldb_files.push_back(d_item->d_name);
+            }
+        }
+    }
+
+    services.clear();
+
+    for (size_t i=0; i<leveldb_files.size(); ++i) {
+
+        std::string t_name = leveldb_files[i];
 
         if (t_name.size() > table_prefix_.size() + 2 + 15) {
             t_name = t_name.substr(table_prefix_.size() + 2);
@@ -358,7 +585,6 @@ int StoreLevelDB::select_services(std::vector<std::string>& services) {
             log_err("invalid table_name: %s", t_name.c_str());
         }
     }
-    #endif
 
     return 0;
 }

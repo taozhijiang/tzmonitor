@@ -27,7 +27,7 @@ ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 
 # mysqlcppconn如果使用C开发会在释放的时候段错误
 
-set (PROTOBUF_GEN_CMD "cp -fr ${XTRA_RHEL6x}/bin/protoc-2.5.0 ${PROJECT_SOURCE_DIR}/bin/protoc && chmod a+x ${PROJECT_SOURCE_DIR}/bin/protoc && cd ${CMAKE_CURRENT_SOURCE_DIR}/source/Protocol/source && rm -fr ../gen-cpp && mkdir -p ../gen-cpp && make ")
+set (PROTOBUF_GEN_CMD "cp -fr ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/bin/protoc-2.5.0 ${PROJECT_SOURCE_DIR}/bin/protoc && chmod a+x ${PROJECT_SOURCE_DIR}/bin/protoc && cd ${CMAKE_CURRENT_SOURCE_DIR}/source/Protocol/source && rm -fr ../gen-cpp && mkdir -p ../gen-cpp && make ")
 exec_program(${PROTOBUF_GEN_CMD})
 
 # 拷贝重要文件供创建客户端库使用

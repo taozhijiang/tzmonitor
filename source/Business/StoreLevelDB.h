@@ -15,6 +15,8 @@
 #include <memory>
 #include <leveldb/db.h>
 
+#include <Utils/StrUtil.h>
+
 // leveldb 存储表设计思路
 // tzmonitor/tzmonitor__service__events_201902
 //           key: timestamp#metric#tag#entity_idx
@@ -43,6 +45,19 @@ public:
     int select_services(std::vector<std::string>& services);
 
 private:
+
+    int select_ev_stat_by_timestamp(const event_cond_t& cond, event_select_t& stat, time_t linger_hint);
+    int select_ev_stat_by_tag(const event_cond_t& cond, event_select_t& stat, time_t linger_hint);
+    int select_ev_stat_by_none(const event_cond_t& cond, event_select_t& stat, time_t linger_hint);
+
+    time_t timestamp_exchange(time_t t) {
+        return 9999999999 - t;
+    }
+
+    std::string timestamp_exchange_str(time_t t) {
+        time_t n = 9999999999 - t;
+        return tzrpc::StrUtil::convert_to_string(n);
+    }
 
     std::string get_table_suffix(time_t time_sec) {
 

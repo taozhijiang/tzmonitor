@@ -70,6 +70,7 @@ struct event_info_t {
     time_t      timestamp;
     std::string tag;
 
+    int32_t     step;
     int32_t     count;
     int64_t     value_sum;
     int64_t     value_avg;

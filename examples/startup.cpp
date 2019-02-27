@@ -24,6 +24,8 @@ int main(int argc, char* argv[]) {
         std::cout << "client call ping failed." << std::endl;
         return -1;
     }
+    std::cout << std::endl;
+    std::cout << std::endl;
 
     std::cout << "report ====================>" << std::endl;
     if (reporter->report_event("metric_1", 24, "T") != 0) {
@@ -32,6 +34,8 @@ int main(int argc, char* argv[]) {
     }
     reporter->report_event("metric_1", 124, "F");
     reporter->report_event("metric_2", 100);
+    std::cout << std::endl;
+    std::cout << std::endl;
 
 
     std::cout << "known_services ====================>" << std::endl;
@@ -45,6 +49,7 @@ int main(int argc, char* argv[]) {
         std::cout << *iter << ", ";
     }
     std::cout << std::endl;
+    std::cout << std::endl;
 
     std::cout << "known_metrics ====================>" << std::endl;
     std::vector<std::string> metrics;
@@ -57,6 +62,7 @@ int main(int argc, char* argv[]) {
         std::cout << *iter << ", ";
     }
     std::cout << std::endl;
+    std::cout << std::endl;
 
 
     std::cout << "select gp tag ====================>" << std::endl;
@@ -66,7 +72,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
     std::cout << "select_stat_by_tag info:" << std::endl;
-    std::cout << "\ttimestamp:" << stat.timestamp << ", ";
+    std::cout << "head: timestamp:" << stat.timestamp << ", ";
     std::cout << "\ttm_interval:" << stat.tm_interval << ", ";
     std::cout << "\tservice:" << stat.service << ", ";
     std::cout << "\tmetric:" << stat.metric << ", ";
@@ -75,8 +81,8 @@ int main(int argc, char* argv[]) {
     std::cout << std::endl;
 
     char buffer[2048];
-    snprintf(buffer, sizeof(buffer), "summray: tag:%s, count:%d, sum:%ld, avg:%ld, std:%f",
-             stat.summary.tag.c_str(), stat.summary.count, stat.summary.value_sum,
+    snprintf(buffer, sizeof(buffer), "summary: timestamp:%ld, tag:%s, count:%d, sum:%ld, avg:%ld, std:%f",
+             stat.timestamp, stat.summary.tag.c_str(), stat.summary.count, stat.summary.value_sum,
              stat.summary.value_avg, stat.summary.value_std);
     std::cout << buffer << std::endl;
 
@@ -86,6 +92,8 @@ int main(int argc, char* argv[]) {
                  iter->value_avg, iter->value_std);
         std::cout << buffer << std::endl;
     }
+    std::cout << std::endl;
+    std::cout << std::endl;
 
     std::cout << "select gp timestamp ====================>" << std::endl;
     event_select_t stat2;
@@ -93,8 +101,8 @@ int main(int argc, char* argv[]) {
         std::cout << "client call select_stat_by_timstamp failed." << std::endl;
         return -1;
     }
-    std::cout << "select_stat_by_tag info:" << std::endl;
-    std::cout << "\ttimestamp:" << stat2.timestamp << ", ";
+    std::cout << "select_stat_by_timestamp info:" << std::endl;
+    std::cout << "head: timestamp:" << stat2.timestamp << ", ";
     std::cout << "\ttm_interval:" << stat2.tm_interval << ", ";
     std::cout << "\tservice:" << stat2.service << ", ";
     std::cout << "\tmetric:" << stat2.metric << ", ";
@@ -102,8 +110,8 @@ int main(int argc, char* argv[]) {
     std::cout << "\ttag:" << stat2.tag << ", ";
     std::cout << std::endl;
 
-    snprintf(buffer, sizeof(buffer), "summray: tag:%s, count:%d, sum:%ld, avg:%ld, std:%f",
-             stat2.summary.tag.c_str(), stat2.summary.count, stat2.summary.value_sum,
+    snprintf(buffer, sizeof(buffer), "summray: timestamp:%ld, tag:%s, count:%d, sum:%ld, avg:%ld, std:%f",
+             stat2.timestamp, stat2.summary.tag.c_str(), stat2.summary.count, stat2.summary.value_sum,
              stat2.summary.value_avg, stat2.summary.value_std);
     std::cout << buffer << std::endl;
 
@@ -113,6 +121,8 @@ int main(int argc, char* argv[]) {
                  iter->value_avg, iter->value_std);
         std::cout << buffer << std::endl;
     }
+    std::cout << std::endl;
+    std::cout << std::endl;
 
 
     std::cout << "client status ====================>" << std::endl;
