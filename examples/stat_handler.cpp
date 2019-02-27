@@ -111,50 +111,50 @@ int IndexStatHandler::print_items() override {
         tzhttpd_log_err("client call ping failed.");
         return -1;
     }
-	
-	std::vector<std::string> services;
+    
+    std::vector<std::string> services;
     if (reporter->known_services(services) != 0) {
         tzhttpd_log_err("client call known_services failed.");
         return -1;
     }
-	
-	std::map<std::string, std::vector<std::string>> service_metrics;
-	for (size_t i=0; i<services.size(); ++i) {
-		std::vector<std::string> metrics;
-		if (reporter->known_metrics(metrics, services[i]) != 0) {
-            tzhttpd_log_err("client call known_metrics failed.");
-			continue;
-		}
-		
-		if(!metrics.empty()) {
-			service_metrics[services[i]] = metrics;
-		}
-	}
-
-	
+    
+    std::map<std::string, std::vector<std::string>> service_metrics;
     for (size_t i=0; i<services.size(); ++i) {
-		
+        std::vector<std::string> metrics;
+        if (reporter->known_metrics(metrics, services[i]) != 0) {
+            tzhttpd_log_err("client call known_metrics failed.");
+            continue;
+        }
+        
+        if(!metrics.empty()) {
+            service_metrics[services[i]] = metrics;
+        }
+    }
+
+    
+    for (size_t i=0; i<services.size(); ++i) {
+        
         const std::string& name = services[i];
-		const std::vector<std::string> metrics = service_metrics[name];
+        const std::vector<std::string> metrics = service_metrics[name];
 
         ss_ << "<tr>" << std::endl;
         ss_ << "<td>" << i << ". " << name << "</td>" << std::endl;
         ss_ << "</tr>" << std::endl;
-		for(size_t j=0; j<metrics.size(); ++j) {
+        for(size_t j=0; j<metrics.size(); ++j) {
             ss_ << "<tr>" << std::endl;
             ss_ << "<td> </td>" << std::endl;
-            ss_ << str_format("<td>\t<a href=\"/stats?version=1.0.0&service=%s&metric=%s&tm_interval=60\">%s[1min]</a></td>",
+            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=60\">%s[1min]</a></td>",
                               name.c_str(), metrics[j].c_str(), metrics[j].c_str()) << std::endl;
-            ss_ << str_format("<td>\t<a href=\"/stats?version=1.0.0&service=%s&metric=%s&tm_interval=600\">%s[10min]</a></td>",
+            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=600\">%s[10min]</a></td>",
                               name.c_str(), metrics[j].c_str(), metrics[j].c_str()) << std::endl;
-            ss_ << str_format("<td>\t<a href=\"/stats?version=1.0.0&service=%s&metric=%s&tm_interval=1800\">%s[30min]</a></td>",
+            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=1800\">%s[30min]</a></td>",
                               name.c_str(), metrics[j].c_str(), metrics[j].c_str()) << std::endl;
-            ss_ << str_format("<td>\t<a href=\"/stats?version=1.0.0&service=%s&metric=%s&tm_interval=3600\">%s[1hour]</a></td>",
+            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=3600\">%s[1hour]</a></td>",
                               name.c_str(), metrics[j].c_str(), metrics[j].c_str()) << std::endl;
-            ss_ << str_format("<td>\t<a href=\"/stats?version=1.0.0&service=%s&metric=%s&tm_interval=86400\">%s[1day]</a></td>",
+            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=86400\">%s[1day]</a></td>",
                               name.c_str(), metrics[j].c_str(), metrics[j].c_str()) << std::endl;
             ss_ << "</tr>" << std::endl;
-		}
+        }
     }
 
     return 0;

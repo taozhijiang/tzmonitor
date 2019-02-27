@@ -6,6 +6,8 @@
 #include <tzhttpd/Log.h>
 #include <tzhttpd/HttpServer.h>
 
+#include <Client/include/MonitorClient.h>
+
 #include "stat_handler.h"
 
 extern char * program_invocation_short_name;
@@ -129,8 +131,27 @@ int main(int argc, char* argv[]) {
         ::exit(EXIT_FAILURE);
     }
 
-    http_server_ptr->add_http_get_handler("^/$", tzhttpd::http_handler::index_http_get_handler);
-    http_server_ptr->add_http_get_handler("^/stats$", tzhttpd::http_handler::stats_http_get_handler);
+    // test monitor first stage
+    auto reporter = std::make_shared<tzmonitor_client::MonitorClient>();
+    if (!reporter || !reporter ->init("tzmonitor.conf", ::syslog)) {
+        tzhttpd::tzhttpd_log_err("init client failed.");
+        return false;
+    }
+
+    if (reporter->ping()) {
+        tzhttpd::tzhttpd_log_err("client call ping failed.");
+        return false;
+    }
+
+    http_server_ptr->add_http_get_handler("^/monitor$", tzhttpd::http_handler::index_http_get_handler);
+    http_server_ptr->add_http_get_handler("^/monitor/stats$", tzhttpd::http_handler::stats_http_get_handler);
+
+    http_server_ptr->register_update_runtime_conf(std::bind(&tzmonitor_client::MonitorClient::update_runtime_conf, reporter,
+                                                            std::placeholders::_1));
+    http_server_ptr->register_module_status("monitorclient",
+                                            std::bind(&tzmonitor_client::MonitorClient::module_status, reporter,
+                                                      std::placeholders::_1, std::placeholders::_2,
+                                                      std::placeholders::_3));
 
     http_server_ptr->register_module_status("httpsrv", module_status);
 

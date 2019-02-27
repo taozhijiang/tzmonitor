@@ -25,7 +25,8 @@ typedef void(* CP_log_store_func_t)(int priority, const char *format, ...);
 // 为什么不直接使用单例？单例用起来是在太臭了
 namespace tzmonitor_client {
 
-class MonitorClient: public boost::noncopyable {
+class MonitorClient: public boost::noncopyable,
+                     public std::enable_shared_from_this<MonitorClient> {
 public:
     explicit MonitorClient(std::string entity_idx = "");
     MonitorClient(std::string service, std::string entity_idx = "");

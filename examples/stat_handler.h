@@ -94,7 +94,7 @@ private:
 
     virtual void print_menu() {
         ss_ << "<br />" << std::endl;
-        ss_ << "<a href=\"/\">返回首页</a>" << std::endl;
+        ss_ << "<a href=\"/monitor\">返回首页</a>" << std::endl;
         ss_ << "<a href=\"\">刷新本页</a>" << std::endl;
         ss_ << "<br />" << std::endl;
     }
