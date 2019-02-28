@@ -70,15 +70,15 @@ struct event_info_t {
     time_t      timestamp;
     std::string tag;
 
-    int32_t     step;
+    uint8_t     step;
     int32_t     count;
     int64_t     value_sum;
-    int64_t     value_avg;
-    int64_t     value_std;
-    int64_t     value_min;
-    int64_t     value_max;
-    int64_t     value_p50;
-    int64_t     value_p90;
+    int32_t     value_avg;
+    int32_t     value_min;
+    int32_t     value_max;
+    int32_t     value_p10;
+    int32_t     value_p50;
+    int32_t     value_p90;
 };
 
 struct event_select_t {
@@ -94,7 +94,6 @@ struct event_select_t {
 
     std::string entity_idx;
     std::string tag;
-    int32_t     step;
 
     event_info_t summary;
     std::vector<event_info_t> info;

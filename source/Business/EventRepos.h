@@ -51,8 +51,10 @@ public:
     int get_event(const event_cond_t& cond, event_select_t& stat);
 
     // key:service
-    int get_metrics(const std::string& version, const std::string& service, std::vector<std::string>& metric_stat);
+    int get_metrics(const std::string& version, const std::string& service,
+                    std::vector<std::string>& metric_stat);
     int get_services(const std::string& version, std::vector<std::string>& service_stat);
+    int get_service_conf(const std::string& service, EventHandlerConf& handler_conf);
 
     void add_additional_task(const tzrpc::TaskRunnable& func) {
         support_task_helper_->add_additional_task(func);
@@ -65,6 +67,10 @@ private:
     // key service&entity_idx
     typedef std::map<std::string, std::shared_ptr<EventHandler>> HandlerType;
     std::shared_ptr<HandlerType> handlers_;
+
+    // 选取任务的任何一个entity的service handler
+    int find_event_handler(const std::string& service,
+                           std::shared_ptr<EventHandler>& handler);
 
     int find_create_event_handler(const std::string& service, const std::string& entity_idx,
                                   std::shared_ptr<EventHandler>& handler);

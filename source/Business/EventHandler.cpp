@@ -332,15 +332,15 @@ void EventHandler::run() {
 
 // 内部使用临时结构体
 struct stat_info_t {
-    int count;
+    int32_t count;
     int64_t value_sum;
-    int64_t value_avg;
-    int64_t value_std;
-    int64_t value_min;
-    int64_t value_max;
-    int64_t value_p50;
-    int64_t value_p90;
-    std::vector<int64_t> values;
+    int32_t value_avg;
+    int32_t value_min;
+    int32_t value_max;
+    int32_t value_p10;
+    int32_t value_p50;
+    int32_t value_p90;
+    std::vector<int32_t> values;
 };
 
 static
@@ -408,22 +408,18 @@ void calc_event_info_each_metric(std::vector<event_data_t>& data,
 
         info.value_avg = info.value_sum / info.count;
 
-        double sum = 0;
-        for (size_t i=0; i< info.values.size(); ++i) {
-            sum += ::pow(info.values[i] - info.value_avg, 2);
-        }
-
-        // std
-        info.value_std = static_cast<int64_t>(::sqrt(sum / info.values.size()));
-
         // 采用 nth_element算法
         // 计算 p50, p90
         size_t len = info.values.size();
 
         std::nth_element(info.values.begin(), info.values.begin(), info.values.end());
         info.value_min = info.values[0];
-        std::nth_element(info.values.begin(), info.values.begin(), info.values.end(), std::greater<int64_t>());
+        std::nth_element(info.values.begin(), info.values.begin(), info.values.end(), std::greater<int32_t>());
         info.value_max = info.values[0];
+
+        size_t p10_idx = len * 0.1;
+        std::nth_element(info.values.begin(), info.values.begin() + p10_idx, info.values.end());
+        info.value_p10 = info.values[p10_idx];
 
         size_t p50_idx = len * 0.5;
         std::nth_element(info.values.begin(), info.values.begin() + p50_idx, info.values.end());
@@ -462,9 +458,9 @@ int EventHandler::do_process_event(events_by_time_ptr_t event, event_insert_t co
             copy_stat.count = tag_info[it->first].count;
             copy_stat.value_sum = tag_info[it->first].value_sum;
             copy_stat.value_avg = tag_info[it->first].value_avg;
-            copy_stat.value_std = tag_info[it->first].value_std;
             copy_stat.value_min = tag_info[it->first].value_min;
             copy_stat.value_max = tag_info[it->first].value_max;
+            copy_stat.value_p10 = tag_info[it->first].value_p10;
             copy_stat.value_p50 = tag_info[it->first].value_p50;
             copy_stat.value_p90 = tag_info[it->first].value_p90;
 

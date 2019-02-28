@@ -4,6 +4,7 @@
 
 #include <Business/EventTypes.h>
 #include <Business/EventRepos.h>
+#include <Business/EventHandler.h>
 
 #include "MonitorTaskService.h"
 
@@ -286,7 +287,6 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
             response.mutable_select()->set_tm_start(stat.timestamp);
             response.mutable_select()->set_entity_idx(stat.entity_idx);
             response.mutable_select()->set_tag(stat.tag);
-            response.mutable_select()->set_step(stat.step);
 
 
             response.mutable_select()->mutable_summary()->set_timestamp(stat.summary.timestamp);
@@ -294,9 +294,9 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
             response.mutable_select()->mutable_summary()->set_count(stat.summary.count);
             response.mutable_select()->mutable_summary()->set_value_sum(stat.summary.value_sum);
             response.mutable_select()->mutable_summary()->set_value_avg(stat.summary.value_avg);
-            response.mutable_select()->mutable_summary()->set_value_std(stat.summary.value_std);
             response.mutable_select()->mutable_summary()->set_value_min(stat.summary.value_min);
             response.mutable_select()->mutable_summary()->set_value_max(stat.summary.value_max);
+            response.mutable_select()->mutable_summary()->set_value_p10(stat.summary.value_p10);
             response.mutable_select()->mutable_summary()->set_value_p50(stat.summary.value_p50);
             response.mutable_select()->mutable_summary()->set_value_p90(stat.summary.value_p90);
 
@@ -309,9 +309,9 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
                 item->set_count(iter->count);
                 item->set_value_sum(iter->value_sum);
                 item->set_value_avg(iter->value_avg);
-                item->set_value_std(iter->value_std);
                 item->set_value_min(iter->value_min);
                 item->set_value_max(iter->value_max);
+                item->set_value_p10(iter->value_p10);
                 item->set_value_p50(iter->value_p50);
                 item->set_value_p90(iter->value_p90);
             }
@@ -324,6 +324,7 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
             std::string service = request.metrics().service();
 
             std::vector<std::string> metric_stat;
+
 
             int ret = EventRepos::instance().get_metrics(version, service, metric_stat);
             if (ret != 0) {
@@ -339,6 +340,14 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
             response.set_desc("OK");
             response.mutable_metrics()->set_version(version);
             response.mutable_metrics()->set_service(service);
+
+            EventHandlerConf handler_conf;
+            ret = EventRepos::instance().get_service_conf(service, handler_conf);
+            if (ret == 0) {
+                response.mutable_metrics()->set_event_step(handler_conf.event_step_.load());
+                response.mutable_metrics()->set_event_linger(handler_conf.event_linger_.load());
+                response.mutable_metrics()->set_store_type(handler_conf.store_type_);
+            }
 
             for (auto iter = metric_stat.begin(); iter != metric_stat.end(); ++ iter) {
                 response.mutable_metrics()->add_metric(*iter);

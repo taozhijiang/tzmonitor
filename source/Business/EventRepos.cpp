@@ -433,6 +433,43 @@ int EventRepos::find_create_event_handler(const std::string& service, const std:
 }
 
 
+int EventRepos::find_event_handler(const std::string& service,
+                                   std::shared_ptr<EventHandler>& handler) {
+
+    if (service.empty()) {
+        log_err("required service empty.");
+        return -1;
+    }
+
+    std::shared_ptr<HandlerType> handlers;
+    {
+        std::unique_lock<std::mutex> lock(lock_);
+        handlers = handlers_;
+    }
+
+    SAFE_ASSERT(handlers);
+
+    for (auto iter = handlers->begin(); iter != handlers->end(); ++iter) {
+        if (::strncmp(iter->first.c_str(), service.c_str(), service.size()) == 0) {
+            handler = iter->second;
+            return 0;
+        }
+    }
+
+    log_err("handler for service %s not found!", service.c_str());
+    return -1;
+}
+
+int EventRepos::get_service_conf(const std::string& service, EventHandlerConf& handler_conf) {
+
+    std::shared_ptr<EventHandler> handler;
+    if (find_event_handler(service, handler) != 0) {
+        return -1;
+    }
+
+    return handler->get_handler_conf(handler_conf);
+}
+
 
 EventHandlerConf EventRepos::get_default_handler_conf() {
     return *default_handler_conf_;

@@ -84,6 +84,10 @@ public:
     // 添加记录事件
     int add_event(const event_report_t& evs);
     int get_event(const event_cond_t& cond, event_select_t& stat);
+    int get_handler_conf(EventHandlerConf& handler_conf) {
+        handler_conf = conf_;
+        return 0;
+    }
 
     int update_runtime_conf(const libconfig::Config& conf);
     int module_status(std::string& strModule, std::string& strKey, std::string& strValue);

@@ -25,7 +25,7 @@ static void usage() {
 }
 
 int random_int() {
-    return (random() % 100 ) + 1;
+    return (random() % 320 ) + 23;
 }
 
 void* perf_run(void* x_void_ptr) {

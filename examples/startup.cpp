@@ -81,15 +81,17 @@ int main(int argc, char* argv[]) {
     std::cout << std::endl;
 
     char buffer[2048];
-    snprintf(buffer, sizeof(buffer), "summary: timestamp:%ld, tag:%s, count:%d, sum:%ld, avg:%ld, std:%f",
+    snprintf(buffer, sizeof(buffer), "summary: timestamp:%ld, tag:%s, count:%d, sum:%ld, avg:%d, min:%d, max:%d, p10:%d, p50:%d, p90:%d",
              stat.timestamp, stat.summary.tag.c_str(), stat.summary.count, stat.summary.value_sum,
-             stat.summary.value_avg, stat.summary.value_std);
+             stat.summary.value_avg, stat.summary.value_min, stat.summary.value_max, stat.summary.value_p10,
+             stat.summary.value_p50, stat.summary.value_p90);
     std::cout << buffer << std::endl;
 
     for (auto iter = stat.info.begin(); iter != stat.info.end(); ++iter) {
-        snprintf(buffer, sizeof(buffer), "detail=> tag:%s, count:%d, sum:%ld, avg:%ld, std:%f",
+        snprintf(buffer, sizeof(buffer), "detail=> tag:%s, count:%d, sum:%ld, avg:%d, min:%d, max:%d, p10:%d, p50:%d, p90:%d",
                  iter->tag.c_str(), iter->count, iter->value_sum,
-                 iter->value_avg, iter->value_std);
+                 iter->value_avg, iter->value_min, iter->value_max,
+                 iter->value_p10, iter->value_p50, iter->value_p90);
         std::cout << buffer << std::endl;
     }
     std::cout << std::endl;
@@ -110,15 +112,17 @@ int main(int argc, char* argv[]) {
     std::cout << "\ttag:" << stat2.tag << ", ";
     std::cout << std::endl;
 
-    snprintf(buffer, sizeof(buffer), "summray: timestamp:%ld, tag:%s, count:%d, sum:%ld, avg:%ld, std:%f",
-             stat2.timestamp, stat2.summary.tag.c_str(), stat2.summary.count, stat2.summary.value_sum,
-             stat2.summary.value_avg, stat2.summary.value_std);
+    snprintf(buffer, sizeof(buffer), "summary: timestamp:%ld, tag:%s, count:%d, sum:%ld, avg:%d, min:%d, max:%d, p10:%d, p50:%d, p90:%d",
+             stat.timestamp, stat.summary.tag.c_str(), stat.summary.count, stat.summary.value_sum,
+             stat.summary.value_avg, stat.summary.value_min, stat.summary.value_max, stat.summary.value_p10,
+             stat.summary.value_p50, stat.summary.value_p90);
     std::cout << buffer << std::endl;
 
     for (auto iter = stat2.info.begin(); iter != stat2.info.end(); ++iter) {
-        snprintf(buffer, sizeof(buffer), "detail=> timestamp:%ld, count:%d, sum:%ld, avg:%ld, std:%f",
+        snprintf(buffer, sizeof(buffer), "detail=> timestamp:%ld, count:%d, sum:%ld, avg:%d, min:%d, max:%d, p10:%d, p50:%d, p90:%d",
                  iter->timestamp, iter->count, iter->value_sum,
-                 iter->value_avg, iter->value_std);
+                 iter->value_avg, iter->value_min, iter->value_max,
+                 iter->value_p10, iter->value_p50, iter->value_p90);
         std::cout << buffer << std::endl;
     }
     std::cout << std::endl;

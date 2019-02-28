@@ -222,7 +222,11 @@ int MonitorRpcClientHelper::rpc_event_select(const event_cond_t& cond, event_sel
     resp_info.summary.count = response.select().summary().count();
     resp_info.summary.value_sum = response.select().summary().value_sum();
     resp_info.summary.value_avg = response.select().summary().value_avg();
-    resp_info.summary.value_std = response.select().summary().value_std();
+    resp_info.summary.value_min = response.select().summary().value_min();
+    resp_info.summary.value_max = response.select().summary().value_max();
+    resp_info.summary.value_p10 = response.select().summary().value_p10();
+    resp_info.summary.value_p50 = response.select().summary().value_p50();
+    resp_info.summary.value_p90 = response.select().summary().value_p90();
 
 
     if (cond.groupby != GroupType::kGroupNone) {
@@ -243,7 +247,11 @@ int MonitorRpcClientHelper::rpc_event_select(const event_cond_t& cond, event_sel
             item.count = p_info.count();
             item.value_sum = p_info.value_sum();
             item.value_avg = p_info.value_avg();
-            item.value_std = p_info.value_std();
+            item.value_min = p_info.value_min();
+            item.value_max = p_info.value_max();
+            item.value_p10 = p_info.value_p10();
+            item.value_p50 = p_info.value_p50();
+            item.value_p90 = p_info.value_p90();
 
             info.push_back(item);
         }

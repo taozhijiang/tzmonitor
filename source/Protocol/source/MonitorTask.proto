@@ -67,12 +67,12 @@ message MonitorReadOps {
 
             required int32  count     = 5;
             required int64  value_sum = 6;
-            required int64  value_avg = 7;
-            required int64  value_std = 8;
-            required int64  value_min = 9;
-            required int64  value_max = 10;
-            required int64  value_p50 = 11;
-            required int64  value_p90 = 12;
+            required int32  value_avg = 7;
+            required int32  value_min = 8;
+            required int32  value_max = 9;
+            required int32  value_p10 = 10;
+            required int32  value_p50 = 11;
+            required int32  value_p90 = 12;
         }
 
         message ev_select_t {
@@ -82,7 +82,6 @@ message MonitorReadOps {
             required int64  timestamp = 3;  // 实际数据开始取的时间
             required string metric = 4;
             required int64  tm_interval = 5;
-            required int32  step = 6;
 
             optional int64  tm_start = 10;  // 如果请求条件约束，则原样返回校验
             optional string entity_idx = 11;// 如果请求条件约束，则原样返回校验
@@ -97,8 +96,11 @@ message MonitorReadOps {
         message ev_metrics_t {
             required string version = 1;      // 1.0.0
             required string service = 2;
+            optional int32  event_step = 3;      // 当前的step值
+            optional int32  event_linger = 4;      // 当前的step值
+            optional string store_type = 5;      // 当前的step值
 
-            repeated string metric = 5;
+            repeated string metric = 10;
         }
         // interface
         optional ev_metrics_t metrics = 5;
