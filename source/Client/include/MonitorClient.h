@@ -56,7 +56,7 @@ public:
     int select_stat(event_cond_t& cond, event_select_t& stat);
 
     // 查询所有已经上报的metrics, service == ""就默认是自己的service
-    int known_metrics(std::vector<std::string>& metrics, std::string service = "");
+    int known_metrics(event_handler_conf_t& handler_conf, std::vector<std::string>& metrics, std::string service = "");
     int known_services(std::vector<std::string>& services);
 
     // 通用扩展接口

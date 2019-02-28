@@ -38,7 +38,8 @@ public:
     int rpc_event_submit(const event_report_t& report);
     int rpc_event_select(const event_cond_t& cond, event_select_t& resp_info);
 
-    int rpc_known_metrics(const std::string& version, const std::string& service, std::vector<std::string>& metrics);
+    int rpc_known_metrics(const std::string& version, const std::string& service,
+                          event_handler_conf_t& handler_conf, std::vector<std::string>& metrics);
     int rpc_known_services(const std::string& version, std::vector<std::string>& services);
 
 private:

@@ -95,6 +95,7 @@ void IndexStatHandler::print_head() override {
     ss_ << "<td>" << "访问 C" << "</td>" << std::endl;
     ss_ << "<td>" << "访问 D" << "</td>" << std::endl;
     ss_ << "<td>" << "访问 E" << "</td>" << std::endl;
+    ss_ << "<td>" << "访问 F" << "</td>" << std::endl;
 
     ss_ << "</tr>" << std::endl;
 }
@@ -119,15 +120,19 @@ int IndexStatHandler::print_items() override {
     }
     
     std::map<std::string, std::vector<std::string>> service_metrics;
+    std::map<std::string, event_handler_conf_t> service_handler_confs;
+
     for (size_t i=0; i<services.size(); ++i) {
+        event_handler_conf_t handler_conf {};
         std::vector<std::string> metrics;
-        if (reporter->known_metrics(metrics, services[i]) != 0) {
+        if (reporter->known_metrics(handler_conf, metrics, services[i]) != 0) {
             tzhttpd_log_err("client call known_metrics failed.");
             continue;
         }
         
         if(!metrics.empty()) {
             service_metrics[services[i]] = metrics;
+            service_handler_confs[services[i]] = handler_conf;
         }
     }
 
@@ -137,21 +142,27 @@ int IndexStatHandler::print_items() override {
         const std::string& name = services[i];
         const std::vector<std::string> metrics = service_metrics[name];
 
-        ss_ << "<tr>" << std::endl;
-        ss_ << "<td>" << i << ". " << name << "</td>" << std::endl;
-        ss_ << "</tr>" << std::endl;
+        char buff[128] {};
+        snprintf(buff, sizeof(buff), "st:%d,lg:%d,sr:%s", service_handler_confs[name].event_step_,
+                 service_handler_confs[name].event_linger_, service_handler_confs[name].store_type_.c_str());
+
+        ss_ << "<tr><td>" << i << ". " << name << "</td></tr>" << std::endl;
+        ss_ << "<tr><td>" << buff << "</td></tr>" << std::endl;
+
         for(size_t j=0; j<metrics.size(); ++j) {
             ss_ << "<tr>" << std::endl;
             ss_ << "<td> </td>" << std::endl;
-            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=60\">%s[1min]</a></td>",
+            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=60\">%s[by 1min]</a></td>",
                               name.c_str(), metrics[j].c_str(), metrics[j].c_str()) << std::endl;
-            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=600\">%s[10min]</a></td>",
+            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=120\">%s[by 2min]</a></td>",
                               name.c_str(), metrics[j].c_str(), metrics[j].c_str()) << std::endl;
-            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=1800\">%s[30min]</a></td>",
+            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=600\">%s[by 10min]</a></td>",
                               name.c_str(), metrics[j].c_str(), metrics[j].c_str()) << std::endl;
-            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=3600\">%s[1hour]</a></td>",
+            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=1800\">%s[by 30min]</a></td>",
                               name.c_str(), metrics[j].c_str(), metrics[j].c_str()) << std::endl;
-            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=86400\">%s[1day]</a></td>",
+            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=3600\">%s[by 1hour]</a></td>",
+                              name.c_str(), metrics[j].c_str(), metrics[j].c_str()) << std::endl;
+            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=86400\">%s[by 1day]</a></td>",
                               name.c_str(), metrics[j].c_str(), metrics[j].c_str()) << std::endl;
             ss_ << "</tr>" << std::endl;
         }
@@ -261,8 +272,17 @@ static std::string build_record(size_t idx, const event_info_t& info) {
     ss << "<tr>" << std::endl;
     ss << "<td></td>" << std::endl;
     ss << "<td>" << idx << "</td>" << std::endl;
-    ss << "<td>" << time_to_datetime(info.timestamp) << "</td>" << std::endl;
-    ss << "<td>" << info.tag << "</td>" << std::endl;
+    if (info.timestamp == 0) {
+        ss << "<td> - </td>" << std::endl;
+    } else {
+        ss << "<td>" << time_to_datetime(info.timestamp) << "</td>" << std::endl;
+    }
+
+    if (info.tag.empty()) {
+        ss << "<td> - </td>" << std::endl;
+    } else {
+        ss << "<td>" << info.tag << "</td>" << std::endl;
+    }
     ss << "<td>" << info.count << "</td>" << std::endl;
     ss << "<td>" << info.value_sum << "</td>" << std::endl;
     ss << "<td>" << info.value_avg << "</td>" << std::endl;

@@ -70,7 +70,6 @@ struct event_info_t {
     time_t      timestamp;
     std::string tag;
 
-    uint8_t     step;
     int32_t     count;
     int64_t     value_sum;
     int32_t     value_avg;
@@ -97,6 +96,12 @@ struct event_select_t {
 
     event_info_t summary;
     std::vector<event_info_t> info;
+};
+
+struct event_handler_conf_t {
+    int event_linger_;
+    int event_step_;
+    std::string store_type_;
 };
 
 #endif // __BUSINESS_EVENT_TYPES_H__

@@ -15,7 +15,6 @@
 #include <Client/RpcClient.h>
 
 #include <Client/MonitorTask.pb.h>
-
 #include <Client/MonitorRpcClientHelper.h>
 
 namespace tzmonitor_client {
@@ -236,11 +235,13 @@ int MonitorRpcClientHelper::rpc_event_select(const event_cond_t& cond, event_sel
 
         for (int i=0; i<size; ++i) {
 
-            event_info_t item;
+            event_info_t item {};
             auto p_info = response.select().info(i);
             if (cond.groupby == GroupType::kGroupbyTimestamp) {
                 item.timestamp = p_info.timestamp();
+                item.tag = "";
             } else if (cond.groupby == GroupType::kGroupbyTag) {
+                item.timestamp = 0;
                 item.tag = p_info.tag();
             }
 
@@ -264,8 +265,8 @@ int MonitorRpcClientHelper::rpc_event_select(const event_cond_t& cond, event_sel
     return 0;
 }
 
-int MonitorRpcClientHelper::rpc_known_metrics(const std::string& version,
-                                              const std::string& service, std::vector<std::string>& metrics) {
+int MonitorRpcClientHelper::rpc_known_metrics(const std::string& version, const std::string& service,
+                                              event_handler_conf_t& handler_conf, std::vector<std::string>& metrics) {
 
     if (service.empty()) {
         log_err("select metrics param check error!");
@@ -327,6 +328,12 @@ int MonitorRpcClientHelper::rpc_known_metrics(const std::string& version,
     for (int i=0; i<size; ++i) {
         auto p_metric = response.metrics().metric(i);
         metrics.push_back(p_metric);
+    }
+
+    if (response.metrics().has_event_step()) {
+        handler_conf.event_step_ = response.metrics().event_step();
+        handler_conf.event_linger_ = response.metrics().event_linger();
+        handler_conf.store_type_ = response.metrics().store_type();
     }
 
     return 0;

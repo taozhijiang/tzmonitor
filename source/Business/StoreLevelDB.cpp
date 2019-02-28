@@ -230,14 +230,15 @@ int StoreLevelDB::select_ev_stat_by_timestamp(const event_cond_t& cond, event_se
         // step#count#sum#avg#std#min#max#p50#p90
         std::string str_val = it->value().ToString();
         event_info_t item {};
+        int null_step;
         if (::sscanf(str_val.c_str(), "D%d#%d#%ld#%d#%d#%d#%d#%d#%d",
-                     &item.step, &item.count, &item.value_sum, &item.value_avg,
+                     &null_step, &item.count, &item.value_sum, &item.value_avg,
                      &item.value_min, &item.value_max, &item.value_p10, &item.value_p50, &item.value_p90) != 9) {
             log_err("scan err for: %s", str_val.c_str());
             continue;
         }
 
-        item.timestamp = timestamp_exchange(::atoll(vec[0].c_str()));
+        item.timestamp = timestamp_exchange(::atoll(vec[1].c_str()));
 
         auto iter = infos_by_timestamp.find(item.timestamp);
         if (iter == infos_by_timestamp.end()) {
@@ -248,7 +249,7 @@ int StoreLevelDB::select_ev_stat_by_timestamp(const event_cond_t& cond, event_se
         SAFE_ASSERT(iter != infos_by_timestamp.end());
         iter->second.push_back(item);
 
-        stat.summary.count += item.count;
+        stat.summary.count     += item.count;
         stat.summary.value_sum += item.value_sum;
         stat.summary.value_p10 += item.value_p10;
         stat.summary.value_p50 += item.value_p50;
@@ -290,9 +291,9 @@ int StoreLevelDB::select_ev_stat_by_timestamp(const event_cond_t& cond, event_se
 
         if (collect.count > 0) {
             collect.value_avg = collect.value_sum / collect.count;
-            collect.value_p10 = collect.value_p10 / collect.count;
-            collect.value_p50 = collect.value_p50 / collect.count;
-            collect.value_p90 = collect.value_p90 / collect.count;
+            collect.value_p10 = collect.value_p10 / iter->second.size();
+            collect.value_p50 = collect.value_p50 / iter->second.size();
+            collect.value_p90 = collect.value_p90 / iter->second.size();
         } else {
             // avoid display confusing value.
             collect.value_min = 0;
@@ -369,11 +370,12 @@ int StoreLevelDB::select_ev_stat_by_tag(const event_cond_t& cond, event_select_t
         if (!cond.entity_idx.empty() && vec[3] != cond.entity_idx)
             continue;
 
-        // step#count#sum#avg#std
+        // step#count#sum#avg#std#min#max#p50#p90
         std::string str_val = it->value().ToString();
         event_info_t item {};
+        int null_step;
         if (::sscanf(str_val.c_str(), "D%d#%d#%ld#%d#%d#%d#%d#%d#%d",
-                     &item.step, &item.count, &item.value_sum, &item.value_avg,
+                     &null_step, &item.count, &item.value_sum, &item.value_avg,
                      &item.value_min, &item.value_max, &item.value_p10, &item.value_p50, &item.value_p90) != 9) {
             log_err("scan err for: %s", str_val.c_str());
             continue;
@@ -390,7 +392,7 @@ int StoreLevelDB::select_ev_stat_by_tag(const event_cond_t& cond, event_select_t
         SAFE_ASSERT(iter != infos_by_tag.end());
         iter->second.push_back(item);
 
-        stat.summary.count += item.count;
+        stat.summary.count     += item.count;
         stat.summary.value_sum += item.value_sum;
         stat.summary.value_p10 += item.value_p10;
         stat.summary.value_p50 += item.value_p50;
@@ -432,11 +434,10 @@ int StoreLevelDB::select_ev_stat_by_tag(const event_cond_t& cond, event_select_t
         }
 
         if (collect.count > 0) {
-            collect.step = collect.value_avg / collect.count;
             collect.value_avg = collect.value_sum / collect.count;
-            collect.value_p10 = collect.value_p10 / collect.count;
-            collect.value_p50 = collect.value_p50 / collect.count;
-            collect.value_p90 = collect.value_p90 / collect.count;
+            collect.value_p10 = collect.value_p10 / iter->second.size();
+            collect.value_p50 = collect.value_p50 / iter->second.size();
+            collect.value_p90 = collect.value_p90 / iter->second.size();
         } else {
             // avoid display confusing value.
             collect.value_min = 0;
@@ -511,11 +512,12 @@ int StoreLevelDB::select_ev_stat_by_none(const event_cond_t& cond, event_select_
         if (!cond.entity_idx.empty() && vec[3] != cond.entity_idx)
             continue;
 
-        // step#count#sum#avg#std
+        //  step#count#sum#avg#std#min#max#p50#p90
         std::string str_val = it->value().ToString();
         event_info_t item {};
+        int null_step;
         if (::sscanf(str_val.c_str(), "D%d#%d#%ld#%d#%d#%d#%d#%d#%d",
-                     &item.step, &item.count, &item.value_sum, &item.value_avg,
+                     &null_step, &item.count, &item.value_sum, &item.value_avg,
                      &item.value_min, &item.value_max, &item.value_p10, &item.value_p50, &item.value_p90) != 9) {
             log_err("scan err for: %s", str_val.c_str());
             continue;

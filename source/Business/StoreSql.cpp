@@ -176,15 +176,15 @@ std::string StoreSql::build_sql(const event_cond_t& cond, time_t linger_hint, ti
     if (cond.groupby == GroupType::kGroupbyTimestamp) {
         ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), "
                     " IFNULL(MIN(F_value_min), 0), IFNULL(MAX(F_value_max), 0), IFNULL(AVG(F_value_p10), 0), IFNULL(AVG(F_value_p50), 0), IFNULL(AVG(F_value_p90), 0), "
-                    " IFNULL(MAX(F_step), 0), F_timestamp FROM ";
+                    " F_timestamp FROM ";
     } else if (cond.groupby == GroupType::kGroupbyTag) {
         ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), "
                     " IFNULL(MIN(F_value_min), 0), IFNULL(MAX(F_value_max), 0), IFNULL(AVG(F_value_p10), 0), IFNULL(AVG(F_value_p50), 0), IFNULL(AVG(F_value_p90), 0), "
-                    " IFNULL(MAX(F_step), 0), F_tag FROM ";
+                    " F_tag FROM ";
     } else {
         ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), "
                     " IFNULL(MIN(F_value_min), 0), IFNULL(MAX(F_value_max), 0), IFNULL(AVG(F_value_p10), 0), IFNULL(AVG(F_value_p50), 0), IFNULL(AVG(F_value_p90), 0), "
-                    " IFNULL(MAX(F_step), 0) FROM ";
+                    " FROM ";
     }
 
     ss << database_ << "." << table_prefix_ << "__" << cond.service << "__events_" << get_table_suffix(real_start_time) ;
@@ -268,19 +268,18 @@ int StoreSql::select_ev_stat(sql_conn_ptr& conn, const event_cond_t& cond, event
         if (cond.groupby == GroupType::kGroupbyTimestamp) {
             success = cast_raw_value(result, 1, item.count, item.value_sum,
                                      item.value_min, item.value_max, item.value_p10, item.value_p50, item.value_p90,
-                                     item.step, item.timestamp);
+                                     item.timestamp);
         } else if (cond.groupby == GroupType::kGroupbyTag) {
             success = cast_raw_value(result, 1, item.count, item.value_sum,
                                      item.value_min, item.value_max, item.value_p10, item.value_p50, item.value_p90,
-                                     item.step, item.tag);
+                                     item.tag);
         } else {
             success = cast_raw_value(result, 1, item.count, item.value_sum,
-                                     item.value_min, item.value_max, item.value_p10, item.value_p50, item.value_p90,
-                                     item.step);
+                                     item.value_min, item.value_max, item.value_p10, item.value_p50, item.value_p90);
         }
 
         if (!success) {
-            log_err("failed to cast info, skip this ..." );
+            log_err("failed to cast event_info, skip this ..." );
             continue;
         }
 
@@ -290,7 +289,6 @@ int StoreSql::select_ev_stat(sql_conn_ptr& conn, const event_cond_t& cond, event
             item.value_avg = 0;
         }
 
-        stat.summary.step  += item.step;
         stat.summary.count += item.count;
         stat.summary.value_sum += item.value_sum;
         stat.summary.value_p10 += item.value_p10;
@@ -309,7 +307,6 @@ int StoreSql::select_ev_stat(sql_conn_ptr& conn, const event_cond_t& cond, event
     }
 
     if (stat.summary.count != 0) {
-        stat.summary.step      = stat.summary.step      / stat.info.size();
         stat.summary.value_avg = stat.summary.value_sum / stat.summary.count;
         stat.summary.value_p10 = stat.summary.value_p10 / stat.info.size();
         stat.summary.value_p50 = stat.summary.value_p50 / stat.info.size();

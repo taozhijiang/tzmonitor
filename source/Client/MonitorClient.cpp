@@ -69,8 +69,8 @@ private:
     int report_event(const std::string& metric, int64_t value, const std::string& tag);
     int select_stat(event_cond_t& cond, event_select_t& stat);
 
-    int known_metrics(const std::string& version,
-                      const std::string& service, std::vector<std::string>& metrics);
+    int known_metrics(const std::string& version, const std::string& service,
+                      event_handler_conf_t& handler_conf, std::vector<std::string>& metrics);
     int known_services(const std::string& version, std::vector<std::string>& services);
 
     int update_runtime_conf(const libconfig::Config& conf);
@@ -510,8 +510,8 @@ int MonitorClientImpl::select_stat(event_cond_t& cond, event_select_t& stat) {
 }
 
 
-int MonitorClientImpl::known_metrics(const std::string& version,
-                                     const std::string& service, std::vector<std::string>& metrics) {
+int MonitorClientImpl::known_metrics(const std::string& version, const std::string& service,
+                                     event_handler_conf_t& handler_conf, std::vector<std::string>& metrics) {
 
     if (!client_agent_) {
         log_err("MonitorRpcClientHelper not initialized, fatal!");
@@ -522,7 +522,7 @@ int MonitorClientImpl::known_metrics(const std::string& version,
     if (!service.empty()) {
         service_t = service;
     }
-    auto code = client_agent_->rpc_known_metrics(version, service_t, metrics);
+    auto code = client_agent_->rpc_known_metrics(version, service_t, handler_conf, metrics);
     if (code == 0) {
         log_debug("known metrics ok.");
         return 0;
@@ -777,7 +777,7 @@ int MonitorClient::select_stat_groupby_time(const std::string& metric, const std
 }
 
 
-int MonitorClient::known_metrics(std::vector<std::string>& metrics, std::string service) {
+int MonitorClient::known_metrics(event_handler_conf_t& handler_conf, std::vector<std::string>& metrics, std::string service) {
 
     if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
         log_err("MonitorClientImpl not initialized...");
@@ -785,7 +785,7 @@ int MonitorClient::known_metrics(std::vector<std::string>& metrics, std::string 
     }
 
     std::string version = "1.0.0";
-    return MonitorClientImpl::instance().known_metrics(version, service, metrics);
+    return MonitorClientImpl::instance().known_metrics(version, service, handler_conf, metrics);
 }
 
 int MonitorClient::known_services(std::vector<std::string>& services) {

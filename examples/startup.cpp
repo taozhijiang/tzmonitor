@@ -52,11 +52,16 @@ int main(int argc, char* argv[]) {
     std::cout << std::endl;
 
     std::cout << "known_metrics ====================>" << std::endl;
+    event_handler_conf_t conf {};
     std::vector<std::string> metrics;
-    if (reporter->known_metrics(metrics) != 0) {
+    if (reporter->known_metrics(conf, metrics) != 0) {
         std::cout << "client call known_metrics failed." << std::endl;
         return -1;
     }
+    char buff[128] {};
+    snprintf(buff, sizeof(buff), "st:%d, lg:%d, store:%s", conf.event_step_,
+             conf.event_linger_, conf.store_type_.c_str());
+    std::cout << "conf: " << buff << std::endl;
     std::cout << "metrics info:" << std::endl;
     for (auto iter = metrics.cbegin(); iter != metrics.cend(); ++iter) {
         std::cout << *iter << ", ";
