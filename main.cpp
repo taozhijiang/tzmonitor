@@ -1,40 +1,74 @@
 #include <signal.h>
-void backtrace_init();
+
+#include <ctime>
+#include <cstdio>
+#include <sstream>
 
 #include <syslog.h>
 #include <boost/format.hpp>
 #include <boost/atomic/atomic.hpp>
 
-#include "config.h"
+#include <Utils/Utils.h>
+#include <Utils/Log.h>
+#include <Utils/SslSetup.h>
 
-#include "Manager.h"
-#include "Helper.h"
+#include <Scaffold/ConfHelper.h>
+#include <Scaffold/Status.h>
 
-#include <utils/Utils.h>
-#include <utils/Log.h>
-#include <utils/SslSetup.h>
+#include <Scaffold/Manager.h>
 
+static void interrupted_callback(int signal){
+    tzrpc::log_alert("Signal %d received ...", signal);
+    switch(signal) {
+        case SIGHUP:
+            tzrpc::log_notice("SIGHUP recv, do update_run_conf... ");
+            tzrpc::ConfHelper::instance().update_runtime_conf();
+            break;
 
-struct tm service_start{};
-std::string TZ_VERSION;
+        case SIGUSR1:
+            tzrpc::log_notice("SIGUSR recv, do module_status ... ");
+            {
+                std::string output;
+                tzrpc::Status::instance().collect_status(output);
+                std::cout << output << std::endl;
+                tzrpc::log_notice("%s", output.c_str());
+            }
+            break;
+
+        default:
+            tzrpc::log_err("Unhandled signal: %d", signal);
+            break;
+    }
+}
 
 static void init_signal_handle(){
 
     ::signal(SIGPIPE, SIG_IGN);
-
-    ::signal(SIGUSR1, SIG_IGN);
-    ::signal(SIGUSR2, SIG_IGN);
+    ::signal(SIGUSR1, interrupted_callback);
+    ::signal(SIGHUP,  interrupted_callback);
 
     return;
 }
 
+extern char * program_invocation_short_name;
+static void usage() {
+    std::stringstream ss;
+
+    ss << program_invocation_short_name << ":" << std::endl;
+    ss << "\t -c cfgFile  specify config file, default " << program_invocation_short_name << ".conf. " << std::endl;
+    ss << "\t -d          daemonize service." << std::endl;
+    ss << "\t -v          print version info." << std::endl;
+    ss << std::endl;
+
+    std::cout << ss.str();
+}
+
+char cfgFile[PATH_MAX] {};
+bool daemonize = false;
+
 static void show_vcs_info () {
 
-
-    std::cout << " THIS RELEASE OF TZMonitor " << std::endl;
-
-    TZ_VERSION = boost::str( boost::format("v%d.%d.%d") %TZ_VERSION_MAJOR %TZ_VERSION_MINOR %TZ_VERSION_PATCH);
-    std::cout << "      VERSION: "  << TZ_VERSION << std::endl;
+    std::cout << " THIS RELEASE OF " << program_invocation_short_name << std::endl;
 
     extern const char *build_commit_version;
     extern const char *build_commit_branch;
@@ -62,7 +96,7 @@ static int create_process_pid() {
     FILE* fp = fopen(pid_file, "w+");
 
     if (!fp) {
-        log_err("Create pid file %s failed!", pid_file);
+        tzrpc::log_err("Create pid file %s failed!", pid_file);
         return -1;
     }
 
@@ -76,73 +110,93 @@ static int create_process_pid() {
 
 int main(int argc, char* argv[]) {
 
-    show_vcs_info();
-
-    std::string config_file = std::string(program_invocation_short_name) + ".conf";
-    if (!sys_config_init(config_file)) {
-        std::cout << "Handle system configure " << config_file <<" failed!" << std::endl;
-        return -1;
+    strncpy(cfgFile, program_invocation_short_name, strlen(program_invocation_short_name));
+    strcat(cfgFile, ".conf");
+    int opt_g = 0;
+    while( (opt_g = getopt(argc, argv, "c:dhv")) != -1 ) {
+        switch(opt_g)
+        {
+            case 'c':
+                memset(cfgFile, 0, sizeof(cfgFile));
+                strncpy(cfgFile, optarg, PATH_MAX);
+                break;
+            case 'd':
+                daemonize = true;
+                break;
+            case 'v':
+                show_vcs_info();
+                ::exit(EXIT_SUCCESS);
+            case 'h':
+            default:
+                usage();
+                ::exit(EXIT_SUCCESS);
+        }
     }
-    std::cout << "we using system configure file: " << config_file << std::endl;
 
-    int log_level = 0;
-    if (!get_config_value("log_level", log_level)) {
-        log_level = LOG_INFO;
-        log_info("Using default log_level LOG_INFO");
+    fprintf(stderr, "we using system configure file %s\n", cfgFile);
+
+    tzrpc::set_checkpoint_log_store_func(syslog);
+    if (!tzrpc::log_init(7)) {
+        std::cerr << "init syslog failed!" << std::endl;
+        ::exit(EXIT_FAILURE);
     }
-
-    set_checkpoint_log_store_func(syslog);
-    if (!log_init(log_level)) {
-        std::cerr << "Init syslog failed!" << std::endl;
-        return -1;
-    }
-
-    log_debug("syslog initialized ok!");
-    time_t now = ::time(NULL);
-    ::localtime_r(&now, &service_start);
-    log_info("Service start at %s", ::asctime(&service_start));
+    tzrpc::log_debug("syslog initialized ok!");
 
     // test boost::atomic
     boost::atomic<int> atomic_int;
     if (atomic_int.is_lock_free()) {
-        log_alert("GOOD, your system atomic is lock_free ...");
+        tzrpc::log_notice(">>> GOOD <<<, your system atomic is lock_free ...");
     } else {
-        log_err("BAD, your system atomic is not lock_free, may impact performance ...");
+        tzrpc::log_err(">>> BAD <<<, your system atomic is not lock_free, may impact performance ...");
     }
+
 
     // SSL 环境设置
-    if (!Ssl_thread_setup()) {
-        log_err("SSL env setup error!");
-        ::exit(1);
+    if (!tzrpc::Ssl_thread_setup()) {
+        tzrpc::log_err("SSL env setup error!");
+        ::exit(EXIT_FAILURE);
     }
 
 
-    (void)Manager::instance(); // create object first!
+    // daemonize should before any thread creation...
+    if (daemonize) {
+        tzrpc::log_notice("we will daemonize this service...");
 
-    create_process_pid();
-    init_signal_handle();
-    backtrace_init();
-
-    {
-        PUT_COUNT_FUNC_PERF(Manager_init);
-        if(!Manager::instance().init(config_file)) {
-            log_err("Manager init error!");
-            ::exit(1);
+        bool chdir = false; // leave the current working directory in case
+                            // the user has specified relative paths for
+                            // the config file, etc
+        bool close = true;  // close stdin, stdout, stderr
+        if (::daemon(!chdir, !close) != 0) {
+            tzrpc::log_err("call to daemon() failed: %s.", strerror(errno));
+            ::exit(EXIT_FAILURE);
         }
     }
 
-    log_debug( "TZMonitor service initialized ok!");
-    Manager::instance().service_joinall();
+    (void)tzrpc::Manager::instance(); // create object first!
 
-    Ssl_thread_clean();
+    create_process_pid();
+    init_signal_handle();
+    tzrpc::backtrace_init();
+
+
+    {
+        PUT_COUNT_FUNC_PERF(Manager_init);
+        if(!tzrpc::Manager::instance().init(cfgFile)) {
+            tzrpc::log_err("system manager init error!");
+            ::exit(EXIT_FAILURE);
+        }
+    }
+
+    std::time_t now = boost::chrono::system_clock::to_time_t(boost::chrono::system_clock::now());
+    char mbstr[32] {};
+    std::strftime(mbstr, sizeof(mbstr), "%F %T", std::localtime(&now));
+    tzrpc::log_info("service started at %s", mbstr);
+
+    tzrpc::log_notice("whole service initialized ok!");
+    tzrpc::Manager::instance().service_joinall();
+
+    tzrpc::Ssl_thread_clean();
 
     return 0;
 }
 
-
-
-namespace boost {
-void assertion_failed(char const * expr, char const * function, char const * file, long line) {
-    log_err("BAD!!! expr `%s` assert failed at %s(%ld): %s", expr, file, line, function);
-}
-} // end boost
