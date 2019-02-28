@@ -80,9 +80,9 @@ bool EventHandler::init() {
         log_debug("EventHandlerConf for %s final info \n"
                   "event_linger %d, event_step %d, process_step_size %d, store_type %s",
                   service_.c_str(),
-                  conf_.event_linger_.load(),
-                  conf_.event_step_.load(),
-                  conf_.additional_process_step_size_.load(),
+                  conf_.event_linger_,
+                  conf_.event_step_,
+                  conf_.additional_process_step_size_,
                   conf_.store_type_.c_str());
 
     } catch (const libconfig::SettingNotFoundException &nfex) {
@@ -134,28 +134,28 @@ int EventHandler::update_runtime_conf(const libconfig::Config& conf) {
                 int value_i;
                 if (handler_conf.lookupValue("event_linger", value_i) && value_i > 0) {
                     log_notice("update default event_linger from %d to %d",
-                               conf_.event_linger_.load(), value_i );
+                               conf_.event_linger_, value_i );
                     conf_.event_linger_ = value_i;
                 }
 
                 if (handler_conf.lookupValue("event_step", value_i) && value_i > 0) {
                     log_notice("update default event_step from %d to %d",
-                               conf_.event_step_.load(), value_i );
+                               conf_.event_step_, value_i );
                     conf_.event_step_ = value_i;
                 }
 
                 if (handler_conf.lookupValue("additional_process_step_size", value_i) && value_i > 0) {
                     log_notice("update default additional_process_step_size from %d to %d",
-                               conf_.additional_process_step_size_.load(), value_i );
+                               conf_.additional_process_step_size_, value_i );
                     conf_.additional_process_step_size_ = value_i;
                 }
 
                 log_debug("EventHandlerConf for service %s template info \n"
                           "event_linger %d, event_step %d, process_step_size %d, store_type %s",
                           service_.c_str(),
-                          conf_.event_linger_.load(),
-                          conf_.event_step_.load(),
-                          conf_.additional_process_step_size_.load(),
+                          conf_.event_linger_,
+                          conf_.event_step_,
+                          conf_.additional_process_step_size_,
                           conf_.store_type_.c_str());
 
                 break;
@@ -297,7 +297,7 @@ void EventHandler::run() {
 
     while (true) {
 
-        int queue_size = conf_.additional_process_step_size_.load();
+        int queue_size = conf_.additional_process_step_size_;
 
         // 如果积累的待处理任务比较多，就取出来给辅助线程处理
         while (process_queue_.SIZE() > 2 * queue_size) {

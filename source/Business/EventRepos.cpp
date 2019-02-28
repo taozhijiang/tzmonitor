@@ -107,9 +107,9 @@ bool EventRepos::init() {
 
                 log_debug("EventHandlerConf default template info \n"
                           "event_linger %d, event_step %d, process_step_size %d, store_type %s",
-                          default_handler_conf_->event_linger_.load(),
-                          default_handler_conf_->event_step_.load(),
-                          default_handler_conf_->additional_process_step_size_.load(),
+                          default_handler_conf_->event_linger_,
+                          default_handler_conf_->event_step_,
+                          default_handler_conf_->additional_process_step_size_,
                           default_handler_conf_->store_type_.c_str());
 
                 break;
@@ -306,27 +306,27 @@ int EventRepos::update_runtime_conf(const libconfig::Config& conf) {
                 int value_i;
                 if (handler_conf.lookupValue("event_linger", value_i) && value_i > 0) {
                     log_notice("update default event_linger from %d to %d",
-                               default_handler_conf_->event_linger_.load(), value_i );
+                               default_handler_conf_->event_linger_, value_i );
                     default_handler_conf_->event_linger_ = value_i;
                 }
 
                 if (handler_conf.lookupValue("event_step", value_i) && value_i > 0) {
                     log_notice("update default event_step from %d to %d",
-                               default_handler_conf_->event_step_.load(), value_i );
+                               default_handler_conf_->event_step_, value_i );
                     default_handler_conf_->event_step_ = value_i;
                 }
 
                 if (handler_conf.lookupValue("additional_process_step_size", value_i) && value_i > 0) {
                     log_notice("update default additional_process_step_size from %d to %d",
-                               default_handler_conf_->additional_process_step_size_.load(), value_i );
+                               default_handler_conf_->additional_process_step_size_, value_i );
                     default_handler_conf_->additional_process_step_size_ = value_i;
                 }
 
                 log_debug("EventHandlerConf default template info \n"
                           "event_linger %d, event_step %d, process_step_size %d, store_type %s",
-                          default_handler_conf_->event_linger_.load(),
-                          default_handler_conf_->event_step_.load(),
-                          default_handler_conf_->additional_process_step_size_.load(),
+                          default_handler_conf_->event_linger_,
+                          default_handler_conf_->event_step_,
+                          default_handler_conf_->additional_process_step_size_,
                           default_handler_conf_->store_type_.c_str());
 
                 break;

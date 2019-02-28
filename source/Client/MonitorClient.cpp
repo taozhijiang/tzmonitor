@@ -37,13 +37,13 @@ namespace tzmonitor_client {
 
 struct MonitorClientConf {
 
-    boost::atomic<bool> report_enabled_;
+    bool report_enabled_;
 
-    boost::atomic<int> report_queue_limit_;
-    boost::atomic<int> size_per_report_;
+    int  report_queue_limit_;
+    int  size_per_report_;
 
-    boost::atomic<int> additional_report_step_size_;
-    boost::atomic<int> support_report_task_size_;
+    int  additional_report_step_size_;
+    int  support_report_task_size_;
 
     MonitorClientConf():
         report_enabled_(true),
@@ -52,7 +52,7 @@ struct MonitorClientConf {
         additional_report_step_size_(10),
         support_report_task_size_(5) {
     }
-};
+} __attribute__ ((aligned (4)));
 
 class MonitorClientImpl: public boost::noncopyable {
 
@@ -229,25 +229,25 @@ bool MonitorClientImpl::init(const libconfig::Setting& setting, CP_log_store_fun
 
     if (setting.lookupValue("report_queue_limit", value_i) && value_i >= 0) {
         log_notice("update report_queue_limit from %d to %d",
-                   conf_.report_queue_limit_.load(), value_i );
+                   conf_.report_queue_limit_, value_i );
         conf_.report_queue_limit_ = value_i;
     }
 
     if (setting.lookupValue("size_per_report", value_i) && value_i > 0) {
         log_notice("update size_per_report from %d to %d",
-                   conf_.size_per_report_.load(), value_i );
+                   conf_.size_per_report_, value_i );
         conf_.size_per_report_ = value_i;
     }
 
     if (setting.lookupValue("additional_report_step_size", value_i) && value_i >= 0) {
         log_notice("update additional_report_step_size from %d to %d",
-                   conf_.additional_report_step_size_.load(), value_i );
+                   conf_.additional_report_step_size_, value_i );
         conf_.additional_report_step_size_ = value_i;
     }
 
     if (setting.lookupValue("support_report_task_size", value_i) && value_i > 0) {
         log_notice("update support_report_task_size from %d to %d",
-                   conf_.support_report_task_size_.load(), value_i );
+                   conf_.support_report_task_size_, value_i );
         conf_.support_report_task_size_ = value_i;
     }
 
@@ -345,19 +345,19 @@ int MonitorClientImpl::update_runtime_conf(const libconfig::Config& conf) {
 
         if (setting.lookupValue("report_queue_limit", value_i) && value_i >= 0) {
             log_notice("update report_queue_limit from %d to %d",
-                       conf_.report_queue_limit_.load(), value_i );
+                       conf_.report_queue_limit_, value_i );
             conf_.report_queue_limit_ = value_i;
         }
 
         if (setting.lookupValue("size_per_report", value_i) && value_i > 0) {
             log_notice("update size_per_report from %d to %d",
-                       conf_.size_per_report_.load(), value_i );
+                       conf_.size_per_report_, value_i );
             conf_.size_per_report_ = value_i;
         }
 
         if (setting.lookupValue("additional_report_step_size", value_i) && value_i >= 0) {
             log_notice("update additional_report_step_size from %d to %d",
-                       conf_.additional_report_step_size_.load(), value_i );
+                       conf_.additional_report_step_size_, value_i );
             conf_.additional_report_step_size_ = value_i;
         }
 
@@ -571,7 +571,7 @@ void MonitorClientImpl::run() {
 
         if (conf_.report_queue_limit_ != 0 && submit_queue_.SIZE() > conf_.report_queue_limit_) {
             log_err("about to shrink submit_queue, current %lu, limit %d",
-                    submit_queue_.SIZE(), conf_.report_queue_limit_.load());
+                    submit_queue_.SIZE(), conf_.report_queue_limit_);
             submit_queue_.SHRINK_FRONT(conf_.report_queue_limit_);
         }
     }
@@ -598,7 +598,7 @@ void MonitorClientImpl::run_once_task(std::vector<event_report_ptr_t> reports) {
 
     if (conf_.report_queue_limit_ != 0 && submit_queue_.SIZE() > conf_.report_queue_limit_) {
         log_err("about to shrink submit_queue, current %lu, limit %d",
-                submit_queue_.SIZE(), conf_.report_queue_limit_.load());
+                submit_queue_.SIZE(), conf_.report_queue_limit_);
         submit_queue_.SHRINK_FRONT(conf_.report_queue_limit_);
     }
 }

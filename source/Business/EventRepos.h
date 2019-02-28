@@ -15,7 +15,6 @@
 #include <mutex>
 
 #include <boost/noncopyable.hpp>
-#include <boost/atomic/atomic.hpp>
 
 #include <Utils/EQueue.h>
 #include <Utils/TinyTask.h>

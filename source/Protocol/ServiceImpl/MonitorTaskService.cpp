@@ -344,8 +344,8 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
             EventHandlerConf handler_conf;
             ret = EventRepos::instance().get_service_conf(service, handler_conf);
             if (ret == 0) {
-                response.mutable_metrics()->set_event_step(handler_conf.event_step_.load());
-                response.mutable_metrics()->set_event_linger(handler_conf.event_linger_.load());
+                response.mutable_metrics()->set_event_step(handler_conf.event_step_);
+                response.mutable_metrics()->set_event_linger(handler_conf.event_linger_);
                 response.mutable_metrics()->set_store_type(handler_conf.store_type_);
             }
 

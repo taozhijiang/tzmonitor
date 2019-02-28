@@ -17,8 +17,6 @@
 
 #include <boost/circular_buffer.hpp>
 
-#include <boost/atomic.hpp>
-
 #include <condition_variable>
 #include <chrono>
 

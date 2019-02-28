@@ -23,14 +23,21 @@
 #include <Business/StoreIf.h>
 #include <Business/EventItem.h>
 
+// INTEL Guaranteed Atomic Operations
+// Reading or writing a doubleword aligned on a 32-bit boundary
+//
+// we can check by
+//  (int)offsetof(sa, a)
+//  (int)offsetof(sa, a)
 
 // 服务端的参数配置
 struct EventHandlerConf {
 
-    boost::atomic<int> event_linger_;
-    boost::atomic<int> event_step_;
+    int event_linger_;
+    int event_step_;
 
-    boost::atomic<int> additional_process_step_size_;
+    int additional_process_step_size_;
+
     std::string store_type_;
 
     EventHandlerConf():
@@ -40,26 +47,11 @@ struct EventHandlerConf {
         store_type_("mysql") {
     }
 
-    // 拷贝操作符
-    EventHandlerConf(const EventHandlerConf& other) {
-        event_linger_ = other.event_linger_.load();
-        event_step_   = other.event_step_.load();
-        additional_process_step_size_ = other.additional_process_step_size_.load();
-        store_type_   = other.store_type_;
-    }
-
-    EventHandlerConf& operator=(const EventHandlerConf& other) {
-        event_linger_ = other.event_linger_.load();
-        event_step_   = other.event_step_.load();
-        additional_process_step_size_ = other.additional_process_step_size_.load();
-        store_type_   = other.store_type_;
-    }
-
     // 按照event_step_的形式进行时间规约
     time_t nice_step(time_t t) {
         return t + ( event_step_  -  t % event_step_);
     }
-};
+} __attribute__ ((aligned (4)));
 
 
 
