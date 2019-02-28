@@ -20,8 +20,55 @@
 // leveldb 存储表设计思路
 // tzmonitor/tzmonitor__service__events_201902
 //           key: timestamp#metric#tag#entity_idx
-//           val: step#count#sum#avg#std
+//           val: step#count#sum#avg#min#max#p10#p50#p90
 
+
+// packed存储，不补齐
+// 为了保证迁移后数据的一致性，所有数据底层存储采用网络字节序
+
+struct leveldb_internal_layout_t {
+
+    uint8_t d;    // 'D'
+    uint8_t step;
+    int32_t count;
+    int64_t sum;
+    int32_t avg;
+    int32_t min;
+    int32_t max;
+    int32_t p10;
+    int32_t p50;
+    int32_t p90;
+
+    std::string dump() const {
+        char msg[128] {};
+        snprintf(msg, sizeof(msg), "leveldb: %c,step:%d,count:%d,sum:%ld,avg:%d.min:%d,max:%d,p10:%d,p50%d,p90%",
+                 d, step, count, sum, avg, min, max, p10, p50, p90);
+        return msg;
+    }
+
+    void from_net_endian() {
+        count = be32toh(count);
+        sum = be64toh(sum);
+        avg = be32toh(avg);
+        min = be32toh(min);
+        max = be32toh(max);
+        p10 = be32toh(p10);
+        p50 = be32toh(p50);
+        p90 = be32toh(p90);
+    }
+
+    void to_net_endian() {
+        count = htobe32(count);
+        sum = htobe64(sum);
+        avg = htobe32(avg);
+        min = htobe32(min);
+        max = htobe32(max);
+        p10 = htobe32(p10);
+        p50 = htobe32(p50);
+        p90 = htobe32(p90);
+    }
+
+} __attribute__ ((packed)) ;
 
 
 class StoreLevelDB: public StoreIf {

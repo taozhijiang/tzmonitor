@@ -145,33 +145,43 @@ int StoreLevelDB::insert_ev_stat(const event_insert_t& stat) override {
         tag = "T";
     }
 
-    char cstr_key[4096] {};
-    char cstr_val[4096] {};
-
-    // key: metric#timestamp#tag#entity_idx
-    // val: step#count#sum#avg#std#min#max#p50#p90
-    snprintf(cstr_key, sizeof(cstr_key), "%s#%lu#%s#%s",
-             stat.metric.c_str(), timestamp_exchange(stat.timestamp),
-             tag.c_str(), stat.entity_idx.c_str());
-    snprintf(cstr_val, sizeof(cstr_key), "D%d#%d#%ld#%d#%d#%d#%d#%d#%d",
-             stat.step, stat.count, stat.value_sum, stat.value_avg,
-             stat.value_min, stat.value_max, stat.value_p10, stat.value_p50, stat.value_p90);
-
     auto handler = get_leveldb_handler(stat.service);
     if (!handler) {
         log_err("get leveldb handler for %s failed.", stat.service.c_str());
         return -1;
     }
 
+    // key: metric#timestamp#tag#entity_idx
+    // val: step#count#sum#avg#std#min#max#p10#p50#p90
+    char cstr_key[4096] {};
+    snprintf(cstr_key, sizeof(cstr_key), "%s#%lu#%s#%s",
+             stat.metric.c_str(), timestamp_exchange(stat.timestamp),
+             tag.c_str(), stat.entity_idx.c_str());
+
+    leveldb_internal_layout_t data {};
+    data.d = 'D';
+    data.step = stat.step;
+    data.count = stat.count;
+    data.sum = stat.value_sum;
+    data.avg = stat.value_avg;
+    data.min = stat.value_min;
+    data.max = stat.value_max;
+    data.p10 = stat.value_p10;
+    data.p50 = stat.value_p50;
+    data.p90 = stat.value_p90;
+
+    data.to_net_endian();
+    std::string str_val(reinterpret_cast<char*>(&data), sizeof(leveldb_internal_layout_t));
+
     leveldb::WriteOptions options;
-    leveldb::Status status = handler->Put(options, std::string(cstr_key), std::string(cstr_val));
+    leveldb::Status status = handler->Put(options, std::string(cstr_key), str_val);
     if (!status.ok()) {
-        log_err("leveldb write failed: %s - %s", cstr_key, cstr_val);
+        log_err("leveldb write failed: %s - %s", cstr_key, data.dump().c_str());
         return -1;
     }
 
     log_debug("leveldb service %s store %s:%s success.",
-              stat.service.c_str(), cstr_key, cstr_val);
+              stat.service.c_str(), cstr_key, data.dump().c_str());
     return 0;
 }
 
@@ -197,7 +207,9 @@ int StoreLevelDB::select_ev_stat_by_timestamp(const event_cond_t& cond, event_se
     std::unique_ptr<leveldb::Iterator> it(handler->NewIterator(leveldb::ReadOptions()));
 
     // 聚合信息
-    std::map<time_t, std::vector<event_info_t>> infos_by_timestamp;
+    std::map<time_t, std::vector<event_info_t>> infos_by_timestamp {};
+
+    stat.summary = {}; // default to well initialized.
     stat.summary.value_min = std::numeric_limits<int32_t>::max();
     stat.summary.value_max = std::numeric_limits<int32_t>::min();
 
@@ -227,16 +239,29 @@ int StoreLevelDB::select_ev_stat_by_timestamp(const event_cond_t& cond, event_se
         if (!cond.entity_idx.empty() && vec[3] != cond.entity_idx)
             continue;
 
-        // step#count#sum#avg#std#min#max#p50#p90
+        // step#count#sum#avg#std#min#max#p10#p50#p90
         std::string str_val = it->value().ToString();
-        event_info_t item {};
-        int null_step;
-        if (::sscanf(str_val.c_str(), "D%d#%d#%ld#%d#%d#%d#%d#%d#%d",
-                     &null_step, &item.count, &item.value_sum, &item.value_avg,
-                     &item.value_min, &item.value_max, &item.value_p10, &item.value_p50, &item.value_p90) != 9) {
-            log_err("scan err for: %s", str_val.c_str());
+        if (str_val.size() != sizeof(leveldb_internal_layout_t) || str_val[0] != 'D') {
+            log_err("raw check leveldb data failed: %s %lu", str_key.c_str(), str_val.size());
             continue;
         }
+
+        leveldb_internal_layout_t data {};
+        ::memcpy(reinterpret_cast<char*>(&data), str_val.c_str(), sizeof(leveldb_internal_layout_t));
+        data.from_net_endian();
+
+        SAFE_ASSERT(data.d = 'D');
+
+        event_info_t item {};
+        item.count = data.count;
+        item.value_sum = data.sum;
+        item.value_avg = data.avg;
+        item.value_min = data.min;
+        item.value_max = data.max;
+        item.value_p10 = data.p10;
+        item.value_p50 = data.p50;
+        item.value_p90 = data.p90;
+
 
         item.timestamp = timestamp_exchange(::atoll(vec[1].c_str()));
 
@@ -339,7 +364,9 @@ int StoreLevelDB::select_ev_stat_by_tag(const event_cond_t& cond, event_select_t
     std::unique_ptr<leveldb::Iterator> it(handler->NewIterator(leveldb::ReadOptions()));
 
     // 聚合信息
-    std::map<std::string, std::vector<event_info_t>> infos_by_tag;
+    std::map<std::string, std::vector<event_info_t>> infos_by_tag {};
+
+    stat.summary = {}; // default to well initialized.
     stat.summary.value_min = std::numeric_limits<int32_t>::max();
     stat.summary.value_max = std::numeric_limits<int32_t>::min();
 
@@ -370,16 +397,28 @@ int StoreLevelDB::select_ev_stat_by_tag(const event_cond_t& cond, event_select_t
         if (!cond.entity_idx.empty() && vec[3] != cond.entity_idx)
             continue;
 
-        // step#count#sum#avg#std#min#max#p50#p90
+        // step#count#sum#avg#std#min#max#p10#p50#p90
         std::string str_val = it->value().ToString();
-        event_info_t item {};
-        int null_step;
-        if (::sscanf(str_val.c_str(), "D%d#%d#%ld#%d#%d#%d#%d#%d#%d",
-                     &null_step, &item.count, &item.value_sum, &item.value_avg,
-                     &item.value_min, &item.value_max, &item.value_p10, &item.value_p50, &item.value_p90) != 9) {
-            log_err("scan err for: %s", str_val.c_str());
+        if (str_val.size() != sizeof(leveldb_internal_layout_t) || str_val[0] != 'D') {
+            //log_err("raw check leveldb data failed: %s %ld", str_key.c_str(), str_val.size());
             continue;
         }
+
+        leveldb_internal_layout_t data {};
+        ::memcpy(reinterpret_cast<char*>(&data), str_val.c_str(), sizeof(leveldb_internal_layout_t));
+        data.from_net_endian();
+
+        SAFE_ASSERT(data.d = 'D');
+
+        event_info_t item {};
+        item.count = data.count;
+        item.value_sum = data.sum;
+        item.value_avg = data.avg;
+        item.value_min = data.min;
+        item.value_max = data.max;
+        item.value_p10 = data.p10;
+        item.value_p50 = data.p50;
+        item.value_p90 = data.p90;
 
         item.tag = vec[2];
 
@@ -459,7 +498,6 @@ int StoreLevelDB::select_ev_stat_by_tag(const event_cond_t& cond, event_select_t
     }
 
     return 0;
-
 }
 
 int StoreLevelDB::select_ev_stat_by_none(const event_cond_t& cond, event_select_t& stat, time_t linger_hint) {
@@ -482,6 +520,8 @@ int StoreLevelDB::select_ev_stat_by_none(const event_cond_t& cond, event_select_
     std::vector<std::string> vec {};
     leveldb::Options options;
     std::unique_ptr<leveldb::Iterator> it(handler->NewIterator(leveldb::ReadOptions()));
+
+    stat.summary = event_info_t {};
 
     stat.summary.value_min = std::numeric_limits<int32_t>::max();
     stat.summary.value_max = std::numeric_limits<int32_t>::min();
@@ -512,16 +552,28 @@ int StoreLevelDB::select_ev_stat_by_none(const event_cond_t& cond, event_select_
         if (!cond.entity_idx.empty() && vec[3] != cond.entity_idx)
             continue;
 
-        //  step#count#sum#avg#std#min#max#p50#p90
+        // step#count#sum#avg#std#min#max#p10#p50#p90
         std::string str_val = it->value().ToString();
-        event_info_t item {};
-        int null_step;
-        if (::sscanf(str_val.c_str(), "D%d#%d#%ld#%d#%d#%d#%d#%d#%d",
-                     &null_step, &item.count, &item.value_sum, &item.value_avg,
-                     &item.value_min, &item.value_max, &item.value_p10, &item.value_p50, &item.value_p90) != 9) {
-            log_err("scan err for: %s", str_val.c_str());
+        if (str_val.size() != sizeof(leveldb_internal_layout_t) || str_val[0] != 'D') {
+            log_err("raw check leveldb data failed: %s %d", str_key.c_str(), str_val.size());
             continue;
         }
+
+        leveldb_internal_layout_t data {};
+        ::memcpy(reinterpret_cast<char*>(&data), str_val.c_str(), sizeof(leveldb_internal_layout_t));
+        data.from_net_endian();
+
+        SAFE_ASSERT(data.d = 'D');
+
+        event_info_t item {};
+        item.count = data.count;
+        item.value_sum = data.sum;
+        item.value_avg = data.avg;
+        item.value_min = data.min;
+        item.value_max = data.max;
+        item.value_p10 = data.p10;
+        item.value_p50 = data.p50;
+        item.value_p90 = data.p90;
 
         stat.summary.count += item.count;
         stat.summary.value_sum += item.value_sum;
