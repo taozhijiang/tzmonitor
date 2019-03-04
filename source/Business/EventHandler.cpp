@@ -40,7 +40,7 @@ bool EventHandler::init() {
 
     try {
 
-        const libconfig::Setting& rpc_handlers = conf_ptr->lookup("rpc_business.services");
+        const libconfig::Setting& rpc_handlers = conf_ptr->lookup("rpc.business.services");
 
         for(int i = 0; i < rpc_handlers.getLength(); ++i) {
 
@@ -86,7 +86,7 @@ bool EventHandler::init() {
                   conf_.store_type_.c_str());
 
     } catch (const libconfig::SettingNotFoundException &nfex) {
-        log_err("rpc_business.services not found!");
+        log_err("rpc.business.services not found!");
     } catch (std::exception& e) {
         log_err("execptions catched for %s",  e.what());
     }
@@ -118,7 +118,7 @@ int EventHandler::update_runtime_conf(const libconfig::Config& conf) {
     try {
 
         // initialize event handler default conf
-        const libconfig::Setting& rpc_handlers = conf.lookup("rpc_business.services");
+        const libconfig::Setting& rpc_handlers = conf.lookup("rpc.business.services");
 
         // 遍历，找出默认配置信息
         for(int i = 0; i < rpc_handlers.getLength(); ++i) {
@@ -164,7 +164,7 @@ int EventHandler::update_runtime_conf(const libconfig::Config& conf) {
 
 
     } catch (const libconfig::SettingNotFoundException &nfex) {
-        log_err("rpc_business.services not found!");
+        log_err("rpc.business.services not found!");
     } catch (std::exception& e) {
         log_err("execptions catched for %s",  e.what());
     }

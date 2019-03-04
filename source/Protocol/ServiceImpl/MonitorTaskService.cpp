@@ -35,7 +35,7 @@ bool MonitorTaskService::init() {
 
     try
     {
-        const libconfig::Setting& rpc_services = conf_ptr->lookup("rpc_services");
+        const libconfig::Setting& rpc_services = conf_ptr->lookup("rpc.services");
 
         for(int i = 0; i < rpc_services.getLength(); ++i) {
 
@@ -64,7 +64,7 @@ bool MonitorTaskService::init() {
         }
 
     } catch (const libconfig::SettingNotFoundException &nfex) {
-        log_err("rpc_services not found!");
+        log_err("rpc.services not found!");
     } catch (std::exception& e) {
         log_err("execptions catched for %s",  e.what());
     }
@@ -114,7 +114,7 @@ int MonitorTaskService::module_runtime(const libconfig::Config& conf) override {
 
     try
     {
-        const libconfig::Setting& rpc_services = conf.lookup("rpc_services");
+        const libconfig::Setting& rpc_services = conf.lookup("rpc.services");
         for(int i = 0; i < rpc_services.getLength(); ++i) {
 
             const libconfig::Setting& service = rpc_services[i];
@@ -129,7 +129,7 @@ int MonitorTaskService::module_runtime(const libconfig::Config& conf) override {
         }
 
     } catch (const libconfig::SettingNotFoundException &nfex) {
-        log_err("rpc_services not found!");
+        log_err("rpc.services not found!");
     } catch (std::exception& e) {
         log_err("execptions catched for %s",  e.what());
     }

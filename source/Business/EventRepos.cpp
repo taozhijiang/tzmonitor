@@ -40,7 +40,7 @@ bool EventRepos::init() {
         return false;
     }
 
-    conf_ptr->lookupValue("rpc_business.support_process_task_size", support_process_task_size_);
+    conf_ptr->lookupValue("rpc.business.support_process_task_size", support_process_task_size_);
     if (support_process_task_size_ <= 0) {
         log_err("Invalid business.support_task_size: %d ", support_process_task_size_);
         return false;
@@ -55,7 +55,7 @@ bool EventRepos::init() {
     try {
 
         // initialize event handler default conf
-        const libconfig::Setting& rpc_handlers = conf_ptr->lookup("rpc_business.services");
+        const libconfig::Setting& rpc_handlers = conf_ptr->lookup("rpc.business.services");
 
         // 遍历，找出默认配置信息
         for(int i = 0; i < rpc_handlers.getLength(); ++i) {
@@ -117,7 +117,7 @@ bool EventRepos::init() {
 
 
     } catch (const libconfig::SettingNotFoundException &nfex) {
-        log_err("rpc_business.services not found!");
+        log_err("rpc.business.services not found!");
     } catch (std::exception& e) {
         log_err("execptions catched for %s",  e.what());
     }
@@ -139,7 +139,7 @@ bool EventRepos::init() {
     // 注册配置动态更新的回调函数
     ConfHelper::instance().register_runtime_callback(
             "EventRepos",
-            std::bind(&EventRepos::update_runtime_conf, this,
+            std::bind(&EventRepos::module_runtime, this,
                       std::placeholders::_1));
 
     // 系统状态展示相关的初始化
@@ -286,12 +286,12 @@ int EventRepos::get_services(const std::string& version,
 }
 
 
-int EventRepos::update_runtime_conf(const libconfig::Config& conf) {
+int EventRepos::module_runtime(const libconfig::Config& conf) {
 
     try {
 
         // initialize event handler default conf
-        const libconfig::Setting& rpc_handlers = conf.lookup("rpc_business.services");
+        const libconfig::Setting& rpc_handlers = conf.lookup("rpc.business.services");
 
         // 遍历，找出默认配置信息
         for(int i = 0; i < rpc_handlers.getLength(); ++i) {
@@ -335,7 +335,7 @@ int EventRepos::update_runtime_conf(const libconfig::Config& conf) {
 
 
     } catch (const libconfig::SettingNotFoundException &nfex) {
-        log_err("rpc_business.services not found!");
+        log_err("rpc.business.services not found!");
     } catch (std::exception& e) {
         log_err("execptions catched for %s",  e.what());
     }

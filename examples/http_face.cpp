@@ -140,7 +140,7 @@ int main(int argc, char* argv[]) {
 
     // test monitor first stage
     auto reporter = std::make_shared<tzmonitor_client::MonitorClient>();
-    if (!reporter || !reporter ->init("tzmonitor.conf", ::syslog)) {
+    if (!reporter || !reporter ->init(cfgFile, ::syslog)) {
         tzhttpd::tzhttpd_log_err("init client failed.");
         return false;
     }
@@ -153,14 +153,18 @@ int main(int argc, char* argv[]) {
     http_server_ptr->add_http_get_handler("^/monitor$", tzhttpd::http_handler::index_http_get_handler);
     http_server_ptr->add_http_get_handler("^/monitor/stats$", tzhttpd::http_handler::stats_http_get_handler);
 
-    http_server_ptr->register_update_runtime_conf(std::bind(&tzmonitor_client::MonitorClient::update_runtime_conf, reporter,
-                                                            std::placeholders::_1));
-    http_server_ptr->register_module_status("monitorclient",
-                                            std::bind(&tzmonitor_client::MonitorClient::module_status, reporter,
-                                                      std::placeholders::_1, std::placeholders::_2,
-                                                      std::placeholders::_3));
+    http_server_ptr->register_http_runtime_callback(
+            "http_face",
+            std::bind(&tzmonitor_client::MonitorClient::module_runtime, reporter,
+                      std::placeholders::_1));
 
-    http_server_ptr->register_module_status("httpsrv", module_status);
+    http_server_ptr->register_http_status_callback(
+            "http_face",
+            std::bind(&tzmonitor_client::MonitorClient::module_status, reporter,
+                      std::placeholders::_1, std::placeholders::_2,
+                      std::placeholders::_3));
+
+    http_server_ptr->register_http_status_callback("httpsrv", module_status);
 
     http_server_ptr->io_service_threads_.start_threads();
     http_server_ptr->service();

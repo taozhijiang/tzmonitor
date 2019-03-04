@@ -73,7 +73,7 @@ private:
                       event_handler_conf_t& handler_conf, std::vector<std::string>& metrics);
     int known_services(const std::string& version, std::vector<std::string>& services);
 
-    int update_runtime_conf(const libconfig::Config& conf);
+    int module_runtime(const libconfig::Config& conf);
     int module_status(std::string& strModule, std::string& strKey, std::string& strValue);
 
 private:
@@ -186,7 +186,7 @@ bool MonitorClientImpl::init(const std::string& cfgFile, CP_log_store_func_t log
     try {
         cfg.readFile(cfgFile.c_str());
 
-        const libconfig::Setting& setting = cfg.lookup("rpc_monitor_client");
+        const libconfig::Setting& setting = cfg.lookup("rpc.monitor_client");
         return init(setting, log_func);
 
     } catch(libconfig::FileIOException &fioex) {
@@ -209,15 +209,15 @@ bool MonitorClientImpl::init(const libconfig::Setting& setting, CP_log_store_fun
     log_init(7);
 
     std::string serv_addr;
-    int listen_port = 0;
+    int serv_port = 0;
     if (!setting.lookupValue("serv_addr", serv_addr) ||
-        !setting.lookupValue("listen_port", listen_port) ||
-        serv_addr.empty() || listen_port <= 0) {
-        printf("get rpc server addr config failed.");
+        !setting.lookupValue("serv_port", serv_port) ||
+        serv_addr.empty() || serv_port <= 0) {
+        log_err("get rpc server addr config failed.");
         return false;
     }
 
-    // conf update
+    // 合法的值才会覆盖默认值
     bool value_b;
     int  value_i;
 
@@ -258,7 +258,7 @@ bool MonitorClientImpl::init(const libconfig::Setting& setting, CP_log_store_fun
 
     // load other conf
 
-    return init(service, entity_idx, serv_addr, listen_port, log_func);
+    return init(service, entity_idx, serv_addr, serv_port, log_func);
 }
 
 
@@ -325,13 +325,13 @@ bool MonitorClientImpl::init(const std::string& service, const std::string& enti
     return true;
 }
 
-// rpc_monitor_client
-int MonitorClientImpl::update_runtime_conf(const libconfig::Config& conf) {
+// rpc.monitor_client
+int MonitorClientImpl::module_runtime(const libconfig::Config& conf) {
 
     try {
 
         // initialize client conf
-        const libconfig::Setting& setting = conf.lookup("rpc_monitor_client");
+        const libconfig::Setting& setting = conf.lookup("rpc.monitor_client");
 
         // conf update
         bool value_b;
@@ -364,7 +364,7 @@ int MonitorClientImpl::update_runtime_conf(const libconfig::Config& conf) {
         return 0;
 
     } catch (const libconfig::SettingNotFoundException &nfex) {
-        log_err("rpc_monitor_client not found!");
+        log_err("rpc.monitor_client not found!");
     } catch (std::exception& e) {
         log_err("execptions catched for %s",  e.what());
     }
@@ -372,15 +372,15 @@ int MonitorClientImpl::update_runtime_conf(const libconfig::Config& conf) {
     return -1;
 }
 
-int MonitorClientImpl::module_status(std::string& strModule, std::string& strKey, std::string& strValue) {
+int MonitorClientImpl::module_status(std::string& module, std::string& name, std::string& val) {
 
-    strModule = "tzmonitor_client";
+    module = "tzmonitor_client";
     // service + entity_idx
 
-    strKey = service_;
+    name = service_;
     if (!entity_idx_.empty()) {
-        strKey += "!";
-        strKey += entity_idx_;
+        name += "!";
+        name += entity_idx_;
     }
 
     std::stringstream ss;
@@ -398,7 +398,7 @@ int MonitorClientImpl::module_status(std::string& strModule, std::string& strKey
     ss << "\t" << "additional_step_size: " << conf_.additional_report_step_size_ << std::endl;
     ss << "\t" << "support_task_size: " << conf_.support_report_task_size_ << std::endl;
 
-    strValue = ss.str();
+    val = ss.str();
 
     return 0;
 }
@@ -799,14 +799,14 @@ int MonitorClient::known_services(std::vector<std::string>& services) {
     return MonitorClientImpl::instance().known_services(version, services);
 }
 
-int MonitorClient::update_runtime_conf(const libconfig::Config& conf) {
+int MonitorClient::module_runtime(const libconfig::Config& conf) {
 
     if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
         log_err("MonitorClientImpl not initialized...");
         return -1;
     }
 
-    return MonitorClientImpl::instance().update_runtime_conf(conf);
+    return MonitorClientImpl::instance().module_runtime(conf);
 }
 
 int MonitorClient::module_status(std::string& strModule, std::string& strKey, std::string& strValue) {

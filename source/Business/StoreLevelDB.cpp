@@ -26,8 +26,8 @@ static std::shared_ptr<leveldb::DB> NULLPTR_HANDLER;
 
 bool StoreLevelDB::init(const libconfig::Config& conf) override {
 
-    if (!conf.lookupValue("rpc_business.leveldb.filepath", filepath_) ||
-        !conf.lookupValue("rpc_business.leveldb.table_prefix", table_prefix_) ||
+    if (!conf.lookupValue("rpc.business.leveldb.filepath", filepath_) ||
+        !conf.lookupValue("rpc.business.leveldb.table_prefix", table_prefix_) ||
         filepath_.empty() || table_prefix_.empty() )
     {
         log_err("Error, get level configure value error");
@@ -47,6 +47,8 @@ bool StoreLevelDB::init(const libconfig::Config& conf) override {
     }
 
     NULLPTR_HANDLER.reset();
+    log_notice("leveldb storage initialized with filepath: %s, table_prefix: %s",
+               filepath_.c_str(), table_prefix_.c_str());
 
     return true;
 }
@@ -693,6 +695,8 @@ int StoreLevelDB::select_services(std::vector<std::string>& services) {
     }
 
 
+    log_debug("we will travel dir %s for service detect.", filepath_.c_str());
+
     std::vector<std::string> leveldb_files {};
 
     while ( (d_item = readdir(d)) != NULL ) {
@@ -702,9 +706,9 @@ int StoreLevelDB::select_services(std::vector<std::string>& services) {
             continue;
         }
 
-        // 取出所有目录
-        if (stat(d_item->d_name, &sb) == 0 && S_ISDIR(sb.st_mode)) {
-            // 满足前缀
+        std::string fullfile = filepath_ + "/" + std::string(d_item->d_name);
+        if (stat(fullfile.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode)) {
+            // 满足前缀匹配
             if (::strncmp(d_item->d_name, table_prefix_.c_str(), table_prefix_.size()) == 0) {
                 leveldb_files.push_back(d_item->d_name);
             }
@@ -712,7 +716,6 @@ int StoreLevelDB::select_services(std::vector<std::string>& services) {
     }
 
     services.clear();
-
     for (size_t i=0; i<leveldb_files.size(); ++i) {
 
         std::string t_name = leveldb_files[i];

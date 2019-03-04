@@ -26,7 +26,7 @@ bool NetConf::load_conf(const libconfig::Config& conf) {
 
     conf.lookupValue("rpc.network.bind_addr", bind_addr_);
     conf.lookupValue("rpc.network.bind_port", bind_port_);
-    if (bind_addr_.empty() || bind_port_ <=0 ){
+    if (bind_addr_.empty() || bind_port_ <= 0 ){
         log_err( "invalid rpc.network. bind_addr %s & bind_port %d",
                   bind_addr_.c_str(), bind_port_);
         return false;
