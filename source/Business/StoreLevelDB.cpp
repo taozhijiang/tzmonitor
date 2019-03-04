@@ -17,7 +17,6 @@
 #include <leveldb/comparator.h>
 
 #include <Utils/Log.h>
-#include <Utils/StrUtil.h>
 
 #include <Business/StoreLevelDB.h>
 

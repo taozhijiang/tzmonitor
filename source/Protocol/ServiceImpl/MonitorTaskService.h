@@ -12,18 +12,22 @@
 #include <xtra_rhel6.h>
 
 #include <RPC/Service.h>
-#include <RPC/RpcInstance.h>
 
 #include <Scaffold/ConfHelper.h>
 
-#include <Protocol/gen-cpp/MonitorTask.pb.h>
+#include "RpcServiceBase.h"
+
 
 namespace tzrpc {
 
-class MonitorTaskService : public Service {
+class RpcInstance;
+
+class MonitorTaskService : public Service,
+                           public RpcServiceBase {
 
 public:
     explicit MonitorTaskService(const std::string& instance_name):
+        RpcServiceBase(instance_name),
         instance_name_(instance_name) {
     }
 
@@ -54,8 +58,8 @@ private:
     bool handle_rpc_service_runtime_conf(const libconfig::Setting& setting);
 
     ExecutorConf get_executor_conf();
-    int update_runtime_conf(const libconfig::Config& conf);
-    int module_status(std::string& strModule, std::string& strKey, std::string& strValue);
+    int module_runtime(const libconfig::Config& conf);
+    int module_status(std::string& module, std::string& name, std::string& val);
 
 
 private:

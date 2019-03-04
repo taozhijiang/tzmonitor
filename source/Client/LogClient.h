@@ -31,6 +31,7 @@
 // man 3 syslog
 #include <syslog.h>
 
+typedef void(* CP_log_store_func_t)(int priority, const char *format, ...);
 namespace tzmonitor_client {
 
 bool log_init(int log_level);
@@ -50,7 +51,6 @@ void log_api(int priority, const char *file, int line, const char *func, const c
 
 // Log Store
 
-typedef void(* CP_log_store_func_t)(int priority, const char *format, ...);
 extern CP_log_store_func_t checkpoint_log_store_func_impl_;
 void set_checkpoint_log_store_func(CP_log_store_func_t func);
 

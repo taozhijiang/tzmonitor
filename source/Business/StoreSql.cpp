@@ -8,7 +8,6 @@
 #include <sstream>
 
 #include <Utils/Log.h>
-#include <Utils/StrUtil.h>
 
 #include <Business/StoreSql.h>
 
@@ -22,12 +21,12 @@ bool StoreSql::init(const libconfig::Config& conf) override {
     std::string mysql_username;
     std::string mysql_passwd;
     std::string mysql_database;
-    if (!ConfUtil::conf_value(conf, "rpc_business.mysql.host_addr", mysql_hostname) ||
-        !ConfUtil::conf_value(conf, "rpc_business.mysql.host_port", mysql_port) ||
-        !ConfUtil::conf_value(conf, "rpc_business.mysql.username", mysql_username) ||
-        !ConfUtil::conf_value(conf, "rpc_business.mysql.passwd", mysql_passwd) ||
-        !ConfUtil::conf_value(conf, "rpc_business.mysql.database", mysql_database) ||
-        !ConfUtil::conf_value(conf, "rpc_business.mysql.table_prefix", table_prefix_) )
+    if (!conf.lookupValue("rpc_business.mysql.host_addr", mysql_hostname) ||
+        !conf.lookupValue("rpc_business.mysql.host_port", mysql_port) ||
+        !conf.lookupValue("rpc_business.mysql.username", mysql_username) ||
+        !conf.lookupValue("rpc_business.mysql.passwd", mysql_passwd) ||
+        !conf.lookupValue("rpc_business.mysql.database", mysql_database) ||
+        !conf.lookupValue("rpc_business.mysql.table_prefix", table_prefix_) )
     {
         log_err("Error, get mysql config value error");
         return false;
@@ -36,7 +35,7 @@ bool StoreSql::init(const libconfig::Config& conf) override {
     database_ = mysql_database;
 
     int conn_pool_size = 0;
-    if (!ConfUtil::conf_value(conf, "rpc_business.mysql.conn_pool_size", conn_pool_size)) {
+    if (!conf.lookupValue("rpc_business.mysql.conn_pool_size", conn_pool_size)) {
         conn_pool_size = 20;
         log_info("Using default conn_pool size: 20");
     }

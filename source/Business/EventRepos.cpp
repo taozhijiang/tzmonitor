@@ -12,7 +12,6 @@
 #include <Scaffold/Status.h>
 
 #include <Utils/Utils.h>
-#include <Utils/StrUtil.h>
 
 #include <Business/EventHandler.h>
 #include <Business/StoreIf.h>
@@ -41,7 +40,7 @@ bool EventRepos::init() {
         return false;
     }
 
-    ConfUtil::conf_value(*conf_ptr, "rpc_business.support_process_task_size", support_process_task_size_);
+    conf_ptr->lookupValue("rpc_business.support_process_task_size", support_process_task_size_);
     if (support_process_task_size_ <= 0) {
         log_err("Invalid business.support_task_size: %d ", support_process_task_size_);
         return false;
@@ -64,7 +63,7 @@ bool EventRepos::init() {
             const libconfig::Setting& handler_conf = rpc_handlers[i];
             std::string instance_name;
 
-            ConfUtil::conf_value(handler_conf, "service_name", instance_name);
+            handler_conf.lookupValue("service_name", instance_name);
             if (instance_name == "[default]") {
 
                 // 创建对象
@@ -75,14 +74,14 @@ bool EventRepos::init() {
                 }
 
                 int value_i;
-                ConfUtil::conf_value(handler_conf, "event_linger", value_i);
+                handler_conf.lookupValue("event_linger", value_i);
                 if (value_i <= 0) {
                     log_err("Invalid event_linger: %d ", value_i);
                     return false;
                 }
                 default_handler_conf_->event_linger_ = value_i;
 
-                ConfUtil::conf_value(handler_conf, "event_step", value_i);
+                handler_conf.lookupValue("event_step", value_i);
                 if (value_i <= 0) {
                     log_err("Invalid event_step: %d ", value_i);
                     return false;
@@ -90,7 +89,7 @@ bool EventRepos::init() {
                 default_handler_conf_->event_step_ = value_i;
 
 
-                ConfUtil::conf_value(handler_conf, "additional_process_step_size", value_i);
+                handler_conf.lookupValue("additional_process_step_size", value_i);
                 if (value_i <= 0) {
                     log_err("Invalid additional_process_step_size: %d ", value_i);
                     return false;
@@ -98,7 +97,7 @@ bool EventRepos::init() {
                 default_handler_conf_->additional_process_step_size_ = value_i;
 
                 std::string store_type;
-                ConfUtil::conf_value(handler_conf, "store_type", store_type);
+                handler_conf.lookupValue("store_type", store_type);
                 if (store_type != "mysql" && store_type != "redis" && store_type != "leveldb") {
                     log_err("Invalid store_type: %s ", store_type.c_str());
                     return false;
@@ -138,13 +137,14 @@ bool EventRepos::init() {
 
 
     // 注册配置动态更新的回调函数
-    ConfHelper::instance().register_conf_callback(
+    ConfHelper::instance().register_runtime_callback(
+            "EventRepos",
             std::bind(&EventRepos::update_runtime_conf, this,
                       std::placeholders::_1));
 
     // 系统状态展示相关的初始化
     Status::instance().register_status_callback(
-            "eventrepos",
+            "EventRepos",
             std::bind(&EventRepos::module_status, this,
                       std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
@@ -299,7 +299,7 @@ int EventRepos::update_runtime_conf(const libconfig::Config& conf) {
             const libconfig::Setting& handler_conf = rpc_handlers[i];
             std::string instance_name;
 
-            ConfUtil::conf_value(handler_conf, "service_name", instance_name);
+            handler_conf.lookupValue("service_name", instance_name);
             if (instance_name == "[default]") {
 
 
