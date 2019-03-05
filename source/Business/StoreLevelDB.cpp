@@ -214,6 +214,7 @@ int StoreLevelDB::select_ev_stat_by_timestamp(const event_cond_t& cond, event_se
     stat.summary.value_min = std::numeric_limits<int32_t>::max();
     stat.summary.value_max = std::numeric_limits<int32_t>::min();
 
+    int iterat_count = 0;
     for (it->Seek(t_upper); it->Valid(); it->Next()) {
 
         leveldb::Slice key = it->key();
@@ -289,8 +290,11 @@ int StoreLevelDB::select_ev_stat_by_timestamp(const event_cond_t& cond, event_se
             stat.summary.value_max = item.value_max;
         }
 
+        ++ iterat_count;
+        
     }  // end for
 
+    int ck_iterat_count = 0;
     for (auto iter = infos_by_timestamp.begin(); iter != infos_by_timestamp.end(); ++iter) {
 
         event_info_t collect {};
@@ -327,13 +331,19 @@ int StoreLevelDB::select_ev_stat_by_timestamp(const event_cond_t& cond, event_se
         }
 
         stat.info.emplace_back(collect);
+        ck_iterat_count += iter->second.size();
     }
 
-    if (stat.summary.count != 0 && !stat.info.empty()) {
+    SAFE_ASSERT(iterat_count == ck_iterat_count);
+    if(iterat_count != ck_iterat_count) {
+        log_err("iterat_cnt check failed: %d - %d, total detail item %d", iterat_count, ck_iterat_count, stat.summary.count);
+    }
+
+    if (stat.summary.count != 0 && iterat_count ) {
         stat.summary.value_avg = stat.summary.value_sum / stat.summary.count;
-        stat.summary.value_p10 = stat.summary.value_p10 / stat.info.size();
-        stat.summary.value_p50 = stat.summary.value_p50 / stat.info.size();
-        stat.summary.value_p90 = stat.summary.value_p90 / stat.info.size();
+        stat.summary.value_p10 = stat.summary.value_p10 / iterat_count;
+        stat.summary.value_p50 = stat.summary.value_p50 / iterat_count;
+        stat.summary.value_p90 = stat.summary.value_p90 / iterat_count;
     } else {
         // avoid display confusing value.
         stat.summary.value_min = 0;
@@ -371,7 +381,7 @@ int StoreLevelDB::select_ev_stat_by_tag(const event_cond_t& cond, event_select_t
     stat.summary.value_min = std::numeric_limits<int32_t>::max();
     stat.summary.value_max = std::numeric_limits<int32_t>::min();
 
-
+    int iterat_count = 0;
     for (it->Seek(t_upper); it->Valid(); it->Next()) {
 
         leveldb::Slice key = it->key();
@@ -401,7 +411,7 @@ int StoreLevelDB::select_ev_stat_by_tag(const event_cond_t& cond, event_select_t
         // step#count#sum#avg#std#min#max#p10#p50#p90
         std::string str_val = it->value().ToString();
         if (str_val.size() != sizeof(leveldb_internal_layout_t) || str_val[0] != 'D') {
-            //log_err("raw check leveldb data failed: %s %ld", str_key.c_str(), str_val.size());
+            log_err("raw check leveldb data failed: %s %lu", str_key.c_str(), str_val.size());
             continue;
         }
 
@@ -445,10 +455,13 @@ int StoreLevelDB::select_ev_stat_by_tag(const event_cond_t& cond, event_select_t
         if (item.value_max > stat.summary.value_max) {
             stat.summary.value_max = item.value_max;
         }
+        
+        ++ iterat_count;
+        
     } // end for
 
 
-
+    int ck_iterat_count = 0;
     for (auto iter = infos_by_tag.begin(); iter != infos_by_tag.end(); ++iter) {
 
         event_info_t collect {};
@@ -485,13 +498,20 @@ int StoreLevelDB::select_ev_stat_by_tag(const event_cond_t& cond, event_select_t
         }
 
         stat.info.emplace_back(collect);
+        
+        ck_iterat_count += iter->second.size();
+    }
+    
+    SAFE_ASSERT(iterat_count == ck_iterat_count);
+    if(iterat_count != ck_iterat_count) {
+        log_err("iterat_cnt check failed: %d - %d, total detail item %d", iterat_count, ck_iterat_count, stat.summary.count);
     }
 
-    if (stat.summary.count != 0 && !stat.info.empty()) {
+    if (stat.summary.count != 0 && iterat_count != 0) {
         stat.summary.value_avg = stat.summary.value_sum / stat.summary.count;
-        stat.summary.value_p10 = stat.summary.value_p10 / stat.info.size();
-        stat.summary.value_p50 = stat.summary.value_p50 / stat.info.size();
-        stat.summary.value_p90 = stat.summary.value_p90 / stat.info.size();
+        stat.summary.value_p10 = stat.summary.value_p10 / iterat_count;
+        stat.summary.value_p50 = stat.summary.value_p50 / iterat_count;
+        stat.summary.value_p90 = stat.summary.value_p90 / iterat_count;
     } else {
         // avoid display confusing value.
         stat.summary.value_min = 0;
@@ -522,11 +542,12 @@ int StoreLevelDB::select_ev_stat_by_none(const event_cond_t& cond, event_select_
     leveldb::Options options;
     std::unique_ptr<leveldb::Iterator> it(handler->NewIterator(leveldb::ReadOptions()));
 
-    stat.summary = event_info_t {};
-
+    stat.summary = {}; // default to well initialized.
     stat.summary.value_min = std::numeric_limits<int32_t>::max();
     stat.summary.value_max = std::numeric_limits<int32_t>::min();
 
+    int iterat_count = 0;
+    
     for (it->Seek(t_upper); it->Valid(); it->Next()) {
 
         leveldb::Slice key = it->key();
@@ -556,7 +577,7 @@ int StoreLevelDB::select_ev_stat_by_none(const event_cond_t& cond, event_select_
         // step#count#sum#avg#std#min#max#p10#p50#p90
         std::string str_val = it->value().ToString();
         if (str_val.size() != sizeof(leveldb_internal_layout_t) || str_val[0] != 'D') {
-            log_err("raw check leveldb data failed: %s %d", str_key.c_str(), str_val.size());
+            log_err("raw check leveldb data failed: %s %lu", str_key.c_str(), str_val.size());
             continue;
         }
 
@@ -581,14 +602,23 @@ int StoreLevelDB::select_ev_stat_by_none(const event_cond_t& cond, event_select_
         stat.summary.value_p10 += item.value_p10;
         stat.summary.value_p50 += item.value_p50;
         stat.summary.value_p90 += item.value_p90;
+        
+        if (item.value_min < stat.summary.value_min) {
+            stat.summary.value_min = item.value_min;
+        }
 
+        if (item.value_max > stat.summary.value_max) {
+            stat.summary.value_max = item.value_max;
+        }
+
+        ++ iterat_count;
     }
 
-    if (stat.summary.count != 0) {
+    if (stat.summary.count != 0 && iterat_count != 0) {
         stat.summary.value_avg = stat.summary.value_sum / stat.summary.count;
-        stat.summary.value_p10 = stat.summary.value_p10 / stat.info.size();   // not very well
-        stat.summary.value_p50 = stat.summary.value_p50 / stat.info.size();
-        stat.summary.value_p90 = stat.summary.value_p90 / stat.info.size();
+        stat.summary.value_p10 = stat.summary.value_p10 / iterat_count;   // not very well
+        stat.summary.value_p50 = stat.summary.value_p50 / iterat_count;
+        stat.summary.value_p90 = stat.summary.value_p90 / iterat_count;
     } else {
 
         // avoid display confusing value.
