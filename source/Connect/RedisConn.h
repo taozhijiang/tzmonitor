@@ -41,15 +41,19 @@ public:
 
 typedef std::shared_ptr<redisReply> redisReply_ptr;
 
-class RedisConn: public boost::noncopyable {
+class RedisConn {
 public:
     explicit RedisConn(ConnPool<RedisConn, RedisConnPoolHelper>& pool, const RedisConnPoolHelper& helper):
         pool_(pool), helper_(helper) {
     }
 
-    ~RedisConn(){
+    virtual ~RedisConn(){
         log_info("Destroy Sql Connection OK!");
     }
+
+    // 禁止拷贝
+    RedisConn(const RedisConn&) = delete;
+    RedisConn& operator=(const RedisConn&) = delete;
 
     bool init(int64_t conn_uuid);
     bool is_health() {

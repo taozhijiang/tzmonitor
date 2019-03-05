@@ -14,8 +14,6 @@
 #include <deque>
 #include <mutex>
 
-#include <boost/noncopyable.hpp>
-
 #include <Utils/EQueue.h>
 #include <Utils/TinyTask.h>
 #include <Utils/Log.h>
@@ -31,7 +29,7 @@
 class EventHandler;
 struct EventHandlerConf;
 
-class EventRepos: public boost::noncopyable {
+class EventRepos {
 
     friend class EventHandler;
 
@@ -93,6 +91,10 @@ private:
 
     ~EventRepos(){
     }
+
+    // 禁止拷贝
+    EventRepos(const EventRepos&) = delete;
+    EventRepos& operator=(const EventRepos&) = delete;
 };
 
 

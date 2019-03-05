@@ -11,8 +11,6 @@
 
 #include <vector>
 
-#include <boost/noncopyable.hpp>
-
 #include <cppconn/driver.h>
 #include <cppconn/connection.h>
 #include <cppconn/exception.h>
@@ -151,10 +149,14 @@ inline int rs_is_null(shared_result_ptr result, const uint32_t idx) {
     return -1;
 }
 
-class SqlConn: public boost::noncopyable {
+class SqlConn {
 public:
     explicit SqlConn(ConnPool<SqlConn, SqlConnPoolHelper>& pool, const SqlConnPoolHelper& helper);
-    ~SqlConn();
+    virtual ~SqlConn();
+
+    // 禁止拷贝
+    SqlConn(const SqlConn&) = delete;
+    SqlConn& operator=(const SqlConn&) = delete;
 
     bool init(int64_t conn_uuid);
     bool is_health() {

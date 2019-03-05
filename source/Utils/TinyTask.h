@@ -18,7 +18,6 @@
 #include <functional>
 
 #include <boost/thread.hpp>
-#include <boost/noncopyable.hpp>
 
 #include <Utils/EQueue.h>
 
@@ -26,8 +25,7 @@ namespace tzrpc {
 
 typedef std::function<void()> TaskRunnable;
 
-class TinyTask: private boost::noncopyable,
-                public std::enable_shared_from_this<TinyTask> {
+class TinyTask: public std::enable_shared_from_this<TinyTask> {
 public:
 
     explicit TinyTask(uint8_t max_spawn_task):
@@ -35,6 +33,10 @@ public:
        }
 
     ~TinyTask() {}
+
+    // 禁止拷贝
+    TinyTask(const TinyTask&) = delete;
+    TinyTask& operator=(const TinyTask&) = delete;
 
     bool init(){
         thread_run_.reset(new boost::thread(std::bind(&TinyTask::run, shared_from_this())));

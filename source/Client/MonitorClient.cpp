@@ -54,7 +54,7 @@ struct MonitorClientConf {
     }
 } __attribute__ ((aligned (4)));
 
-class MonitorClientImpl: public boost::noncopyable {
+class MonitorClientImpl {
 
     friend class MonitorClient;
 
@@ -138,6 +138,10 @@ private:
     }
 
     ~MonitorClientImpl() {}
+
+    // 禁止拷贝
+    MonitorClientImpl(const MonitorClientImpl&) = delete;
+    MonitorClientImpl& operator=(const MonitorClientImpl&) = delete;
 
     static MonitorClientImpl& instance();
 

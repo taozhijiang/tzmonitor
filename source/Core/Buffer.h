@@ -10,9 +10,7 @@
 
 #include <cstdint>
 #include <string>
-
 #include <memory>
-#include <boost/noncopyable.hpp>
 
 #include <xtra_rhel6.h>
 
@@ -20,7 +18,7 @@
 
 namespace tzrpc {
 
-class Buffer: public boost::noncopyable {
+class Buffer {
 
 public:
     // 构造函数
@@ -42,6 +40,12 @@ public:
         append_internal(header_str);
         append_internal(msg.payload_);
     }
+
+    ~Buffer() {}
+
+    // 禁止拷贝
+    Buffer(const Buffer&) = delete;
+    Buffer& operator=(const Buffer&) = delete;
 
     // used internally, user should prefer Message
     uint32_t append_internal(const std::string& data) {

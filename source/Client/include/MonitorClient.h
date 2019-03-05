@@ -13,7 +13,6 @@
 #include <libconfig.h++>
 
 #include <memory>
-#include <boost/noncopyable.hpp>
 
 #include "EventTypes.h"
 
@@ -25,13 +24,16 @@ typedef void(* CP_log_store_func_t)(int priority, const char *format, ...);
 // 为什么不直接使用单例？单例用起来是在太臭了
 namespace tzmonitor_client {
 
-class MonitorClient: public boost::noncopyable,
-                     public std::enable_shared_from_this<MonitorClient> {
+class MonitorClient: public std::enable_shared_from_this<MonitorClient> {
 public:
     explicit MonitorClient(std::string entity_idx = "");
     MonitorClient(std::string service, std::string entity_idx = "");
 
     ~MonitorClient();
+
+    // 禁止拷贝
+    MonitorClient(const MonitorClient&) = delete;
+    MonitorClient& operator=(const MonitorClient&) = delete;
 
     bool init(const std::string& cfgFile, CP_log_store_func_t log_func);
     bool init(const libconfig::Setting& setting, CP_log_store_func_t log_func);

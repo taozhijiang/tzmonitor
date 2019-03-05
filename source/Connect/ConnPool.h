@@ -36,8 +36,7 @@ public:
 };
 
 template <typename T, typename Helper>
-class ConnPool: public boost::noncopyable,
-                public std::enable_shared_from_this<ConnPool<T, Helper> >
+class ConnPool: public std::enable_shared_from_this<ConnPool<T, Helper> >
 {
 public:
     typedef std::shared_ptr<T> ConnPtr;
@@ -55,6 +54,14 @@ public:
         log_info( "ConnPool Maxium Capacity: %lu", capacity_ );
         return;
     }
+
+    virtual ~ConnPool() {
+    }
+
+    // 禁止拷贝
+    ConnPool(const ConnPool&) = delete;
+    ConnPool& operator=(const ConnPool&) = delete;
+
 
     bool init() {
         return true;
@@ -137,9 +144,6 @@ public:
 
     size_t get_conn_capacity() const {
         return capacity_;
-    }
-
-    ~ConnPool() {
     }
 
 private:
