@@ -9,7 +9,7 @@
 #ifndef _CONNECT_POOL_H_
 #define _CONNECT_POOL_H_
 
-#include <xtra_rhel6.h>
+#include <xtra_rhel.h>
 
 #include <set>
 #include <deque>

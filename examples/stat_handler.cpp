@@ -103,7 +103,7 @@ void IndexStatHandler::print_head() override {
 int IndexStatHandler::print_items() override {
 
     auto reporter = std::make_shared<tzmonitor_client::MonitorClient>();
-    if (!reporter || !reporter ->init("tzmonitor.conf", ::syslog)) {
+    if (!reporter || !reporter ->init()) {
         tzhttpd_log_err("init client failed.");
         return -1;
     }
@@ -303,7 +303,7 @@ int EventStatHandler::print_items() override {
     event_select_t result {};
 
     auto reporter = std::make_shared<tzmonitor_client::MonitorClient>();
-    if (!reporter || !reporter ->init("tzmonitor.conf", ::syslog)) {
+    if (!reporter || !reporter ->init()) {
         tzhttpd_log_err("init client failed.");
         return -1;
     }

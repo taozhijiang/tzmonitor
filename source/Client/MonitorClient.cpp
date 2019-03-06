@@ -13,7 +13,7 @@
 
 // 客户端使用，尽量减少依赖的库
 
-#include <xtra_rhel6.h>
+#include <xtra_rhel.h>
 
 #include <unistd.h>
 
@@ -60,6 +60,7 @@ class MonitorClientImpl {
 
 private:
 
+    bool init();
     bool init(const std::string& cfgFile, CP_log_store_func_t log_func);
     bool init(const libconfig::Setting& setting, CP_log_store_func_t log_func);
     bool init(const std::string& service, const std::string& entity_idx,
@@ -134,7 +135,9 @@ private:
         already_initialized_(false),
         monitor_addr_(),
         monitor_port_(),
-        conf_() {
+        conf_(),
+        cfgFile_(),
+        log_func_(NULL) {
     }
 
     ~MonitorClientImpl() {}
@@ -174,6 +177,9 @@ private:
     uint16_t    monitor_port_;
 
     MonitorClientConf conf_;
+
+    std::string cfgFile_;
+    CP_log_store_func_t log_func_;
 };
 
 
@@ -188,13 +194,15 @@ bool MonitorClientImpl::init(const std::string& cfgFile, CP_log_store_func_t log
 
     libconfig::Config cfg;
     try {
+
+        cfgFile_ = cfgFile;
         cfg.readFile(cfgFile.c_str());
 
         const libconfig::Setting& setting = cfg.lookup("rpc.monitor_client");
         return init(setting, log_func);
 
     } catch(libconfig::FileIOException &fioex) {
-        log_err("I/O error while reading file.");
+        log_err("I/O error while reading file: %s", cfgFile.c_str());
         return false;
     } catch(libconfig::ParseException &pex) {
         log_err("Parse error at %d - %s", pex.getLine(), pex.getError());
@@ -205,6 +213,17 @@ bool MonitorClientImpl::init(const std::string& cfgFile, CP_log_store_func_t log
 
     return false;
 }
+
+bool MonitorClientImpl::init() {
+
+    if (cfgFile_.empty()) {
+        log_err("cfgFile_ not initialized...");
+        return false;
+    }
+
+    return init(cfgFile_, log_func_);
+}
+
 
 bool MonitorClientImpl::init(const libconfig::Setting& setting, CP_log_store_func_t log_func) {
 
@@ -620,6 +639,9 @@ MonitorClient::MonitorClient(std::string service, std::string entity_idx){
 
 MonitorClient::~MonitorClient(){}
 
+bool MonitorClient::init() {
+    return MonitorClientImpl::instance().init();
+}
 
 bool MonitorClient::init(const std::string& cfgFile, CP_log_store_func_t log_func) {
     return MonitorClientImpl::instance().init(cfgFile, log_func);

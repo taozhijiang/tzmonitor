@@ -35,6 +35,8 @@ public:
     MonitorClient(const MonitorClient&) = delete;
     MonitorClient& operator=(const MonitorClient&) = delete;
 
+    // 用存量的cfg进行更新，必须确保cfgFile_已经初始化了
+    bool init();
     bool init(const std::string& cfgFile, CP_log_store_func_t log_func);
     bool init(const libconfig::Setting& setting, CP_log_store_func_t log_func);
     bool init(const std::string& addr, uint16_t port, CP_log_store_func_t log_func);  // 简易，使用默认参数

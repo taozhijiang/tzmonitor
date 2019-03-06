@@ -9,7 +9,7 @@
 #ifndef __PROTOCOL_MONITOR_TASK_SERVICE_H__
 #define __PROTOCOL_MONITOR_TASK_SERVICE_H__
 
-#include <xtra_rhel6.h>
+#include <xtra_rhel.h>
 
 #include <RPC/Service.h>
 

@@ -7,7 +7,7 @@
 
 #include <algorithm>
 
-#include <xtra_rhel6.h>
+#include <xtra_rhel.h>
 #include <functional>
 
 #include <Utils/Log.h>
