@@ -114,8 +114,8 @@ public:
     }
 
 private:
-    virtual void print_head();
-    virtual int print_items();
+    virtual void print_head() override;
+    virtual int print_items() override;
 };
 
 class EventStatHandler: public StatHandler {
@@ -126,8 +126,8 @@ public:
     }
 
 private:
-    virtual void print_head();
-    virtual int print_items();
+    virtual void print_head() override;
+    virtual int print_items() override;
 
 private:
     event_cond_t cond_;

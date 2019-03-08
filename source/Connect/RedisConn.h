@@ -48,7 +48,7 @@ public:
     }
 
     virtual ~RedisConn(){
-        log_info("Destroy Sql Connection OK!");
+        log_info("Destroy Redis Connection OK!");
     }
 
     // 禁止拷贝
@@ -56,6 +56,9 @@ public:
     RedisConn& operator=(const RedisConn&) = delete;
 
     bool init(int64_t conn_uuid);
+    bool ping_test() {
+        return true;
+    }
     bool is_health() {
         return isValid();
     }
@@ -189,6 +192,7 @@ private:
     // may be used in future
     ConnPool<RedisConn, RedisConnPoolHelper>& pool_;
     const RedisConnPoolHelper helper_;
+    int64_t conn_uuid_;
 };
 
 

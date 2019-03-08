@@ -24,7 +24,7 @@ using namespace tzrpc;
 
 static std::shared_ptr<leveldb::DB> NULLPTR_HANDLER;
 
-bool StoreLevelDB::init(const libconfig::Config& conf) override {
+bool StoreLevelDB::init(const libconfig::Config& conf) {
 
     if (!conf.lookupValue("rpc.business.leveldb.filepath", filepath_) ||
         !conf.lookupValue("rpc.business.leveldb.table_prefix", table_prefix_) ||
@@ -134,7 +134,7 @@ do_create:
 }
 
 
-int StoreLevelDB::insert_ev_stat(const event_insert_t& stat) override {
+int StoreLevelDB::insert_ev_stat(const event_insert_t& stat) {
 
     if (stat.service.empty() || stat.metric.empty() || stat.timestamp == 0) {
         log_err("error check error!");
@@ -631,7 +631,7 @@ int StoreLevelDB::select_ev_stat_by_none(const event_cond_t& cond, event_select_
 
 
 // group summary
-int StoreLevelDB::select_ev_stat(const event_cond_t& cond, event_select_t& stat, time_t linger_hint) override {
+int StoreLevelDB::select_ev_stat(const event_cond_t& cond, event_select_t& stat, time_t linger_hint) {
 
     if (cond.service.empty()) {
         log_err("error check error!");

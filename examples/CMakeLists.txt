@@ -33,7 +33,7 @@ add_executable( http_face stat_handler.cpp http_face.cpp )
 
 set (EXTRA_LIBS MonitorClient )
 
-set (EXTRA_LIBS ${EXTRA_LIBS} ssl config++)
+set (EXTRA_LIBS ${EXTRA_LIBS} ssl crypto config++)
 set (EXTRA_LIBS ${EXTRA_LIBS} pthread)
 set (EXTRA_LIBS ${EXTRA_LIBS} boost_system boost_thread boost_chrono boost_regex)
 set (EXTRA_LIBS ${EXTRA_LIBS} protoc protobuf )

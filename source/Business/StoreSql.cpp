@@ -13,7 +13,7 @@
 
 using namespace tzrpc;
 
-bool StoreSql::init(const libconfig::Config& conf) override {
+bool StoreSql::init(const libconfig::Config& conf) {
 
 
     std::string mysql_hostname;
@@ -106,7 +106,7 @@ int StoreSql::create_table(sql_conn_ptr& conn,
     return 0;
 }
 
-int StoreSql::insert_ev_stat(const event_insert_t& stat) override {
+int StoreSql::insert_ev_stat(const event_insert_t& stat) {
 
     sql_conn_ptr conn;
     sql_pool_ptr_->request_scoped_conn(conn);
@@ -212,7 +212,7 @@ std::string StoreSql::build_sql(const event_cond_t& cond, time_t linger_hint, ti
 
 
 // group summary
-int StoreSql::select_ev_stat(const event_cond_t& cond, event_select_t& stat, time_t linger_hint) override {
+int StoreSql::select_ev_stat(const event_cond_t& cond, event_select_t& stat, time_t linger_hint) {
     sql_conn_ptr conn;
     sql_pool_ptr_->request_scoped_conn(conn);
     if (!conn) {

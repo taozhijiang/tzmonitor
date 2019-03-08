@@ -46,7 +46,8 @@ public:
 public:
     explicit ConnPool(std::string pool_name, size_t capacity, Helper helper):
         pool_name_(pool_name), capacity_(capacity),
-        helper_(helper), conns_busy_(), conns_idle_(),
+        helper_(helper),
+        conns_busy_(), conns_idle_(),
         conn_notify_(), conn_notify_mutex_(),
         acquired_count_(0), acquired_ok_count_(0) {
 
@@ -56,6 +57,8 @@ public:
     }
 
     virtual ~ConnPool() {
+        log_info("ConnPool Destructed, name: %s, capacity: %lu",
+                 pool_name_.c_str(), capacity_);
     }
 
     // 禁止拷贝
@@ -63,7 +66,21 @@ public:
     ConnPool& operator=(const ConnPool&) = delete;
 
 
+    // 增加连接类型的测试，保证在服务启动最开始的时候
+    // 就能够侦测出配置、连接的异常情况
     bool init() {
+
+        ConnPtr scoped_ptr {};
+        if (!request_scoped_conn(scoped_ptr)) {
+            log_err("initialized request scoped test failed.");
+            return false;
+        }
+
+        if (scoped_ptr->ping_test()) {
+            log_err("initialized ping test failed.");
+            return false;
+        }
+
         return true;
     }
 
@@ -113,7 +130,6 @@ public:
             scope_conn.reset(conn.get(),
                              std::bind(&ConnPool::free_conn,
                              this, conn)); // 还是通过智能指针拷贝一份吧
-            // log_debug("Request guard connection: %ld", scope_conn->get_uuid());
             return true;
         }
 
@@ -133,8 +149,6 @@ public:
             }
 
             conns_busy_.erase(conn);
-
-            // log_debug("Freeing %ld conn", conn->get_uuid());
         }
 
         conn_notify_.notify_all();
@@ -148,6 +162,7 @@ public:
 
 private:
 
+    // 持锁被调用的
     ConnPtr do_request_conn() {
 
         ConnPtr conn;
@@ -192,8 +207,10 @@ private:
     size_t capacity_;       // 总连接数据限制
 
 
+    // 各种连接类型的配置信息会放在这个模板类型中
     const Helper helper_;
 
+    // 正在被使用的连接
     std::set<ConnPtr, conn_ptr_compare<T> > conns_busy_;
     std::deque<ConnPtr> conns_idle_;
 
@@ -203,8 +220,10 @@ private:
     std::mutex conn_notify_mutex_;
 
     // 状态和统计，下面这些变量都是用上面的mutex保护
-    uint64_t acquired_count_;   // 总请求计数
+    uint64_t acquired_count_;    // 总请求计数
     uint64_t acquired_ok_count_; // 成功获取计数
+
+    time_t conn_trim_linger_;    // 连接闲置该时长之后会被自动删除
 
 };
 

@@ -105,12 +105,12 @@ bool MonitorTaskService::handle_rpc_service_conf(const libconfig::Setting& setti
 
 
 
-ExecutorConf MonitorTaskService::get_executor_conf() override {
+ExecutorConf MonitorTaskService::get_executor_conf() {
     SAFE_ASSERT(conf_ptr_);
     return conf_ptr_->executor_conf_;
 }
 
-int MonitorTaskService::module_runtime(const libconfig::Config& conf) override {
+int MonitorTaskService::module_runtime(const libconfig::Config& conf) {
 
     try
     {
@@ -156,7 +156,7 @@ bool MonitorTaskService::handle_rpc_service_runtime_conf(const libconfig::Settin
     return 0;
 }
 
-int MonitorTaskService::module_status(std::string& strModule, std::string& strKey, std::string& strValue) override {
+int MonitorTaskService::module_status(std::string& strModule, std::string& strKey, std::string& strValue) {
 
     // empty status ...
 
@@ -164,7 +164,7 @@ int MonitorTaskService::module_status(std::string& strModule, std::string& strKe
 }
 
 
-void MonitorTaskService::handle_RPC(std::shared_ptr<RpcInstance> rpc_instance) override {
+void MonitorTaskService::handle_RPC(std::shared_ptr<RpcInstance> rpc_instance) {
 
     using MonitorTask::OpCode;
 

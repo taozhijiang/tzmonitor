@@ -159,6 +159,9 @@ public:
     SqlConn& operator=(const SqlConn&) = delete;
 
     bool init(int64_t conn_uuid);
+    bool ping_test() {
+        return true;
+    }
     bool is_health() {
         return (conn_ && conn_->isValid());
     }
@@ -189,6 +192,7 @@ private:
     // may be used in future
     ConnPool<SqlConn, SqlConnPoolHelper>& pool_;
     const SqlConnPoolHelper helper_;
+    int64_t conn_uuid_;
 };
 
 

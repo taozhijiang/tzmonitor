@@ -41,7 +41,7 @@ struct leveldb_internal_layout_t {
 
     std::string dump() const {
         char msg[128] {};
-        snprintf(msg, sizeof(msg), "leveldb: %c,step:%d,count:%d,sum:%ld,avg:%d.min:%d,max:%d,p10:%d,p50%d,p90%",
+        snprintf(msg, sizeof(msg), "leveldb: %c,step:%d,count:%d,sum:%ld,avg:%d.min:%d,max:%d,p10:%d,p50%d,p90%d",
                  d, step, count, sum, avg, min, max, p10, p50, p90);
         return msg;
     }
@@ -83,13 +83,13 @@ public:
 
 public:
 
-    bool init(const libconfig::Config& conf);
+    bool init(const libconfig::Config& conf) override;
 
-    int insert_ev_stat(const event_insert_t& stat);
-    int select_ev_stat(const event_cond_t& cond, event_select_t& stat, time_t linger_hint);
+    int insert_ev_stat(const event_insert_t& stat) override;
+    int select_ev_stat(const event_cond_t& cond, event_select_t& stat, time_t linger_hint) override;
 
-    int select_metrics(const std::string& service, std::vector<std::string>& metrics);
-    int select_services(std::vector<std::string>& services);
+    int select_metrics(const std::string& service, std::vector<std::string>& metrics) override;
+    int select_services(std::vector<std::string>& services) override;
 
 private:
 

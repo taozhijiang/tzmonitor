@@ -222,7 +222,7 @@ int EventHandler::do_add_event(time_t ev_time, const std::vector<event_data_t>& 
         auto metric_iter = timed_slot.find(iter->metric);
         if (metric_iter == timed_slot.end()) {
             log_debug("create new metric %s at time_slot: %ld in %s",
-                      iter->metric.c_str(), ev_time, service_.c_str(), ev_time);
+                      iter->metric.c_str(), ev_time, service_.c_str());
 
             timed_slot[iter->metric] = std::vector<event_data_t>();
             metric_iter = timed_slot.find(iter->metric);

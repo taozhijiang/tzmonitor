@@ -61,7 +61,8 @@ bool SqlConn::init(int64_t conn_uuid) {
     }
 
     stmt_->execute("USE " + helper_.db_ + ";");
-    log_info("Create New Connection OK!");
+    conn_uuid_ = conn_uuid;
+    log_info("Create New SQL Connection OK! UUID: %lx", conn_uuid);
     return true;
 }
 

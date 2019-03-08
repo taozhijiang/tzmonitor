@@ -109,6 +109,8 @@ bool RedisConn::init(int64_t conn_uuid) {
         }
     }
 
+    conn_uuid_ = conn_uuid;
+    log_info("Create New Redis Connection OK! UUID: %lx", conn_uuid);
     return true;
 }
 

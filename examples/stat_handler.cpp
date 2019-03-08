@@ -83,7 +83,7 @@ int stats_http_get_handler(const HttpParser& http_parser,
 
 // paybank submitstat
 
-void IndexStatHandler::print_head() override {
+void IndexStatHandler::print_head() {
 
     ss_ << "<h3 align=\"center\">" << "tzmonitor监控系统使用手册" << "</h2>" << std::endl;
 
@@ -100,7 +100,7 @@ void IndexStatHandler::print_head() override {
     ss_ << "</tr>" << std::endl;
 }
 
-int IndexStatHandler::print_items() override {
+int IndexStatHandler::print_items() {
 
     auto reporter = std::make_shared<tzmonitor_client::MonitorClient>();
     if (!reporter || !reporter ->init()) {
@@ -193,7 +193,7 @@ static inline std::string time_to_datetime(const time_t& tt) {
 
 // all kinds stat
 
-void EventStatHandler::print_head() override {
+void EventStatHandler::print_head() {
 
     // required
     std::string value;
@@ -296,7 +296,7 @@ static std::string build_record(size_t idx, const event_info_t& info) {
     return ss.str();
 }
 
-int EventStatHandler::print_items() override {
+int EventStatHandler::print_items() {
 
     size_t idx = 0;
     cond_.groupby = GroupType::kGroupbyTag;
