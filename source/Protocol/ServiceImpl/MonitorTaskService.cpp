@@ -230,14 +230,30 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
             cond.entity_idx = request.select().entity_idx();
             cond.tag = request.select().tag();
 
-            std::string groupby = request.select().groupby();
-            if (groupby == "tag") {
-                cond.groupby = GroupType::kGroupbyTag;
-            } else if(groupby == "timestamp") {
-                cond.groupby = GroupType::kGroupbyTimestamp;
-            } else {
-                cond.groupby = GroupType::kGroupNone;
+            if (request.select().groupby() < 0 || request.select().groupby() >= static_cast<int32_t>(GroupType::kGroupbyBoundary)) {
+                log_err("invalid groupby param: %d", request.select().groupby());
+                response.set_code(-1);
+                response.set_desc("invalid groupby param.");
+                break;
             }
+            cond.groupby = static_cast<enum GroupType>(request.select().groupby());
+
+            if (request.select().orderby() < 0 || request.select().orderby() >= static_cast<int32_t>(OrderByType::kOrderByBoundary)) {
+                log_err("invalid orderby param: %d", request.select().orderby());
+                response.set_code(-1);
+                response.set_desc("invalid orderby param.");
+                break;
+            }
+            cond.orderby = static_cast<enum OrderByType>(request.select().orderby());
+
+            if (request.select().orders() < 0 || request.select().orders() >= static_cast<int32_t>(OrderType::kOrderBoundary)) {
+                log_err("invalid orders param: %d", request.select().orders());
+                response.set_code(-1);
+                response.set_desc("invalid orders param.");
+                break;
+            }
+            cond.orders = static_cast<enum OrderType>(request.select().orders());
+
 
             event_select_t stat {};
             int ret = EventRepos::instance().get_event(cond, stat);

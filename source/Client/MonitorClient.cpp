@@ -32,6 +32,8 @@
 
 #include <Client/LogClient.h>
 
+#include <Business/Sort.h>
+
 namespace tzmonitor_client {
 
 
@@ -523,13 +525,24 @@ int MonitorClientImpl::select_stat(event_cond_t& cond, event_select_t& stat) {
         cond.service = service_;
     }
     auto code = client_agent_->rpc_event_select(cond, stat);
-    if (code == 0) {
-        log_debug("event select ok.");
-        return 0;
+    if (code != 0) {
+        log_err("event select return code: %d", code);
+        return code;
     }
 
-    log_err("event select return code: %d", code);
-    return code;
+    // 是否进行排序
+    if (cond.orderby != OrderByType::kOrderByNone &&
+        cond.limit == 0 &&
+        !stat.info.empty() )
+    {
+        log_debug("we will order result set manualy, groupby: %d, orderby: %d",
+                  cond.groupby, cond.orderby);
+
+        Sort::do_sort(stat.info, cond.orderby, cond.orders);
+    }
+
+    log_debug("event select ok.");
+    return 0;
 }
 
 
@@ -802,6 +815,101 @@ int MonitorClient::select_stat_groupby_time(const std::string& metric, const std
     return MonitorClientImpl::instance().select_stat(cond, stat);
 }
 
+
+int MonitorClient::select_stat_groupby_tag_ordered (const std::string& metric, const order_cond_t& order,
+                                                    event_select_t& stat, time_t tm_intervel) {
+
+    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
+        log_err("MonitorClientImpl not initialized...");
+        return -1;
+    }
+
+    // more param check add later
+
+    // timestamp, tag, count, sum, avg, min, max, p10, p50, p90
+    if (order.limit_ < 0 ) {
+        log_err("invalid param: %d", order.limit_);
+        return -1;
+    }
+
+    event_cond_t cond {};
+
+    cond.version =  "1.0.0";
+    cond.metric = metric;
+    cond.tm_interval = tm_intervel;
+    cond.groupby = GroupType::kGroupbyTag;
+
+    cond.orderby = order.orderby_;
+    cond.orders = order.orders_;
+    cond.limit = order.limit_;
+
+    return MonitorClientImpl::instance().select_stat(cond, stat);
+}
+
+int MonitorClient::select_stat_groupby_time_ordered(const std::string& metric, const order_cond_t& order,
+                                                    event_select_t& stat, time_t tm_intervel) {
+
+    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
+        log_err("MonitorClientImpl not initialized...");
+        return -1;
+    }
+
+
+    // more param check add later
+
+    // timestamp, tag, count, sum, avg, min, max, p10, p50, p90
+    if (order.limit_ < 0 ) {
+        log_err("invalid param: %d", order.limit_);
+        return -1;
+    }
+
+
+    event_cond_t cond {};
+
+    cond.version =  "1.0.0";
+    cond.metric = metric;
+    cond.tm_interval = tm_intervel;
+    cond.groupby = GroupType::kGroupbyTimestamp;
+
+    cond.orderby = order.orderby_;
+    cond.orders = order.orders_;
+    cond.limit = order.limit_;
+
+    return MonitorClientImpl::instance().select_stat(cond, stat);
+}
+
+int MonitorClient::select_stat_groupby_time_ordered(const std::string& metric, const std::string& tag,
+                                                    const order_cond_t& order, event_select_t& stat, time_t tm_intervel) {
+
+    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
+        log_err("MonitorClientImpl not initialized...");
+        return -1;
+    }
+
+
+    // more param check add later
+
+    // timestamp, tag, count, sum, avg, min, max, p10, p50, p90
+    if (order.limit_ < 0 ) {
+        log_err("invalid param: %d", order.limit_);
+        return -1;
+    }
+
+
+    event_cond_t cond {};
+
+    cond.version =  "1.0.0";
+    cond.metric = metric;
+    cond.tag = tag;
+    cond.tm_interval = tm_intervel;
+    cond.groupby = GroupType::kGroupbyTimestamp;
+
+    cond.orderby = order.orderby_;
+    cond.orders = order.orders_;
+    cond.limit = order.limit_;
+
+    return MonitorClientImpl::instance().select_stat(cond, stat);
+}
 
 int MonitorClient::known_metrics(event_handler_conf_t& handler_conf, std::vector<std::string>& metrics, std::string service) {
 

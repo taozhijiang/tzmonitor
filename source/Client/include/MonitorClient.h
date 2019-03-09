@@ -24,6 +24,18 @@ typedef void(* CP_log_store_func_t)(int priority, const char *format, ...);
 // 为什么不直接使用单例？单例用起来是在太臭了
 namespace tzmonitor_client {
 
+struct order_cond_t {
+    enum OrderByType orderby_;
+    enum OrderType   orders_;
+    int32_t          limit_;   // 限制返回排序后记录的条数
+
+    order_cond_t(enum OrderByType btp, enum OrderType tp = OrderType::kOrderDesc, int32_t limit = 0):
+        orderby_(btp),
+        orders_(tp),
+        limit_(limit) {
+    }
+};
+
 class MonitorClient: public std::enable_shared_from_this<MonitorClient> {
 public:
     explicit MonitorClient(std::string entity_idx = "");
@@ -55,6 +67,11 @@ public:
     int select_stat_groupby_tag (const std::string& metric, event_select_t& stat, time_t tm_intervel = 60);
     int select_stat_groupby_time(const std::string& metric, event_select_t& stat, time_t tm_intervel = 60);
     int select_stat_groupby_time(const std::string& metric, const std::string& tag, event_select_t& stat, time_t tm_intervel = 60);
+
+    int select_stat_groupby_tag_ordered (const std::string& metric, const order_cond_t& order, event_select_t& stat, time_t tm_intervel = 60);
+    int select_stat_groupby_time_ordered(const std::string& metric, const order_cond_t& order, event_select_t& stat, time_t tm_intervel = 60);
+    int select_stat_groupby_time_ordered(const std::string& metric, const std::string& tag,
+                                         const order_cond_t& order, event_select_t& stat, time_t tm_intervel = 60);
 
     // 最底层的接口，可以做更加精细化的查询
     int select_stat(event_cond_t& cond, event_select_t& stat);

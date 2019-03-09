@@ -18,6 +18,7 @@
 
 #include <Utils/Log.h>
 
+#include <Business/Sort.h>
 #include <Business/StoreLevelDB.h>
 
 using namespace tzrpc;
@@ -652,17 +653,29 @@ int StoreLevelDB::select_ev_stat(const event_cond_t& cond, event_select_t& stat,
     stat.entity_idx = cond.entity_idx;
     stat.tag = cond.tag;
 
+    int ret = 0;
     if (cond.groupby == GroupType::kGroupbyTimestamp) {
-        return select_ev_stat_by_timestamp(cond, stat, linger_hint);
+        ret = select_ev_stat_by_timestamp(cond, stat, linger_hint);
     }
     else if (cond.groupby == GroupType::kGroupbyTag) {
-        return select_ev_stat_by_tag(cond, stat, linger_hint);
+        ret = select_ev_stat_by_tag(cond, stat, linger_hint);
     }
     else {
         return select_ev_stat_by_none(cond, stat, linger_hint);
     }
 
-    return -1;
+    if (cond.orderby == OrderByType::kOrderByNone || cond.limit != 0) {
+        log_debug("order by %d, orders %d, limit %d, we will not sort in server side",
+                  static_cast<int32_t>(cond.orderby), static_cast<int32_t>(cond.orders), cond.limit);
+        return ret;
+    }
+
+    Sort::do_sort(stat.info, cond.orderby, cond.orders);
+    if (stat.info.size() > cond.limit) {
+        stat.info.erase(stat.info.begin() + cond.limit, stat.info.end());
+    }
+
+    return ret;
 }
 
 

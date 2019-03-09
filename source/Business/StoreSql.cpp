@@ -9,6 +9,7 @@
 
 #include <Utils/Log.h>
 
+#include <Business/Sort.h>
 #include <Business/StoreSql.h>
 
 using namespace tzrpc;
@@ -317,8 +318,20 @@ int StoreSql::select_ev_stat(sql_conn_ptr& conn, const event_cond_t& cond, event
         stat.summary.value_max = 0;
     }
 
-    if(cond.groupby == GroupType::kGroupNone) {
+    if (cond.groupby == GroupType::kGroupNone) {
         stat.info.clear();
+        return 0;
+    }
+
+    if (cond.orderby == OrderByType::kOrderByNone || cond.limit != 0) {
+        log_debug("order by %d, orders %d, limit %d, we will not sort in server side",
+                  static_cast<int32_t>(cond.orderby), static_cast<int32_t>(cond.orders), cond.limit);
+        return 0;
+    }
+
+    Sort::do_sort(stat.info, cond.orderby, cond.orders);
+    if (stat.info.size() > cond.limit) {
+        stat.info.erase(stat.info.begin() + cond.limit, stat.info.end());
     }
 
     return 0;
