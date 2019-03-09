@@ -41,7 +41,7 @@ public:
 
 typedef std::shared_ptr<redisReply> redisReply_ptr;
 
-class RedisConn {
+class RedisConn: public ConnStat {
 public:
     explicit RedisConn(ConnPool<RedisConn, RedisConnPoolHelper>& pool, const RedisConnPoolHelper& helper):
         pool_(pool), helper_(helper) {

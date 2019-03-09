@@ -149,7 +149,7 @@ inline int rs_is_null(shared_result_ptr result, const uint32_t idx) {
     return -1;
 }
 
-class SqlConn {
+class SqlConn: public ConnStat {
 public:
     explicit SqlConn(ConnPool<SqlConn, SqlConnPoolHelper>& pool, const SqlConnPoolHelper& helper);
     virtual ~SqlConn();
