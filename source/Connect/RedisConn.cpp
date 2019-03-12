@@ -114,6 +114,31 @@ bool RedisConn::init(int64_t conn_uuid) {
     return true;
 }
 
+bool RedisConn::ping_test() {
+    ::srand(::time(NULL));
+
+    std::string redis_test_key = "__internal_test_key_at_initialize";
+    int64_t redis_test_value = ::random();
+    int64_t redis_test_get   = 0;
+
+    if (!Set(redis_test_key, redis_test_value, 10 /*10s*/)) {
+        log_err("Set %s:%ld failed.", redis_test_key.c_str(), redis_test_value);
+        return false;
+    }
+
+    if (!Get(redis_test_key, redis_test_get)) {
+        log_err("Get %s failed.", redis_test_key.c_str());
+        return false;
+    }
+
+    if (redis_test_value != redis_test_get) {
+        log_err("set and get value mismatch, %ld - %ld", redis_test_value, redis_test_get);
+        return false;
+    }
+
+    return true;
+}
+
 // 尽可能过滤通用的错误情况
 // 错误情况下reply直接返回空信息
 redisReply_ptr RedisConn::Exec(const char *fmt, ...) {

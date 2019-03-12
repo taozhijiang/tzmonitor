@@ -102,6 +102,7 @@ private:
         io_service_.run(ec);
 
         log_notice("io_service thread terminated ...");
+        log_notice("error_code: {%d} %s", ec.value(), ec.message().c_str());
     }
 
 };

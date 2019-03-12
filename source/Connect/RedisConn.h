@@ -56,9 +56,8 @@ public:
     RedisConn& operator=(const RedisConn&) = delete;
 
     bool init(int64_t conn_uuid);
-    bool ping_test() {
-        return true;
-    }
+    bool ping_test();
+
     bool is_health() {
         return isValid();
     }

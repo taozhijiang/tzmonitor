@@ -85,7 +85,7 @@ int stats_http_get_handler(const HttpParser& http_parser,
 
 void IndexStatHandler::print_head() {
 
-    ss_ << "<h3 align=\"center\">" << "tzmonitor监控系统使用手册" << "</h2>" << std::endl;
+    ss_ << "<h3 align=\"center\">" << "tzmonitor监控系统使用手册" << "</h3>" << std::endl;
 
     ss_ << "<tr style=\"font-weight:bold; font-style:italic;\">" << std::endl;
 
@@ -94,8 +94,6 @@ void IndexStatHandler::print_head() {
     ss_ << "<td>" << "访问 B" << "</td>" << std::endl;
     ss_ << "<td>" << "访问 C" << "</td>" << std::endl;
     ss_ << "<td>" << "访问 D" << "</td>" << std::endl;
-    ss_ << "<td>" << "访问 E" << "</td>" << std::endl;
-    ss_ << "<td>" << "访问 F" << "</td>" << std::endl;
 
     ss_ << "</tr>" << std::endl;
 }
@@ -146,23 +144,19 @@ int IndexStatHandler::print_items() {
         snprintf(buff, sizeof(buff), "st:%d,lg:%d,sr:%s", service_handler_confs[name].event_step_,
                  service_handler_confs[name].event_linger_, service_handler_confs[name].store_type_.c_str());
 
-        ss_ << "<tr><td>" << i << ". " << name << "</td></tr>" << std::endl;
-        ss_ << "<tr><td>" << buff << "</td></tr>" << std::endl;
+        ss_ << "<tr><td>" << name << "</td>" << std::endl;
+        ss_ <<     "<td>" << buff << "</td></tr>" << std::endl;
 
         for(size_t j=0; j<metrics.size(); ++j) {
             ss_ << "<tr>" << std::endl;
             ss_ << "<td> </td>" << std::endl;
-            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=60\">%s[by 1min]</a></td>",
+            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=60\">%s 1min</a></td>",
                               name.c_str(), metrics[j].c_str(), metrics[j].c_str()) << std::endl;
-            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=120\">%s[by 2min]</a></td>",
+            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=600\">%s 10min</a></td>",
                               name.c_str(), metrics[j].c_str(), metrics[j].c_str()) << std::endl;
-            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=600\">%s[by 10min]</a></td>",
+            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=3600\">%s 1hour</a></td>",
                               name.c_str(), metrics[j].c_str(), metrics[j].c_str()) << std::endl;
-            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=1800\">%s[by 30min]</a></td>",
-                              name.c_str(), metrics[j].c_str(), metrics[j].c_str()) << std::endl;
-            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=3600\">%s[by 1hour]</a></td>",
-                              name.c_str(), metrics[j].c_str(), metrics[j].c_str()) << std::endl;
-            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=86400\">%s[by 1day]</a></td>",
+            ss_ << str_format("<td>\t<a href=\"/monitor/stats?version=1.0.0&service=%s&metric=%s&tm_interval=86400\">%s 1day</a></td>",
                               name.c_str(), metrics[j].c_str(), metrics[j].c_str()) << std::endl;
             ss_ << "</tr>" << std::endl;
         }
