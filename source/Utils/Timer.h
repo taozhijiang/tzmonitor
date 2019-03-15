@@ -11,7 +11,6 @@
 #include <xtra_rhel.h>
 
 #include <boost/asio.hpp>
-#include <boost/thread.hpp>
 
 #include <boost/asio/steady_timer.hpp>
 using boost::asio::steady_timer;
@@ -38,34 +37,23 @@ public:
     }
 
     ~TimerObject() {
-        log_err("Good, Timer released...");
+        log_debug("Good, Timer released...");
     }
 
-    bool init() {
-        steady_timer_.reset(new steady_timer(io_service_));
-        if (!steady_timer_) {
-            return false;
-        }
 
-        steady_timer_->expires_from_now(milliseconds(timeout_));
-        steady_timer_->async_wait(
-                std::bind(&TimerObject::timer_run, shared_from_this(), std::placeholders::_1));
-        return true;
+    // 禁止拷贝
+    TimerObject(const TimerObject&) = delete;
+    TimerObject& operator=(const TimerObject&) = delete;
+
+
+    bool init();
+    bool cancel() {
+
+        return false;
     }
 
-    void timer_run(const boost::system::error_code& ec) {
-        if (func_) {
-            func_(ec);
-        } else {
-            log_err("critical, func not initialized");
-        }
-
-        if (forever_) {
-            steady_timer_->expires_from_now(milliseconds(timeout_));
-            steady_timer_->async_wait(
-                    std::bind(&TimerObject::timer_run, shared_from_this(), std::placeholders::_1));
-        }
-    }
+private:
+    void timer_run(const boost::system::error_code& ec);
 
 private:
     boost::asio::io_service& io_service_;
@@ -75,6 +63,10 @@ private:
     bool forever_;
 };
 
+
+
+// 注意，这里的Timer不持有任何TimerObject对象的智能指针，
+//      TimerObject完全是依靠shared_from_this()自持有的
 class Timer {
 
 public:
@@ -96,26 +88,11 @@ public:
         return  io_service_;
     }
 
-    bool add_timer(const TimerEventCallable& func, uint64_t msec, bool forever) {
-        std::shared_ptr<TimerObject> timer = std::make_shared<TimerObject>(io_service_, std::move(func), msec, forever);
-        if (!timer || !timer->init()) {
-            return false;
-        }
-        return true;
-    }
-
 
     // 增强版的定时器，返回TimerObject，可以控制定时器的取消
-    std::shared_ptr<TimerObject> add_better_timer(const TimerEventCallable& func, uint64_t msec, bool forever) {
-        std::shared_ptr<TimerObject> timer
-                = std::make_shared<TimerObject>(io_service_, std::move(func), msec, forever);
+    bool add_timer(const TimerEventCallable& func, uint64_t msec, bool forever);
+    std::shared_ptr<TimerObject> add_better_timer(const TimerEventCallable& func, uint64_t msec, bool forever);
 
-        if (!timer || !timer->init()) {
-            log_err("create and init timer failed.");
-            timer.reset();
-        }
-        return timer;
-    }
 
 private:
 
@@ -126,6 +103,7 @@ private:
     }
 
     ~Timer() {
+        io_service_.stop();
         work_guard_.reset();
     }
 
@@ -154,6 +132,7 @@ private:
         io_service_.run(ec);
 
         log_notice("Timer io_service thread terminated ...");
+        log_notice("error_code: {%d} %s", ec.value(), ec.message().c_str());
     }
 
 };
