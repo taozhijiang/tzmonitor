@@ -41,7 +41,7 @@ typedef struct std::shared_ptr<event_report_t> event_report_ptr_t;
 
 // 查询条件信息
 
-enum GroupType {
+enum class GroupType : uint8_t {
     kGroupNone = 0,
     kGroupbyTimestamp,
     kGroupbyTag,
@@ -49,7 +49,7 @@ enum GroupType {
     kGroupbyBoundary,
 };
 
-enum OrderByType {
+enum class OrderByType : uint8_t {
     kOrderByNone = 0,
     kOrderByTimestamp = 1,
     kOrderByTag = 2,
@@ -60,12 +60,12 @@ enum OrderByType {
     kOrderByMax = 7,
     kOrderByP10 = 8,
     kOrderByP50 = 9,
-    kOrderByP90 =10,
+    kOrderByP90 = 10,
 
     kOrderByBoundary,
 };
 
-enum OrderType {
+enum class OrderType : uint8_t {
     kOrderDesc = 0,
     kOrderAsc  = 1,
 
@@ -95,7 +95,7 @@ struct event_cond_t {
     enum OrderType   orders;  // desc[default], asc
     int32_t          limit;   // 限制返回排序后记录的条数
 
-    event_cond_t ():
+    event_cond_t() :
         version("1.0.0"),
         tm_interval(0),
         tm_start(0),

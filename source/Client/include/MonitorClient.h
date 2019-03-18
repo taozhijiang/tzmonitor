@@ -16,7 +16,7 @@
 
 #include "EventTypes.h"
 
-typedef void(* CP_log_store_func_t)(int priority, const char *format, ...);
+typedef void (* CP_log_store_func_t)(int priority, const char* format, ...);
 
 // 可以创建多个MonitorClient的客户端，但是后台实现只会使用
 // 一个单例来实现，否则产生的msgid会重复，导致消息被丢弃
@@ -29,14 +29,14 @@ struct order_cond_t {
     enum OrderType   orders_;
     int32_t          limit_;   // 限制返回排序后记录的条数
 
-    order_cond_t(enum OrderByType btp, enum OrderType tp = OrderType::kOrderDesc, int32_t limit = 0):
+    order_cond_t(enum OrderByType btp, enum OrderType tp = OrderType::kOrderDesc, int32_t limit = 0) :
         orderby_(btp),
         orders_(tp),
         limit_(limit) {
     }
 };
 
-class MonitorClient: public std::enable_shared_from_this<MonitorClient> {
+class MonitorClient : public std::enable_shared_from_this<MonitorClient> {
 public:
     explicit MonitorClient(std::string entity_idx = "");
     MonitorClient(std::string service, std::string entity_idx = "");
@@ -64,11 +64,11 @@ public:
     int select_stat(const std::string& metric, int64_t& count, int64_t& avg, time_t tm_intervel = 60);
     int select_stat(const std::string& metric, const std::string& tag, int64_t& count, int64_t& avg, time_t tm_intervel = 60);
 
-    int select_stat_groupby_tag (const std::string& metric, event_select_t& stat, time_t tm_intervel = 60);
+    int select_stat_groupby_tag(const std::string& metric, event_select_t& stat, time_t tm_intervel = 60);
     int select_stat_groupby_time(const std::string& metric, event_select_t& stat, time_t tm_intervel = 60);
     int select_stat_groupby_time(const std::string& metric, const std::string& tag, event_select_t& stat, time_t tm_intervel = 60);
 
-    int select_stat_groupby_tag_ordered (const std::string& metric, const order_cond_t& order, event_select_t& stat, time_t tm_intervel = 60);
+    int select_stat_groupby_tag_ordered(const std::string& metric, const order_cond_t& order, event_select_t& stat, time_t tm_intervel = 60);
     int select_stat_groupby_time_ordered(const std::string& metric, const order_cond_t& order, event_select_t& stat, time_t tm_intervel = 60);
     int select_stat_groupby_time_ordered(const std::string& metric, const std::string& tag,
                                          const order_cond_t& order, event_select_t& stat, time_t tm_intervel = 60);
