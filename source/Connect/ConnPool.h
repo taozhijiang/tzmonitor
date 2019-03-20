@@ -121,7 +121,7 @@ public:
             return false;
         }
 
-        if (scoped_ptr->ping_test()) {
+        if (!scoped_ptr->ping_test()) {
             log_err("initialized ping test failed.");
             return false;
         }
