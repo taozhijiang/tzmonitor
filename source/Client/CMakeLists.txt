@@ -7,9 +7,9 @@ include_directories( ${PROJECT_SOURCE_DIR}/include/
                      ${PROJECT_SOURCE_DIR}/source/Client/include )
 
 aux_source_directory(. DIR_LIB_SRCS)
-add_library (MonitorClient STATIC ${DIR_LIB_SRCS})
+add_library (HeraclesClient STATIC ${DIR_LIB_SRCS})
 
-install (TARGETS MonitorClient
+install (TARGETS HeraclesClient
             RUNTIME DESTINATION bin
             LIBRARY DESTINATION lib
             ARCHIVE DESTINATION lib/static )

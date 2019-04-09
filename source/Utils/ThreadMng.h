@@ -30,7 +30,7 @@ public:
     }
 
     ~ThreadGuard() {
-        log_debug("thread exit...");
+        printf("thread exit...");
         tgroup_.remove_thread(thread_);
     }
 
@@ -135,13 +135,13 @@ public:
 
     void modify_spawn_size(uint32_t nsize) {
         if (nsize == 0) {
-            log_err("invalid new max_spawn_task size: %u", nsize);
+            printf("invalid new max_spawn_task size: %u", nsize);
             return;
         }
 
         if (nsize != max_spawn_task_) {
-            log_notice("update ThreadMng task size from %u to %u",
-                       max_spawn_task_, nsize);
+            printf("update ThreadMng task size from %u to %u",
+                    max_spawn_task_, nsize);
             max_spawn_task_ = nsize;
         }
     }

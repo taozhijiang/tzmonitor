@@ -31,7 +31,7 @@ add_executable( startup startup.cpp)
 add_executable( fast_report fast_report.cpp)
 add_executable( http_face stat_handler.cpp http_face.cpp )
 
-set (EXTRA_LIBS MonitorClient )
+set (EXTRA_LIBS HeraclesClient )
 
 set (EXTRA_LIBS ${EXTRA_LIBS} ssl crypto config++)
 set (EXTRA_LIBS ${EXTRA_LIBS} pthread)

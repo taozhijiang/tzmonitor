@@ -2,9 +2,6 @@ cmake_minimum_required (VERSION 2.8.11)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x " )
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Woverloaded-virtual -Wpointer-arith -Wwrite-strings -Werror=format -march=native " )
 
-# 精简日志
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__FILENAME__=\"$(notdir $<)\" " )
-
 ####################
 ### 修改编译选项 ###
 
@@ -82,7 +79,7 @@ exec_program( "export BUILD_VAR=`git log -1 --pretty=%cd` && echo 'const char *b
 exec_program( "export BUILD_VAR=`git log -1 --pretty=\"%an %ae\"` && echo 'const char *build_commit_author = \"VCS: Author:' $BUILD_VAR '\";' >> build_version.cpp ")
 exec_program( "export BUILD_VAR=`date +%F` && echo 'const char *build_time = \"Build At:' $BUILD_VAR '\";' >> build_version.cpp ")
 
-add_executable( tzmonitor main.cpp setup.cpp build_version.cpp )
+add_executable( heracles main.cpp setup.cpp build_version.cpp )
 
 # ld iconv ?
 
@@ -97,7 +94,7 @@ set (EXTRA_LIBS ${EXTRA_LIBS} mysqlcppconn hiredis leveldb snappy)
 
 
 # 某些库需要静态全连接，否则主服务没使用但是so使用，会报符号没有找到
-target_link_libraries( tzmonitor -lrt -rdynamic -ldl
+target_link_libraries( heracles -lrt -rdynamic -ldl
     -Wl,--whole-archive ${WHOLE_LIBS} -Wl,--no-whole-archive
     ${EXTRA_LIBS}
 )
