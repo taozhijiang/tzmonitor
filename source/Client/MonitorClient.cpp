@@ -23,7 +23,6 @@
 #include <functional>
 
 #include <Utils/EQueue.h>
-#include <Utils/TinyTask.h>
 
 #include <Client/RpcClient.h>
 #include <Client/include/MonitorClient.h>
@@ -44,15 +43,10 @@ struct MonitorClientConf {
     int  report_queue_limit_;
     int  size_per_report_;
 
-    int  additional_report_step_size_;
-    int  support_report_task_size_;
-
     MonitorClientConf():
         report_enabled_(true),
         report_queue_limit_(0),
-        size_per_report_(5000),
-        additional_report_step_size_(10),
-        support_report_task_size_(5) {
+        size_per_report_(5000) {
     }
 } __attribute__ ((aligned (4)));
 
@@ -129,7 +123,6 @@ private:
         service_(service), entity_idx_(entity_idx),
         client_agent_(),
         thread_run_(),
-        task_helper_(),
         lock_(),
         msgid_(0), current_time_(0),
         current_slot_(),
@@ -155,11 +148,8 @@ private:
     std::shared_ptr<MonitorRpcClientHelper> client_agent_;
 
     // 默认开启一个提交，当发现待提交队列过长的时候，自动开辟future任务
-    std::shared_ptr<boost::thread> thread_run_;
+    std::shared_ptr<std::thread> thread_run_;
     void run();
-
-    std::shared_ptr<tzrpc::TinyTask> task_helper_;
-    void run_once_task(std::vector<event_report_ptr_t> reports);
 
 
     // used int report procedure
@@ -264,18 +254,6 @@ bool MonitorClientImpl::init(const libconfig::Setting& setting, CP_log_store_fun
         conf_.size_per_report_ = value_i;
     }
 
-    if (setting.lookupValue("additional_report_step_size", value_i) && value_i >= 0) {
-        log_notice("update additional_report_step_size from %d to %d",
-                   conf_.additional_report_step_size_, value_i );
-        conf_.additional_report_step_size_ = value_i;
-    }
-
-    if (setting.lookupValue("support_report_task_size", value_i) && value_i > 0) {
-        log_notice("update support_report_task_size from %d to %d",
-                   conf_.support_report_task_size_, value_i );
-        conf_.support_report_task_size_ = value_i;
-    }
-
     std::string service;
     std::string entity_idx;
     setting.lookupValue("service", service);
@@ -332,15 +310,9 @@ bool MonitorClientImpl::init(const std::string& service, const std::string& enti
         return false;
     }
 
-    thread_run_.reset(new boost::thread(std::bind(&MonitorClientImpl::run, this)));
+    thread_run_.reset(new std::thread(std::bind(&MonitorClientImpl::run, this)));
     if (!thread_run_){
         log_err("create run work thread failed! ");
-        return false;
-    }
-
-    task_helper_ = std::make_shared<tzrpc::TinyTask>(conf_.support_report_task_size_);
-    if (!task_helper_ || !task_helper_->init()){
-        log_err("create task_helper work thread failed! ");
         return false;
     }
 
@@ -380,12 +352,6 @@ int MonitorClientImpl::module_runtime(const libconfig::Config& conf) {
             conf_.size_per_report_ = value_i;
         }
 
-        if (setting.lookupValue("additional_report_step_size", value_i) && value_i >= 0) {
-            log_notice("update additional_report_step_size from %d to %d",
-                       conf_.additional_report_step_size_, value_i );
-            conf_.additional_report_step_size_ = value_i;
-        }
-
         return 0;
 
     } catch (const libconfig::SettingNotFoundException &nfex) {
@@ -417,11 +383,6 @@ int MonitorClientImpl::module_status(std::string& module, std::string& name, std
     ss << "\t" << "size_per_report: " << conf_.size_per_report_ << std::endl;
     ss << "\t" << "report_queue_limit: " << conf_.report_queue_limit_ << std::endl;
     ss << "\t" << "current_queue: " << submit_queue_.SIZE() << std::endl;
-
-    ss << "\t" << std::endl;
-
-    ss << "\t" << "additional_step_size: " << conf_.additional_report_step_size_ << std::endl;
-    ss << "\t" << "support_task_size: " << conf_.support_report_task_size_ << std::endl;
 
     val = ss.str();
 
@@ -496,18 +457,6 @@ int MonitorClientImpl::report_event(const std::string& metric, int64_t value, co
     // 空消息就是metric为0的消息
     if (likely(!item.metric.empty())) {
         current_slot_.emplace_back(item);
-    }
-
-    while (submit_queue_.SIZE() > 2 * conf_.additional_report_step_size_) {
-        std::vector<event_report_ptr_t> reports;
-        size_t ret = submit_queue_.POP(reports, conf_.additional_report_step_size_, 10);
-        if (!ret) {
-            break;
-        }
-
-        log_notice("MonitorClient additional task with item %lu", ret);
-        std::function<void()> func = std::bind(&MonitorClientImpl::run_once_task, this, reports);
-        task_helper_->add_additional_task(func);
     }
 
     return 0;
@@ -612,33 +561,6 @@ void MonitorClientImpl::run() {
         }
     }
 }
-
-void MonitorClientImpl::run_once_task(std::vector<event_report_ptr_t> reports) {
-
-    log_debug("MonitorClient run_once_task thread %#lx begin to run ...", (long)pthread_self());
-
-    auto client_agent = std::make_shared<MonitorRpcClientHelper>(monitor_addr_, monitor_port_);
-    if (!client_agent) {
-        log_err("not available agent found!");
-        return;
-    }
-
-    if (client_agent->rpc_ping() != 0) {
-        log_err("client agent ping test failed...");
-        return;
-    }
-
-    for(auto iter = reports.begin(); iter != reports.end(); ++iter) {
-        do_additional_report(client_agent, *iter);
-    }
-
-    if (conf_.report_queue_limit_ != 0 && submit_queue_.SIZE() > conf_.report_queue_limit_) {
-        log_err("about to shrink submit_queue, current %lu, limit %d",
-                submit_queue_.SIZE(), conf_.report_queue_limit_);
-        submit_queue_.SHRINK_FRONT(conf_.report_queue_limit_);
-    }
-}
-
 
 
 // call forward
