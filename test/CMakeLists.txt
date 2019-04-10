@@ -1,4 +1,5 @@
 cmake_minimum_required (VERSION 2.8.11)
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x " )
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Woverloaded-virtual -Wpointer-arith -Wwrite-strings -Werror=format -march=native " )
 
@@ -22,7 +23,7 @@ link_directories( /usr/lib64/mysql/
 aux_source_directory( ./ UNIT_TEST_SRCS )
 add_executable( test ${UNIT_TEST_SRCS} )
 
-set (EXTRA_LIBS Scaffold Protocol RPC Network Utils Client )
+set (EXTRA_LIBS Scaffold Protocol RPC Network Utils HeraclesClient )
 
 set (EXTRA_LIBS ${EXTRA_LIBS} ssl config++)
 set (EXTRA_LIBS ${EXTRA_LIBS} pthread)
