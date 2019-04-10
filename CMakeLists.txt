@@ -1,33 +1,43 @@
 cmake_minimum_required (VERSION 2.8.11)
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x " )
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Woverloaded-virtual -Wpointer-arith -Wwrite-strings -Werror=format -march=native " )
-
 
 ####################
 ### 修改编译选项 ###
 
-# if what to see debug in verbose mode
+# if want to see debug in verbose mode
 # cmake -DCMAKE_VERBOSE_MAKEFILE=true ../
+# if want to see build in detail
+# make -- VERBOSE=1
 
-set(CMAKE_BUILD_TYPE DEBUG)
-#set(CMAKE_BUILD_TYPE RELEASE)
-set(CMAKE_CXX_FLAGS_DEBUG   "$ENV{CXXFLAGS} -O0 -g")
-set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O2 ")
+option(BUILD_DEBUG "Build Project for Debug Propurse..." OFF)
 
-IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
-ELSEIF(CMAKE_BUILD_TYPE MATCHES RELEASE)
-    add_definitions(-DNP_DEBUG)
-ELSE(CMAKE_BUILD_TYPE MATCHES DEBUG)
-    message(FATAL_ERROR "Unknown BUILD_TYPE ... ")
-ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
+if(BUILD_DEBUG)
+    set(CMAKE_BUILD_TYPE Debug)
+    message(STATUS "build_type Debug flag: ${CMAKE_CXX_FLAGS_DEBUG}")
+else(BUILD_DEBUG)
+    set(CMAKE_BUILD_TYPE RelWithDebInfo)
+    #add_definitions(-DNP_DEBUG)
+    message(STATUS "build_type RelWithDebInfo flag: ${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+endif(BUILD_DEBUG)
 
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION")
+    file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" PROGRAM_VERSION)
+    string(STRIP "${PROGRAM_VERSION}" PROGRAM_VERSION)
+endif()
+
+configure_file (
+    "include/version.h.in"
+    "../include/version.h"
+    @ONLY )
 
 ###################
 
 
 # mysqlcppconn如果使用C开发会在释放的时候段错误
 
-set (PROTOBUF_GEN_CMD "cp -fr ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/bin/protoc-2.5.0 ${PROJECT_SOURCE_DIR}/bin/protoc && chmod a+x ${PROJECT_SOURCE_DIR}/bin/protoc && cd ${CMAKE_CURRENT_SOURCE_DIR}/source/Protocol/source && rm -fr ../gen-cpp && mkdir -p ../gen-cpp && make ")
+set (PROTOBUF_GEN_CMD "cp -fr ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/bin/protoc-2.5.0 ${PROJECT_SOURCE_DIR}/bin/protoc && chmod a+x ${PROJECT_SOURCE_DIR}/bin/protoc && cd ${CMAKE_CURRENT_SOURCE_DIR}/source/Protocol/source && rm -fr ../gen-cpp && mkdir -p ../gen-cpp && make ")
 exec_program(${PROTOBUF_GEN_CMD})
 
 # 拷贝重要文件供创建客户端库使用
@@ -49,8 +59,8 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 set (INCLUDE_DIRS
         ${PROJECT_SOURCE_DIR}/include/
         ${PROJECT_SOURCE_DIR}/source/
-        ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/include/
-        ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/include/google/
+        ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/include/
+        ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/include/google/
 )
 include_directories( ${INCLUDE_DIRS} )
 
@@ -67,11 +77,10 @@ add_subdirectory( source/Client)
 
 link_directories(
         /usr/lib64/mysql/
-        ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/libs/
-        ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/libs/boost/
-        ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/libs/google/
-        ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/libs/google/protobuf-2.5.0/
-        ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/libs/leveldb/
+        ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/libs/
+        ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/libs/boost/
+        ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/libs/google/
+        ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/libs/google/protobuf-2.5.0/
 )
 
 # local temp generated file
@@ -79,15 +88,15 @@ exec_program( "export BUILD_VAR=`git log -1 --pretty=%H` && echo 'const char *bu
 exec_program( "export BUILD_VAR=`git symbolic-ref HEAD` && echo 'const char *build_commit_branch = \"VCS: Branch:' $BUILD_VAR '\";' >> build_version.cpp ")
 exec_program( "export BUILD_VAR=`git log -1 --pretty=%cd` && echo 'const char *build_commit_date = \"VCS: Date:' $BUILD_VAR '\";' >> build_version.cpp ")
 exec_program( "export BUILD_VAR=`git log -1 --pretty=\"%an %ae\"` && echo 'const char *build_commit_author = \"VCS: Author:' $BUILD_VAR '\";' >> build_version.cpp ")
-exec_program( "export BUILD_VAR=`date` && echo 'const char *build_time = \"Build At:' $BUILD_VAR '\";' >> build_version.cpp ")
+exec_program( "export BUILD_VAR=`date +%F` && echo 'const char *build_time = \"Build At:' $BUILD_VAR '\";' >> build_version.cpp ")
 
-add_executable( tzmonitor main.cpp build_version.cpp ${DIR_SRCS} )
+add_executable( heracles main.cpp setup.cpp build_version.cpp )
 
 # ld iconv ?
 
 set (WHOLE_LIBS Business Scaffold Protocol RPC Network Connect Utils )
 
-set (EXTRA_LIBS ${EXTRA_LIBS} ssl config++)
+set (EXTRA_LIBS ${EXTRA_LIBS} ssl crypto config++)
 set (EXTRA_LIBS ${EXTRA_LIBS} pthread)
 set (EXTRA_LIBS ${EXTRA_LIBS} boost_system boost_thread boost_chrono boost_regex)
 set (EXTRA_LIBS ${EXTRA_LIBS} protoc protobuf )
@@ -96,9 +105,13 @@ set (EXTRA_LIBS ${EXTRA_LIBS} mysqlcppconn hiredis leveldb snappy)
 
 
 # 某些库需要静态全连接，否则主服务没使用但是so使用，会报符号没有找到
-target_link_libraries( tzmonitor -lrt -rdynamic -ldl
+target_link_libraries( heracles -lrt -rdynamic -ldl
     -Wl,--whole-archive ${WHOLE_LIBS} -Wl,--no-whole-archive
     ${EXTRA_LIBS}
 )
 
-add_subdirectory( examples )
+if(BUILD_DEBUG)
+    message(STATUS "we will build examples and unit_tests ...")
+    add_subdirectory( examples )
+    add_subdirectory( test )
+endif(BUILD_DEBUG)

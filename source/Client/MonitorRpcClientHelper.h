@@ -11,17 +11,13 @@
 
 #include <string>
 #include <vector>
-
 #include <memory>
-
-
-#include <boost/noncopyable.hpp>
 
 #include <Client/include/EventTypes.h>
 
 namespace tzmonitor_client {
 
-class MonitorRpcClientHelper: private boost::noncopyable {
+class MonitorRpcClientHelper {
 public:
 
     MonitorRpcClientHelper(const std::string& ip, uint16_t port):
@@ -32,6 +28,10 @@ public:
 
     ~MonitorRpcClientHelper() {
     }
+
+    // 禁止拷贝
+    MonitorRpcClientHelper(const MonitorRpcClientHelper&) = delete;
+    MonitorRpcClientHelper& operator=(const MonitorRpcClientHelper&) = delete;
 
     int rpc_ping();
 

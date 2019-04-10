@@ -9,7 +9,7 @@
 #ifndef __BUSINESS_STORE_IF_H__
 #define __BUSINESS_STORE_IF_H__
 
-#include <xtra_rhel6.h>
+#include <xtra_rhel.h>
 
 #include <libconfig.h++>
 #include <Business/EventItem.h>

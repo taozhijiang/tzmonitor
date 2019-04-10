@@ -16,7 +16,7 @@ namespace tzmonitor_client {
 // 服务端的错误码应该包含客户端传递过来的错误码，同时
 // 还应该包含其他原因导致的服务错误的状态
 
-enum class RpcClientStatus: uint8_t {
+enum class RpcClientStatus : uint8_t {
 
 
     OK = 0,
@@ -45,7 +45,8 @@ enum class RpcClientStatus: uint8_t {
     NETWORK_SEND_ERROR    = 12,
     NETWORK_RECV_ERROR    = 13,
 
-    RECV_FORMAT_ERROR     = 14,      // 接收的报文解析错误
+    RPC_CALL_TIMEOUT      = 20,
+    RECV_FORMAT_ERROR     = 21,      // 接收的报文解析错误
 
 };
 

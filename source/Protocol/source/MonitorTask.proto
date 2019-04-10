@@ -17,7 +17,7 @@ message MonitorReadOps {
         optional ping_t ping = 3;
 
         // service timestamp_metric_tag_entity_idx
-        // step,count,sum,avg,std,min,max,p50,p90
+        // step,count,sum,avg,min,max,p10,p50,p90
 
         message ev_select_t {
             required string version = 1;      // 1.0.0
@@ -30,7 +30,10 @@ message MonitorReadOps {
             optional int64  tm_start = 11;
             optional string entity_idx = 12;
             optional string tag = 13;
-            optional string groupby = 14;     // none,tag,timestamp
+            optional int32  groupby = 14;     // none,tag,timestamp
+            optional int32  orderby = 15;     // timestamp, tag, count, sum, avg, min, max, p10, p50, p90
+            optional int32  orders  = 16;     // desc[default], asc
+            optional int32  limit   = 17;     // 最大返回排序后记录的条目数
         }
         // interface
         optional ev_select_t select = 4;

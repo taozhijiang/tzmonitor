@@ -61,7 +61,8 @@ bool SqlConn::init(int64_t conn_uuid) {
     }
 
     stmt_->execute("USE " + helper_.db_ + ";");
-    log_info("Create New Connection OK!");
+    conn_uuid_ = conn_uuid;
+    log_info("Create New SQL Connection OK! UUID: %lx", conn_uuid);
     return true;
 }
 
@@ -72,6 +73,20 @@ SqlConn::~SqlConn() {
     stmt_.reset();
 
     log_info("Destroy Sql Connection OK!");
+}
+
+bool SqlConn::ping_test() {
+
+    std::string sql = "show databases;";
+
+    shared_result_ptr result;
+    result.reset(sqlconn_execute_query(sql));
+    if (!result) {
+        log_err("Failed to query info: %s", sql.c_str());
+        return false;
+    }
+
+    return true;
 }
 
 bool SqlConn::sqlconn_execute(const string& sql) {

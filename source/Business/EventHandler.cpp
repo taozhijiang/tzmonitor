@@ -7,7 +7,7 @@
 
 #include <algorithm>
 
-#include <xtra_rhel6.h>
+#include <xtra_rhel.h>
 #include <functional>
 
 #include <Utils/Log.h>
@@ -40,34 +40,34 @@ bool EventHandler::init() {
 
     try {
 
-        const libconfig::Setting& rpc_handlers = conf_ptr->lookup("rpc_business.services");
+        const libconfig::Setting& rpc_handlers = conf_ptr->lookup("rpc.business.services");
 
         for(int i = 0; i < rpc_handlers.getLength(); ++i) {
 
             const libconfig::Setting& handler_conf = rpc_handlers[i];
             std::string instance_name;
-            ConfUtil::conf_value(handler_conf, "instance_name", instance_name);
+            handler_conf.lookupValue("instance_name", instance_name);
 
             if (instance_name == service_) {
 
                 int value_i;
-                ConfUtil::conf_value(handler_conf, "event_linger", value_i);
+                handler_conf.lookupValue("event_linger", value_i);
                 if (value_i > 0) {
                     conf_.event_linger_ = value_i;
                 }
 
-                ConfUtil::conf_value(handler_conf, "event_step", value_i);
+                handler_conf.lookupValue("event_step", value_i);
                 if (value_i > 0) {
                     conf_.event_step_ = value_i;
                 }
 
-                ConfUtil::conf_value(handler_conf, "additional_process_step_size", value_i);
+                handler_conf.lookupValue("additional_process_step_size", value_i);
                 if (value_i > 0) {
                     conf_.additional_process_step_size_ = value_i;
                 }
 
                 std::string store_type;
-                ConfUtil::conf_value(handler_conf, "store_type", store_type);
+                handler_conf.lookupValue("store_type", store_type);
                 if (store_type == "mysql" || store_type == "redis" || store_type == "leveldb") {
                     conf_.store_type_ = store_type;
                 }
@@ -86,7 +86,7 @@ bool EventHandler::init() {
                   conf_.store_type_.c_str());
 
     } catch (const libconfig::SettingNotFoundException &nfex) {
-        log_err("rpc_business.services not found!");
+        log_err("rpc.business.services not found!");
     } catch (std::exception& e) {
         log_err("execptions catched for %s",  e.what());
     }
@@ -118,7 +118,7 @@ int EventHandler::update_runtime_conf(const libconfig::Config& conf) {
     try {
 
         // initialize event handler default conf
-        const libconfig::Setting& rpc_handlers = conf.lookup("rpc_business.services");
+        const libconfig::Setting& rpc_handlers = conf.lookup("rpc.business.services");
 
         // 遍历，找出默认配置信息
         for(int i = 0; i < rpc_handlers.getLength(); ++i) {
@@ -126,7 +126,7 @@ int EventHandler::update_runtime_conf(const libconfig::Config& conf) {
             const libconfig::Setting& handler_conf = rpc_handlers[i];
             std::string instance_name;
 
-            ConfUtil::conf_value(handler_conf, "service_name", instance_name);
+            handler_conf.lookupValue("service_name", instance_name);
             if (instance_name == service_) {
 
                 log_notice("find specific conf for service %s", service_.c_str());
@@ -164,7 +164,7 @@ int EventHandler::update_runtime_conf(const libconfig::Config& conf) {
 
 
     } catch (const libconfig::SettingNotFoundException &nfex) {
-        log_err("rpc_business.services not found!");
+        log_err("rpc.business.services not found!");
     } catch (std::exception& e) {
         log_err("execptions catched for %s",  e.what());
     }
@@ -222,7 +222,7 @@ int EventHandler::do_add_event(time_t ev_time, const std::vector<event_data_t>& 
         auto metric_iter = timed_slot.find(iter->metric);
         if (metric_iter == timed_slot.end()) {
             log_debug("create new metric %s at time_slot: %ld in %s",
-                      iter->metric.c_str(), ev_time, service_.c_str(), ev_time);
+                      iter->metric.c_str(), ev_time, service_.c_str());
 
             timed_slot[iter->metric] = std::vector<event_data_t>();
             metric_iter = timed_slot.find(iter->metric);

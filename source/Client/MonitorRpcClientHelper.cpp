@@ -163,11 +163,12 @@ int MonitorRpcClientHelper::rpc_event_select(const event_cond_t& cond, event_sel
     request.mutable_select()->set_tm_start(cond.tm_start);
     request.mutable_select()->set_entity_idx(cond.entity_idx);
     request.mutable_select()->set_tag(cond.tag);
-    if (cond.groupby == GroupType::kGroupbyTimestamp) {
-        request.mutable_select()->set_groupby("timestamp");
-    } else if (cond.groupby == GroupType::kGroupbyTag) {
-        request.mutable_select()->set_groupby("tag");
-    }
+
+    request.mutable_select()->set_groupby(static_cast<int32_t>(cond.groupby));
+    request.mutable_select()->set_orderby(static_cast<int32_t>(cond.orderby));
+    request.mutable_select()->set_orders(static_cast<int32_t>(cond.orders));
+    request.mutable_select()->set_limit(static_cast<int32_t>(cond.limit));
+
 
     std::string mar_str;
     if(!tzrpc::ProtoBuf::marshalling_to_string(request, &mar_str)) {

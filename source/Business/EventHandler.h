@@ -15,7 +15,6 @@
 #include <mutex>
 
 #include <boost/thread.hpp>
-#include <boost/noncopyable.hpp>
 
 #include <Utils/EQueue.h>
 #include <Utils/Log.h>
@@ -55,8 +54,7 @@ struct EventHandlerConf {
 
 
 
-class EventHandler: public boost::noncopyable,
-                    public std::enable_shared_from_this<EventHandler> {
+class EventHandler: public std::enable_shared_from_this<EventHandler> {
 public:
     EventHandler(const std::string& service, const std::string& entity_idx):
         service_(service),
@@ -69,6 +67,10 @@ public:
     }
 
     ~EventHandler() {}
+
+    // 禁止拷贝
+    EventHandler(const EventHandler&) = delete;
+    EventHandler& operator=(const EventHandler&) = delete;
 
     bool init();
 

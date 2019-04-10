@@ -8,13 +8,13 @@
 #include <sstream>
 
 #include <Utils/Log.h>
-#include <Utils/StrUtil.h>
 
+#include <Business/Sort.h>
 #include <Business/StoreSql.h>
 
 using namespace tzrpc;
 
-bool StoreSql::init(const libconfig::Config& conf) override {
+bool StoreSql::init(const libconfig::Config& conf) {
 
 
     std::string mysql_hostname;
@@ -22,12 +22,12 @@ bool StoreSql::init(const libconfig::Config& conf) override {
     std::string mysql_username;
     std::string mysql_passwd;
     std::string mysql_database;
-    if (!ConfUtil::conf_value(conf, "rpc_business.mysql.host_addr", mysql_hostname) ||
-        !ConfUtil::conf_value(conf, "rpc_business.mysql.host_port", mysql_port) ||
-        !ConfUtil::conf_value(conf, "rpc_business.mysql.username", mysql_username) ||
-        !ConfUtil::conf_value(conf, "rpc_business.mysql.passwd", mysql_passwd) ||
-        !ConfUtil::conf_value(conf, "rpc_business.mysql.database", mysql_database) ||
-        !ConfUtil::conf_value(conf, "rpc_business.mysql.table_prefix", table_prefix_) )
+    if (!conf.lookupValue("rpc.business.mysql.host_addr", mysql_hostname) ||
+        !conf.lookupValue("rpc.business.mysql.host_port", mysql_port) ||
+        !conf.lookupValue("rpc.business.mysql.username", mysql_username) ||
+        !conf.lookupValue("rpc.business.mysql.passwd", mysql_passwd) ||
+        !conf.lookupValue("rpc.business.mysql.database", mysql_database) ||
+        !conf.lookupValue("rpc.business.mysql.table_prefix", table_prefix_) )
     {
         log_err("Error, get mysql config value error");
         return false;
@@ -36,7 +36,7 @@ bool StoreSql::init(const libconfig::Config& conf) override {
     database_ = mysql_database;
 
     int conn_pool_size = 0;
-    if (!ConfUtil::conf_value(conf, "rpc_business.mysql.conn_pool_size", conn_pool_size)) {
+    if (!conf.lookupValue("rpc.business.mysql.conn_pool_size", conn_pool_size)) {
         conn_pool_size = 20;
         log_info("Using default conn_pool size: 20");
     }
@@ -107,7 +107,7 @@ int StoreSql::create_table(sql_conn_ptr& conn,
     return 0;
 }
 
-int StoreSql::insert_ev_stat(const event_insert_t& stat) override {
+int StoreSql::insert_ev_stat(const event_insert_t& stat) {
 
     sql_conn_ptr conn;
     sql_pool_ptr_->request_scoped_conn(conn);
@@ -213,7 +213,7 @@ std::string StoreSql::build_sql(const event_cond_t& cond, time_t linger_hint, ti
 
 
 // group summary
-int StoreSql::select_ev_stat(const event_cond_t& cond, event_select_t& stat, time_t linger_hint) override {
+int StoreSql::select_ev_stat(const event_cond_t& cond, event_select_t& stat, time_t linger_hint) {
     sql_conn_ptr conn;
     sql_pool_ptr_->request_scoped_conn(conn);
     if (!conn) {
@@ -318,8 +318,20 @@ int StoreSql::select_ev_stat(sql_conn_ptr& conn, const event_cond_t& cond, event
         stat.summary.value_max = 0;
     }
 
-    if(cond.groupby == GroupType::kGroupNone) {
+    if (cond.groupby == GroupType::kGroupNone) {
         stat.info.clear();
+        return 0;
+    }
+
+    if (cond.orderby == OrderByType::kOrderByNone || cond.limit != 0) {
+        log_debug("order by %d, orders %d, limit %d, we will not sort in server side",
+                  static_cast<int32_t>(cond.orderby), static_cast<int32_t>(cond.orders), cond.limit);
+        return 0;
+    }
+
+    Sort::do_sort(stat.info, cond.orderby, cond.orders);
+    if (stat.info.size() > cond.limit) {
+        stat.info.erase(stat.info.begin() + cond.limit, stat.info.end());
     }
 
     return 0;

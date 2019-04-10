@@ -10,17 +10,15 @@
 
 #include <cstdint>
 #include <string>
-
 #include <memory>
-#include <boost/noncopyable.hpp>
 
-#include <xtra_rhel6.h>
+#include <xtra_rhel.h>
 
 #include <Core/Message.h>
 
 namespace tzrpc {
 
-class Buffer: public boost::noncopyable {
+class Buffer {
 
 public:
     // 构造函数
@@ -42,6 +40,12 @@ public:
         append_internal(header_str);
         append_internal(msg.payload_);
     }
+
+    ~Buffer() {}
+
+    // 禁止拷贝
+    Buffer(const Buffer&) = delete;
+    Buffer& operator=(const Buffer&) = delete;
 
     // used internally, user should prefer Message
     uint32_t append_internal(const std::string& data) {
@@ -99,11 +103,11 @@ public:
         // 实际上再boost::asio中是通过transfer_exactly发送的，如果返回时没有发送
         // 这么多数据，那么应该是网络层出现问题了，此时就直接socket错误返回了，不再
         // 考虑发送量小于请求量这种部分发送的情形了。
-        front_sink(sz);
+        front_erase(sz);
         return true;
     }
 
-    void front_sink(uint32_t sz) {
+    void front_erase(uint32_t sz) {
 
         if (sz >= data_.size()) {
             data_.clear();

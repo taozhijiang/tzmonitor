@@ -1,7 +1,7 @@
 #include <iostream>
 #include "gtest/gtest.h"
 
-#include <xtra_rhel6.h>
+#include <xtra_rhel.h>
 
 #include <syslog.h>
 
@@ -10,7 +10,7 @@
 #include <Utils/SslSetup.h>
 
 #include <Scaffold/ConfHelper.h>
-#include <Scaffold/Manager.h>
+#include <Scaffold/Captain.h>
 
 using namespace tzrpc;
 
@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
         ::exit(1);
     }
 
-    std::string cfgFile = "tzrpc.conf";
+    std::string cfgFile = "../heracles_example.conf";
     if(!ConfHelper::instance().init(cfgFile)){
         return -1;
     }
@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
     }
 
     int log_level = 0;
-    ConfUtil::conf_value(*conf_ptr, "log_level", log_level);
+    conf_ptr->lookupValue("log_level", log_level);
     if (log_level <= 0 || log_level > 7) {
         return -1;
     }

@@ -5,7 +5,7 @@
  *
  */
 
-#include <xtra_rhel6.h>
+#include <xtra_rhel.h>
 
 #include <vector>
 #include <boost/algorithm/string.hpp>
@@ -37,6 +37,7 @@ bool log_init(int log_level) {
 
 void log_close() {
 
+    log_notice("closing rsyslog...");
     closelog();
 }
 

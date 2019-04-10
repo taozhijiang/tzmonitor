@@ -12,16 +12,16 @@ set (INCLUDE_DIRS
         ${PROJECT_SOURCE_DIR}/include/
         ${PROJECT_SOURCE_DIR}/source/
         ${PROJECT_SOURCE_DIR}/deps/
-        ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/include/
-        ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/include/google/
+        ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/include/
+        ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/include/google/
 )
 include_directories( ${INCLUDE_DIRS} )
 
 link_directories( /usr/lib64/mysql/
-        ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/libs/
-        ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/libs/boost/
-        ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/libs/google/
-        ${PROJECT_SOURCE_DIR}/deps/xtra_rhel6.x/libs/google/protobuf-2.5.0/
+        ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/libs/
+        ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/libs/boost/
+        ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/libs/google/
+        ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/libs/google/protobuf-2.5.0/
         ../lib
 )
 
@@ -31,9 +31,9 @@ add_executable( startup startup.cpp)
 add_executable( fast_report fast_report.cpp)
 add_executable( http_face stat_handler.cpp http_face.cpp )
 
-set (EXTRA_LIBS MonitorClient )
+set (EXTRA_LIBS HeraclesClient )
 
-set (EXTRA_LIBS ${EXTRA_LIBS} ssl config++)
+set (EXTRA_LIBS ${EXTRA_LIBS} ssl crypto config++)
 set (EXTRA_LIBS ${EXTRA_LIBS} pthread)
 set (EXTRA_LIBS ${EXTRA_LIBS} boost_system boost_thread boost_chrono boost_regex)
 set (EXTRA_LIBS ${EXTRA_LIBS} protoc protobuf )

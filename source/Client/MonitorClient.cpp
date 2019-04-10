@@ -13,7 +13,7 @@
 
 // 客户端使用，尽量减少依赖的库
 
-#include <xtra_rhel6.h>
+#include <xtra_rhel.h>
 
 #include <unistd.h>
 
@@ -23,7 +23,6 @@
 #include <functional>
 
 #include <Utils/EQueue.h>
-#include <Utils/TinyTask.h>
 
 #include <Client/RpcClient.h>
 #include <Client/include/MonitorClient.h>
@@ -31,6 +30,8 @@
 #include <Client/MonitorRpcClientHelper.h>
 
 #include <Client/LogClient.h>
+
+#include <Business/Sort.h>
 
 namespace tzmonitor_client {
 
@@ -42,24 +43,20 @@ struct MonitorClientConf {
     int  report_queue_limit_;
     int  size_per_report_;
 
-    int  additional_report_step_size_;
-    int  support_report_task_size_;
-
     MonitorClientConf():
         report_enabled_(true),
         report_queue_limit_(0),
-        size_per_report_(5000),
-        additional_report_step_size_(10),
-        support_report_task_size_(5) {
+        size_per_report_(5000) {
     }
 } __attribute__ ((aligned (4)));
 
-class MonitorClientImpl: public boost::noncopyable {
+class MonitorClientImpl {
 
     friend class MonitorClient;
 
 private:
 
+    bool init();
     bool init(const std::string& cfgFile, CP_log_store_func_t log_func);
     bool init(const libconfig::Setting& setting, CP_log_store_func_t log_func);
     bool init(const std::string& service, const std::string& entity_idx,
@@ -73,7 +70,7 @@ private:
                       event_handler_conf_t& handler_conf, std::vector<std::string>& metrics);
     int known_services(const std::string& version, std::vector<std::string>& services);
 
-    int update_runtime_conf(const libconfig::Config& conf);
+    int module_runtime(const libconfig::Config& conf);
     int module_status(std::string& strModule, std::string& strKey, std::string& strValue);
 
 private:
@@ -126,7 +123,6 @@ private:
         service_(service), entity_idx_(entity_idx),
         client_agent_(),
         thread_run_(),
-        task_helper_(),
         lock_(),
         msgid_(0), current_time_(0),
         current_slot_(),
@@ -134,10 +130,16 @@ private:
         already_initialized_(false),
         monitor_addr_(),
         monitor_port_(),
-        conf_() {
+        conf_(),
+        cfgFile_(),
+        log_func_(NULL) {
     }
 
     ~MonitorClientImpl() {}
+
+    // 禁止拷贝
+    MonitorClientImpl(const MonitorClientImpl&) = delete;
+    MonitorClientImpl& operator=(const MonitorClientImpl&) = delete;
 
     static MonitorClientImpl& instance();
 
@@ -146,11 +148,8 @@ private:
     std::shared_ptr<MonitorRpcClientHelper> client_agent_;
 
     // 默认开启一个提交，当发现待提交队列过长的时候，自动开辟future任务
-    std::shared_ptr<boost::thread> thread_run_;
+    std::shared_ptr<std::thread> thread_run_;
     void run();
-
-    std::shared_ptr<tzrpc::TinyTask> task_helper_;
-    void run_once_task(std::vector<event_report_ptr_t> reports);
 
 
     // used int report procedure
@@ -170,6 +169,9 @@ private:
     uint16_t    monitor_port_;
 
     MonitorClientConf conf_;
+
+    std::string cfgFile_;
+    CP_log_store_func_t log_func_;
 };
 
 
@@ -184,13 +186,15 @@ bool MonitorClientImpl::init(const std::string& cfgFile, CP_log_store_func_t log
 
     libconfig::Config cfg;
     try {
+
+        cfgFile_ = cfgFile;
         cfg.readFile(cfgFile.c_str());
 
-        const libconfig::Setting& setting = cfg.lookup("rpc_monitor_client");
+        const libconfig::Setting& setting = cfg.lookup("rpc.monitor_client");
         return init(setting, log_func);
 
     } catch(libconfig::FileIOException &fioex) {
-        log_err("I/O error while reading file.");
+        log_err("I/O error while reading file: %s", cfgFile.c_str());
         return false;
     } catch(libconfig::ParseException &pex) {
         log_err("Parse error at %d - %s", pex.getLine(), pex.getError());
@@ -202,6 +206,17 @@ bool MonitorClientImpl::init(const std::string& cfgFile, CP_log_store_func_t log
     return false;
 }
 
+bool MonitorClientImpl::init() {
+
+    if (cfgFile_.empty()) {
+        log_err("cfgFile_ not initialized...");
+        return false;
+    }
+
+    return init(cfgFile_, log_func_);
+}
+
+
 bool MonitorClientImpl::init(const libconfig::Setting& setting, CP_log_store_func_t log_func) {
 
     // init log first
@@ -209,15 +224,15 @@ bool MonitorClientImpl::init(const libconfig::Setting& setting, CP_log_store_fun
     log_init(7);
 
     std::string serv_addr;
-    int listen_port = 0;
+    int serv_port = 0;
     if (!setting.lookupValue("serv_addr", serv_addr) ||
-        !setting.lookupValue("listen_port", listen_port) ||
-        serv_addr.empty() || listen_port <= 0) {
-        printf("get rpc server addr config failed.");
+        !setting.lookupValue("serv_port", serv_port) ||
+        serv_addr.empty() || serv_port <= 0) {
+        log_err("get rpc server addr config failed.");
         return false;
     }
 
-    // conf update
+    // 合法的值才会覆盖默认值
     bool value_b;
     int  value_i;
 
@@ -239,18 +254,6 @@ bool MonitorClientImpl::init(const libconfig::Setting& setting, CP_log_store_fun
         conf_.size_per_report_ = value_i;
     }
 
-    if (setting.lookupValue("additional_report_step_size", value_i) && value_i >= 0) {
-        log_notice("update additional_report_step_size from %d to %d",
-                   conf_.additional_report_step_size_, value_i );
-        conf_.additional_report_step_size_ = value_i;
-    }
-
-    if (setting.lookupValue("support_report_task_size", value_i) && value_i > 0) {
-        log_notice("update support_report_task_size from %d to %d",
-                   conf_.support_report_task_size_, value_i );
-        conf_.support_report_task_size_ = value_i;
-    }
-
     std::string service;
     std::string entity_idx;
     setting.lookupValue("service", service);
@@ -258,7 +261,7 @@ bool MonitorClientImpl::init(const libconfig::Setting& setting, CP_log_store_fun
 
     // load other conf
 
-    return init(service, entity_idx, serv_addr, listen_port, log_func);
+    return init(service, entity_idx, serv_addr, serv_port, log_func);
 }
 
 
@@ -307,15 +310,9 @@ bool MonitorClientImpl::init(const std::string& service, const std::string& enti
         return false;
     }
 
-    thread_run_.reset(new boost::thread(std::bind(&MonitorClientImpl::run, this)));
+    thread_run_.reset(new std::thread(std::bind(&MonitorClientImpl::run, this)));
     if (!thread_run_){
         log_err("create run work thread failed! ");
-        return false;
-    }
-
-    task_helper_ = std::make_shared<tzrpc::TinyTask>(conf_.support_report_task_size_);
-    if (!task_helper_ || !task_helper_->init()){
-        log_err("create task_helper work thread failed! ");
         return false;
     }
 
@@ -325,13 +322,13 @@ bool MonitorClientImpl::init(const std::string& service, const std::string& enti
     return true;
 }
 
-// rpc_monitor_client
-int MonitorClientImpl::update_runtime_conf(const libconfig::Config& conf) {
+// rpc.monitor_client
+int MonitorClientImpl::module_runtime(const libconfig::Config& conf) {
 
     try {
 
         // initialize client conf
-        const libconfig::Setting& setting = conf.lookup("rpc_monitor_client");
+        const libconfig::Setting& setting = conf.lookup("rpc.monitor_client");
 
         // conf update
         bool value_b;
@@ -355,16 +352,10 @@ int MonitorClientImpl::update_runtime_conf(const libconfig::Config& conf) {
             conf_.size_per_report_ = value_i;
         }
 
-        if (setting.lookupValue("additional_report_step_size", value_i) && value_i >= 0) {
-            log_notice("update additional_report_step_size from %d to %d",
-                       conf_.additional_report_step_size_, value_i );
-            conf_.additional_report_step_size_ = value_i;
-        }
-
         return 0;
 
     } catch (const libconfig::SettingNotFoundException &nfex) {
-        log_err("rpc_monitor_client not found!");
+        log_err("rpc.monitor_client not found!");
     } catch (std::exception& e) {
         log_err("execptions catched for %s",  e.what());
     }
@@ -372,15 +363,15 @@ int MonitorClientImpl::update_runtime_conf(const libconfig::Config& conf) {
     return -1;
 }
 
-int MonitorClientImpl::module_status(std::string& strModule, std::string& strKey, std::string& strValue) {
+int MonitorClientImpl::module_status(std::string& module, std::string& name, std::string& val) {
 
-    strModule = "tzmonitor_client";
+    module = "tzmonitor_client";
     // service + entity_idx
 
-    strKey = service_;
+    name = service_;
     if (!entity_idx_.empty()) {
-        strKey += "!";
-        strKey += entity_idx_;
+        name += "!";
+        name += entity_idx_;
     }
 
     std::stringstream ss;
@@ -393,12 +384,7 @@ int MonitorClientImpl::module_status(std::string& strModule, std::string& strKey
     ss << "\t" << "report_queue_limit: " << conf_.report_queue_limit_ << std::endl;
     ss << "\t" << "current_queue: " << submit_queue_.SIZE() << std::endl;
 
-    ss << "\t" << std::endl;
-
-    ss << "\t" << "additional_step_size: " << conf_.additional_report_step_size_ << std::endl;
-    ss << "\t" << "support_task_size: " << conf_.support_report_task_size_ << std::endl;
-
-    strValue = ss.str();
+    val = ss.str();
 
     return 0;
 }
@@ -473,18 +459,6 @@ int MonitorClientImpl::report_event(const std::string& metric, int64_t value, co
         current_slot_.emplace_back(item);
     }
 
-    while (submit_queue_.SIZE() > 2 * conf_.additional_report_step_size_) {
-        std::vector<event_report_ptr_t> reports;
-        size_t ret = submit_queue_.POP(reports, conf_.additional_report_step_size_, 10);
-        if (!ret) {
-            break;
-        }
-
-        log_notice("MonitorClient additional task with item %lu", ret);
-        std::function<void()> func = std::bind(&MonitorClientImpl::run_once_task, this, reports);
-        task_helper_->add_additional_task(func);
-    }
-
     return 0;
 }
 
@@ -500,13 +474,24 @@ int MonitorClientImpl::select_stat(event_cond_t& cond, event_select_t& stat) {
         cond.service = service_;
     }
     auto code = client_agent_->rpc_event_select(cond, stat);
-    if (code == 0) {
-        log_debug("event select ok.");
-        return 0;
+    if (code != 0) {
+        log_err("event select return code: %d", code);
+        return code;
     }
 
-    log_err("event select return code: %d", code);
-    return code;
+    // 是否进行排序
+    if (cond.orderby != OrderByType::kOrderByNone &&
+        cond.limit == 0 &&
+        !stat.info.empty() )
+    {
+        log_debug("we will order result set manualy, groupby: %d, orderby: %d",
+                  cond.groupby, cond.orderby);
+
+        Sort::do_sort(stat.info, cond.orderby, cond.orders);
+    }
+
+    log_debug("event select ok.");
+    return 0;
 }
 
 
@@ -577,33 +562,6 @@ void MonitorClientImpl::run() {
     }
 }
 
-void MonitorClientImpl::run_once_task(std::vector<event_report_ptr_t> reports) {
-
-    log_debug("MonitorClient run_once_task thread %#lx begin to run ...", (long)pthread_self());
-
-    auto client_agent = std::make_shared<MonitorRpcClientHelper>(monitor_addr_, monitor_port_);
-    if (!client_agent) {
-        log_err("not available agent found!");
-        return;
-    }
-
-    if (client_agent->rpc_ping() != 0) {
-        log_err("client agent ping test failed...");
-        return;
-    }
-
-    for(auto iter = reports.begin(); iter != reports.end(); ++iter) {
-        do_additional_report(client_agent, *iter);
-    }
-
-    if (conf_.report_queue_limit_ != 0 && submit_queue_.SIZE() > conf_.report_queue_limit_) {
-        log_err("about to shrink submit_queue, current %lu, limit %d",
-                submit_queue_.SIZE(), conf_.report_queue_limit_);
-        submit_queue_.SHRINK_FRONT(conf_.report_queue_limit_);
-    }
-}
-
-
 
 // call forward
 MonitorClient::MonitorClient(std::string entity_idx) {
@@ -616,6 +574,9 @@ MonitorClient::MonitorClient(std::string service, std::string entity_idx){
 
 MonitorClient::~MonitorClient(){}
 
+bool MonitorClient::init() {
+    return MonitorClientImpl::instance().init();
+}
 
 bool MonitorClient::init(const std::string& cfgFile, CP_log_store_func_t log_func) {
     return MonitorClientImpl::instance().init(cfgFile, log_func);
@@ -777,6 +738,101 @@ int MonitorClient::select_stat_groupby_time(const std::string& metric, const std
 }
 
 
+int MonitorClient::select_stat_groupby_tag_ordered (const std::string& metric, const order_cond_t& order,
+                                                    event_select_t& stat, time_t tm_intervel) {
+
+    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
+        log_err("MonitorClientImpl not initialized...");
+        return -1;
+    }
+
+    // more param check add later
+
+    // timestamp, tag, count, sum, avg, min, max, p10, p50, p90
+    if (order.limit_ < 0 ) {
+        log_err("invalid param: %d", order.limit_);
+        return -1;
+    }
+
+    event_cond_t cond {};
+
+    cond.version =  "1.0.0";
+    cond.metric = metric;
+    cond.tm_interval = tm_intervel;
+    cond.groupby = GroupType::kGroupbyTag;
+
+    cond.orderby = order.orderby_;
+    cond.orders = order.orders_;
+    cond.limit = order.limit_;
+
+    return MonitorClientImpl::instance().select_stat(cond, stat);
+}
+
+int MonitorClient::select_stat_groupby_time_ordered(const std::string& metric, const order_cond_t& order,
+                                                    event_select_t& stat, time_t tm_intervel) {
+
+    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
+        log_err("MonitorClientImpl not initialized...");
+        return -1;
+    }
+
+
+    // more param check add later
+
+    // timestamp, tag, count, sum, avg, min, max, p10, p50, p90
+    if (order.limit_ < 0 ) {
+        log_err("invalid param: %d", order.limit_);
+        return -1;
+    }
+
+
+    event_cond_t cond {};
+
+    cond.version =  "1.0.0";
+    cond.metric = metric;
+    cond.tm_interval = tm_intervel;
+    cond.groupby = GroupType::kGroupbyTimestamp;
+
+    cond.orderby = order.orderby_;
+    cond.orders = order.orders_;
+    cond.limit = order.limit_;
+
+    return MonitorClientImpl::instance().select_stat(cond, stat);
+}
+
+int MonitorClient::select_stat_groupby_time_ordered(const std::string& metric, const std::string& tag,
+                                                    const order_cond_t& order, event_select_t& stat, time_t tm_intervel) {
+
+    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
+        log_err("MonitorClientImpl not initialized...");
+        return -1;
+    }
+
+
+    // more param check add later
+
+    // timestamp, tag, count, sum, avg, min, max, p10, p50, p90
+    if (order.limit_ < 0 ) {
+        log_err("invalid param: %d", order.limit_);
+        return -1;
+    }
+
+
+    event_cond_t cond {};
+
+    cond.version =  "1.0.0";
+    cond.metric = metric;
+    cond.tag = tag;
+    cond.tm_interval = tm_intervel;
+    cond.groupby = GroupType::kGroupbyTimestamp;
+
+    cond.orderby = order.orderby_;
+    cond.orders = order.orders_;
+    cond.limit = order.limit_;
+
+    return MonitorClientImpl::instance().select_stat(cond, stat);
+}
+
 int MonitorClient::known_metrics(event_handler_conf_t& handler_conf, std::vector<std::string>& metrics, std::string service) {
 
     if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
@@ -799,14 +855,14 @@ int MonitorClient::known_services(std::vector<std::string>& services) {
     return MonitorClientImpl::instance().known_services(version, services);
 }
 
-int MonitorClient::update_runtime_conf(const libconfig::Config& conf) {
+int MonitorClient::module_runtime(const libconfig::Config& conf) {
 
     if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
         log_err("MonitorClientImpl not initialized...");
         return -1;
     }
 
-    return MonitorClientImpl::instance().update_runtime_conf(conf);
+    return MonitorClientImpl::instance().module_runtime(conf);
 }
 
 int MonitorClient::module_status(std::string& strModule, std::string& strKey, std::string& strValue) {

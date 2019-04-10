@@ -14,6 +14,11 @@
 #include <Business/EventRepos.h>
 #include <Business/EventHandler.h>
 
+
+#include <RPC/RpcInstance.h>
+
+#include <Protocol/gen-cpp/MonitorTask.pb.h>
+
 #include "MonitorTaskService.h"
 
 namespace tzrpc {
@@ -30,13 +35,13 @@ bool MonitorTaskService::init() {
 
     try
     {
-        const libconfig::Setting& rpc_services = conf_ptr->lookup("rpc_services");
+        const libconfig::Setting& rpc_services = conf_ptr->lookup("rpc.services");
 
         for(int i = 0; i < rpc_services.getLength(); ++i) {
 
             const libconfig::Setting& service = rpc_services[i];
             std::string instance_name;
-            ConfUtil::conf_value(service, "instance_name", instance_name);
+            service.lookupValue("instance_name", instance_name);
             if (instance_name.empty()) {
                 log_err("check service conf, required instance_name not found, skip this one.");
                 continue;
@@ -59,7 +64,7 @@ bool MonitorTaskService::init() {
         }
 
     } catch (const libconfig::SettingNotFoundException &nfex) {
-        log_err("rpc_services not found!");
+        log_err("rpc.services not found!");
     } catch (std::exception& e) {
         log_err("execptions catched for %s",  e.what());
     }
@@ -84,30 +89,14 @@ bool MonitorTaskService::handle_rpc_service_conf(const libconfig::Setting& setti
         }
     }
 
-    ConfUtil::conf_value(setting, "exec_thread_pool_size", conf_ptr_->executor_conf_.exec_thread_number_);
-    ConfUtil::conf_value(setting, "exec_thread_pool_size_hard", conf_ptr_->executor_conf_.exec_thread_number_hard_);
-    ConfUtil::conf_value(setting, "exec_thread_pool_step_size", conf_ptr_->executor_conf_.exec_thread_step_size_);
-
-    // 检查ExecutorConf参数合法性
-    if (conf_ptr_->executor_conf_.exec_thread_number_hard_ < conf_ptr_->executor_conf_.exec_thread_number_) {
-        conf_ptr_->executor_conf_.exec_thread_number_hard_ = conf_ptr_->executor_conf_.exec_thread_number_;
+    ExecutorConf conf;
+    if (RpcServiceBase::handle_rpc_service_conf(setting, conf) != 0) {
+        log_err("Handler ExecutorConf failed.");
+        return -1;
     }
 
-    if (conf_ptr_->executor_conf_.exec_thread_number_ <= 0 ||
-        conf_ptr_->executor_conf_.exec_thread_number_ > 100 ||
-        conf_ptr_->executor_conf_.exec_thread_number_hard_ > 100 ||
-        conf_ptr_->executor_conf_.exec_thread_number_hard_ < conf_ptr_->executor_conf_.exec_thread_number_ )
-    {
-        log_err("invalid exec_thread_pool_size setting: %d, %d",
-                conf_ptr_->executor_conf_.exec_thread_number_, conf_ptr_->executor_conf_.exec_thread_number_hard_);
-        return false;
-    }
-
-    if (conf_ptr_->executor_conf_.exec_thread_step_size_ < 0) {
-        log_err("invalid exec_thread_step_size setting: %d",
-                conf_ptr_->executor_conf_.exec_thread_step_size_);
-        return false;
-    }
+    // 保存更新
+    conf_ptr_->executor_conf_ = conf;
 
     // other confs may handle here...
 
@@ -116,21 +105,21 @@ bool MonitorTaskService::handle_rpc_service_conf(const libconfig::Setting& setti
 
 
 
-ExecutorConf MonitorTaskService::get_executor_conf() override {
+ExecutorConf MonitorTaskService::get_executor_conf() {
     SAFE_ASSERT(conf_ptr_);
     return conf_ptr_->executor_conf_;
 }
 
-int MonitorTaskService::update_runtime_conf(const libconfig::Config& conf) override {
+int MonitorTaskService::module_runtime(const libconfig::Config& conf) {
 
     try
     {
-        const libconfig::Setting& rpc_services = conf.lookup("rpc_services");
+        const libconfig::Setting& rpc_services = conf.lookup("rpc.services");
         for(int i = 0; i < rpc_services.getLength(); ++i) {
 
             const libconfig::Setting& service = rpc_services[i];
             std::string instance_name;
-            ConfUtil::conf_value(service, "instance_name", instance_name);
+            service.lookupValue( "instance_name", instance_name);
 
             // 发现是匹配的，则找到对应虚拟主机的配置文件了
             if (instance_name == instance_name_) {
@@ -140,7 +129,7 @@ int MonitorTaskService::update_runtime_conf(const libconfig::Config& conf) overr
         }
 
     } catch (const libconfig::SettingNotFoundException &nfex) {
-        log_err("rpc_services not found!");
+        log_err("rpc.services not found!");
     } catch (std::exception& e) {
         log_err("execptions catched for %s",  e.what());
     }
@@ -152,47 +141,22 @@ int MonitorTaskService::update_runtime_conf(const libconfig::Config& conf) overr
 // 做一些可选的配置动态更新
 bool MonitorTaskService::handle_rpc_service_runtime_conf(const libconfig::Setting& setting) {
 
-    std::shared_ptr<DetailExecutorConf> conf_ptr = std::make_shared<DetailExecutorConf>();
-    if (!conf_ptr) {
-        log_err("create DetailExecutorConf instance failed.");
-        return -1;
-    }
-
-    ConfUtil::conf_value(setting, "exec_thread_pool_size", conf_ptr->executor_conf_.exec_thread_number_);
-    ConfUtil::conf_value(setting, "exec_thread_pool_size_hard", conf_ptr->executor_conf_.exec_thread_number_hard_);
-    ConfUtil::conf_value(setting, "exec_thread_pool_step_size", conf_ptr->executor_conf_.exec_thread_step_size_);
-
-    // 检查ExecutorConf参数合法性
-    if (conf_ptr->executor_conf_.exec_thread_number_hard_ < conf_ptr->executor_conf_.exec_thread_number_) {
-        conf_ptr->executor_conf_.exec_thread_number_hard_ = conf_ptr->executor_conf_.exec_thread_number_;
-    }
-
-    if (conf_ptr->executor_conf_.exec_thread_number_ <= 0 ||
-        conf_ptr->executor_conf_.exec_thread_number_ > 100 ||
-        conf_ptr->executor_conf_.exec_thread_number_hard_ > 100 ||
-        conf_ptr->executor_conf_.exec_thread_number_hard_ < conf_ptr->executor_conf_.exec_thread_number_ )
-    {
-        log_err("invalid exec_thread_pool_size setting: %d, %d",
-                conf_ptr->executor_conf_.exec_thread_number_, conf_ptr->executor_conf_.exec_thread_number_hard_);
-        return -1;
-    }
-
-    if (conf_ptr->executor_conf_.exec_thread_step_size_ < 0) {
-        log_err("invalid exec_thread_step_size setting: %d",
-                conf_ptr->executor_conf_.exec_thread_step_size_);
+    ExecutorConf conf;
+    if (RpcServiceBase::handle_rpc_service_conf(setting, conf) != 0) {
+        log_err("Handler ExecutorConf failed.");
         return -1;
     }
 
     {
         // do swap here
         std::unique_lock<std::mutex> lock(conf_lock_);
-        conf_ptr_.swap(conf_ptr);
+        conf_ptr_->executor_conf_ = conf;
     }
 
     return 0;
 }
 
-int MonitorTaskService::module_status(std::string& strModule, std::string& strKey, std::string& strValue) override {
+int MonitorTaskService::module_status(std::string& strModule, std::string& strKey, std::string& strValue) {
 
     // empty status ...
 
@@ -200,7 +164,7 @@ int MonitorTaskService::module_status(std::string& strModule, std::string& strKe
 }
 
 
-void MonitorTaskService::handle_RPC(std::shared_ptr<RpcInstance> rpc_instance) override {
+void MonitorTaskService::handle_RPC(std::shared_ptr<RpcInstance> rpc_instance) {
 
     using MonitorTask::OpCode;
 
@@ -266,14 +230,30 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
             cond.entity_idx = request.select().entity_idx();
             cond.tag = request.select().tag();
 
-            std::string groupby = request.select().groupby();
-            if (groupby == "tag") {
-                cond.groupby = GroupType::kGroupbyTag;
-            } else if(groupby == "timestamp") {
-                cond.groupby = GroupType::kGroupbyTimestamp;
-            } else {
-                cond.groupby = GroupType::kGroupNone;
+            if (request.select().groupby() < 0 || request.select().groupby() >= static_cast<int32_t>(GroupType::kGroupbyBoundary)) {
+                log_err("invalid groupby param: %d", request.select().groupby());
+                response.set_code(-1);
+                response.set_desc("invalid groupby param.");
+                break;
             }
+            cond.groupby = static_cast<enum GroupType>(request.select().groupby());
+
+            if (request.select().orderby() < 0 || request.select().orderby() >= static_cast<int32_t>(OrderByType::kOrderByBoundary)) {
+                log_err("invalid orderby param: %d", request.select().orderby());
+                response.set_code(-1);
+                response.set_desc("invalid orderby param.");
+                break;
+            }
+            cond.orderby = static_cast<enum OrderByType>(request.select().orderby());
+
+            if (request.select().orders() < 0 || request.select().orders() >= static_cast<int32_t>(OrderType::kOrderBoundary)) {
+                log_err("invalid orders param: %d", request.select().orders());
+                response.set_code(-1);
+                response.set_desc("invalid orders param.");
+                break;
+            }
+            cond.orders = static_cast<enum OrderType>(request.select().orders());
+
 
             event_select_t stat {};
             int ret = EventRepos::instance().get_event(cond, stat);

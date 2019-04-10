@@ -5,7 +5,7 @@
 using namespace ::testing;
 
 #include <Core/ProtoBuf.h>
-#include <Protocol/gen-cpp/XtraTask.pb.h>
+#include <Protocol/gen-cpp/MonitorTask.pb.h>
 
 using namespace tzrpc;
 
@@ -32,14 +32,14 @@ message XtraReadOps {
 
 TEST(ProtobufTest, MarshalandUnmarshalTest) {
 
-    XtraTask::XtraReadOps::Request request;
+    MonitorTask::MonitorReadOps::Request request;
 
     ASSERT_THAT(request.IsInitialized(), Eq(true));  // all optional
 
-    request.mutable_gets()->set_key("nicol");
+    request.mutable_ping()->set_msg("nicol");
     ASSERT_THAT(request.IsInitialized(), Eq(true));
 
-    ASSERT_THAT(request.gets().key(), Eq("nicol"));
+    ASSERT_THAT(request.ping().msg(), Eq("nicol"));
 
     request.mutable_ping()->set_msg("ping_msg");
 

@@ -16,12 +16,12 @@
 class StoreSql: public StoreIf {
 public:
 
-    bool init(const libconfig::Config& conf);
-    int insert_ev_stat(const event_insert_t& stat);
-    int select_ev_stat(const event_cond_t& cond, event_select_t& stat, time_t linger_hint);
+    bool init(const libconfig::Config& conf) override;
+    int insert_ev_stat(const event_insert_t& stat) override;
+    int select_ev_stat(const event_cond_t& cond, event_select_t& stat, time_t linger_hint) override;
 
-    int select_metrics(const std::string& service, std::vector<std::string>& metrics);
-    int select_services(std::vector<std::string>& services);
+    int select_metrics(const std::string& service, std::vector<std::string>& metrics) override;
+    int select_services(std::vector<std::string>& services) override;
 
 private:
     int insert_ev_stat(tzrpc::sql_conn_ptr &conn, const event_insert_t& stat);
