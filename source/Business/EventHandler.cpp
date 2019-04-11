@@ -296,7 +296,13 @@ void EventHandler::run() {
     stat.entity_idx = entity_idx_;
 
     while (true) {
-
+        
+        if( thread_terminate_ ) {
+            log_debug("EventHandler thread (%s) about to terminate ...", 
+                      identity_.c_str(), (long)pthread_self());
+            break;
+        }
+        
         int queue_size = conf_.additional_process_step_size_;
 
         // 如果积累的待处理任务比较多，就取出来给辅助线程处理

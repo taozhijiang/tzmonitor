@@ -60,13 +60,22 @@ public:
         service_(service),
         entity_idx_(entity_idx),
         identity_(construct_identity(service, entity_idx)),
+        process_queue_(),
+        thread_ptr_(),
+        thread_terminate_(false),
         lock_(),
         conf_(),
         events_(),
         store_() {
     }
 
-    ~EventHandler() {}
+    ~EventHandler() {
+        
+        thread_terminate_ = true;
+        if(thread_ptr_ && thread_ptr_->joinable()) {
+            thread_ptr_->join();
+        }
+    }
 
     // 禁止拷贝
     EventHandler(const EventHandler&) = delete;
@@ -109,6 +118,7 @@ private:
     // 超过linger时间后的事件就会丢到这里被处理
     tzrpc::EQueue<events_by_time_ptr_t> process_queue_;
     std::shared_ptr<boost::thread> thread_ptr_;
+    bool thread_terminate_;
 
     EventHandlerConf conf_;
 
