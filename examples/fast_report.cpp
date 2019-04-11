@@ -80,6 +80,8 @@ void* perf_run(void* x_void_ptr) {
         // increment success case
         count += 12;
     }
+
+    return NULL;
 }
 
 int main(int argc, char* argv[]) {

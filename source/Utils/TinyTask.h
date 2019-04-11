@@ -91,7 +91,7 @@ private:
         while (true) {
             
             if( thread_terminate_ ) {
-                log_debug("TinyTask thread about to terminate ...", (long)pthread_self());
+                log_debug("TinyTask thread %#lx about to terminate ...", (long)pthread_self());
                 break;
             }
 

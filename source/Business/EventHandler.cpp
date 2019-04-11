@@ -298,7 +298,7 @@ void EventHandler::run() {
     while (true) {
         
         if( thread_terminate_ ) {
-            log_debug("EventHandler thread (%s) about to terminate ...", 
+            log_debug("EventHandler thread (%s) %#lx about to terminate ...", 
                       identity_.c_str(), (long)pthread_self());
             break;
         }

@@ -85,7 +85,7 @@ std::shared_ptr<leveldb::DB> StoreLevelDB::get_leveldb_handler(const std::string
         log_err("service %s not created.", service.c_str());
     }
 
-do_create:
+// do_create:
 
     std::lock_guard<std::mutex> lock(lock_);
 

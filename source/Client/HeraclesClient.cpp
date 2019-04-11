@@ -120,7 +120,6 @@ private:
 private:
     // 确保 service和entity_idx已经是定义良好的了
     HeraclesClientImpl(std::string service, std::string entity_idx) :
-        service_(service), entity_idx_(entity_idx),
         client_agent_(),
         thread_terminate_(false),
         thread_run_(),
@@ -129,6 +128,7 @@ private:
         current_slot_(),
         submit_queue_(),
         already_initialized_(false),
+        service_(service), entity_idx_(entity_idx),
         monitor_addr_(),
         monitor_port_(),
         conf_(),
@@ -550,7 +550,7 @@ void HeraclesClientImpl::run() {
     while (true) {
         
         if( thread_terminate_ ) {
-            log_debug("HeraclesClient submit thread about to terminate ...", (long)pthread_self());
+            log_debug("HeraclesClient submit thread %#lx about to terminate ...", (long)pthread_self());
             break;
         }
 

@@ -63,8 +63,8 @@ public:
         process_queue_(),
         thread_ptr_(),
         thread_terminate_(false),
-        lock_(),
         conf_(),
+        lock_(),
         events_(),
         store_() {
     }
