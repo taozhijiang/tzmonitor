@@ -32,7 +32,7 @@
 #include <syslog.h>
 
 typedef void(* CP_log_store_func_t)(int priority, const char *format, ...);
-namespace tzmonitor_client {
+namespace heracles_client {
 
 bool log_init(int log_level);
 void log_close();
@@ -55,7 +55,7 @@ extern CP_log_store_func_t checkpoint_log_store_func_impl_;
 void set_checkpoint_log_store_func(CP_log_store_func_t func);
 
 
-} // end namespace tzmonitor_client
+} // end namespace heracles_client
 
 
 #endif // __CLIENT_LOG_CLIENT_H__

@@ -8,7 +8,7 @@
 
 #include <Client/IoService.h>
 
-namespace tzmonitor_client {
+namespace heracles_client {
 
 IoService& IoService::instance() {
     static IoService helper {};
@@ -17,4 +17,4 @@ IoService& IoService::instance() {
 }
 
 
-} // end namespace tzmonitor_client
+} // end namespace heracles_client

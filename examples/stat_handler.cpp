@@ -19,7 +19,7 @@
 
 #include "stat_handler.h"
 
-#include <Client/include/MonitorClient.h>
+#include <Client/include/HeraclesClient.h>
 
 namespace tzhttpd {
 
@@ -85,7 +85,7 @@ int stats_http_get_handler(const HttpParser& http_parser,
 
 void IndexStatHandler::print_head() {
 
-    ss_ << "<h3 align=\"center\">" << "tzmonitor监控系统使用手册" << "</h3>" << std::endl;
+    ss_ << "<h3 align=\"center\">" << "Heracles监控系统使用手册" << "</h3>" << std::endl;
 
     ss_ << "<tr style=\"font-weight:bold; font-style:italic;\">" << std::endl;
 
@@ -100,7 +100,7 @@ void IndexStatHandler::print_head() {
 
 int IndexStatHandler::print_items() {
 
-    auto reporter = std::make_shared<tzmonitor_client::MonitorClient>();
+    auto reporter = std::make_shared<heracles_client::HeraclesClient>();
     if (!reporter || !reporter ->init()) {
         tzhttpd_log_err("init client failed.");
         return -1;
@@ -296,7 +296,7 @@ int EventStatHandler::print_items() {
     cond_.groupby = GroupType::kGroupbyTag;
     event_select_t result {};
 
-    auto reporter = std::make_shared<tzmonitor_client::MonitorClient>();
+    auto reporter = std::make_shared<heracles_client::HeraclesClient>();
     if (!reporter || !reporter ->init()) {
         tzhttpd_log_err("init client failed.");
         return -1;

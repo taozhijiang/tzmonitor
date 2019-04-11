@@ -23,7 +23,7 @@ class Message;
 
 }
 
-namespace tzmonitor_client {
+namespace heracles_client {
 
 class TcpConnSync;
 
@@ -69,7 +69,7 @@ private:
 };
 
 
-} // end namespace tzmonitor_client
+} // end namespace heracles_client
 
 
 #endif // __RPC_CLIENT_IMPL_H__

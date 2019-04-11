@@ -19,7 +19,7 @@
 
 typedef void(* CP_log_store_func_t)(int priority, const char *format, ...);
 
-namespace tzmonitor_client {
+namespace heracles_client {
 
 extern CP_log_store_func_t checkpoint_log_store_func_impl_;
 void set_checkpoint_log_store_func(CP_log_store_func_t func);
@@ -79,7 +79,7 @@ private:
     std::shared_ptr<RpcClientImpl> impl_;
 };
 
-}  // end namespace tzmonitor_client
+}  // end namespace heracles_client
 
 
 #endif // __RPC_CLIENT_H__

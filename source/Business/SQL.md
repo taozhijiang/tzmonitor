@@ -2,7 +2,7 @@
 
 
 
-CREATE TABLE `t_tzmonitor_[service]_events_2019xx` (
+CREATE TABLE `t_heracles_[service]_events_2019xx` (
   `F_increment_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `F_timestamp` bigint(20) NOT NULL COMMENT '事件上报时间， FROM_UNIXTIME可视化',
 
@@ -29,7 +29,7 @@ service_entityidx -> timestamp_metric_tag
 
 
 // leveldb 存储表设计思路
-// tzmonitor/tzmonitor__service__events_201902
+// heracles/heracles__service__events_201902
 //           key: metric#timestamp#tag#entity_idx
 //           val: step#count#sum#avg#min#max#p10#p50#p90
 

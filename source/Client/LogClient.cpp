@@ -13,7 +13,7 @@
 #include <Client/LogClient.h>
 
 
-namespace tzmonitor_client {
+namespace heracles_client {
 
 //
 // define here
@@ -87,5 +87,5 @@ void log_api(int priority, const char *file, int line, const char *func, const c
 
 
 
-} // end namespace tzmonitor_client
+} // end namespace heracles_client
 

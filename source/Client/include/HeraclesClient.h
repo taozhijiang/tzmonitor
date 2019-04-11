@@ -18,11 +18,11 @@
 
 typedef void (* CP_log_store_func_t)(int priority, const char* format, ...);
 
-// 可以创建多个MonitorClient的客户端，但是后台实现只会使用
+// 可以创建多个HeraclesClient的客户端，但是后台实现只会使用
 // 一个单例来实现，否则产生的msgid会重复，导致消息被丢弃
 
 // 为什么不直接使用单例？单例用起来是在太臭了
-namespace tzmonitor_client {
+namespace heracles_client {
 
 struct order_cond_t {
     enum OrderByType orderby_;
@@ -36,16 +36,16 @@ struct order_cond_t {
     }
 };
 
-class MonitorClient : public std::enable_shared_from_this<MonitorClient> {
+class HeraclesClient : public std::enable_shared_from_this<HeraclesClient> {
 public:
-    explicit MonitorClient(std::string entity_idx = "");
-    MonitorClient(std::string service, std::string entity_idx = "");
+    explicit HeraclesClient(std::string entity_idx = "");
+    HeraclesClient(std::string service, std::string entity_idx = "");
 
-    ~MonitorClient();
+    ~HeraclesClient();
 
     // 禁止拷贝
-    MonitorClient(const MonitorClient&) = delete;
-    MonitorClient& operator=(const MonitorClient&) = delete;
+    HeraclesClient(const HeraclesClient&) = delete;
+    HeraclesClient& operator=(const HeraclesClient&) = delete;
 
     // 用存量的cfg进行更新，必须确保cfgFile_已经初始化了
     bool init();
@@ -85,6 +85,6 @@ public:
     int module_status(std::string& module, std::string& name, std::string& val);
 };
 
-} // end namespace tzmonitor_client
+} // end namespace heracles_client
 
 #endif // __MONITOR_CLIENT_H__

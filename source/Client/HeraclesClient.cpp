@@ -25,7 +25,7 @@
 #include <Utils/EQueue.h>
 
 #include <Client/RpcClient.h>
-#include <Client/include/MonitorClient.h>
+#include <Client/include/HeraclesClient.h>
 
 #include <Client/MonitorRpcClientHelper.h>
 
@@ -33,26 +33,26 @@
 
 #include <Business/Sort.h>
 
-namespace tzmonitor_client {
+namespace heracles_client {
 
 
-struct MonitorClientConf {
+struct HeraclesClientConf {
 
     bool report_enabled_;
 
     int  report_queue_limit_;
     int  size_per_report_;
 
-    MonitorClientConf():
+    HeraclesClientConf():
         report_enabled_(true),
         report_queue_limit_(0),
         size_per_report_(5000) {
     }
 } __attribute__ ((aligned (4)));
 
-class MonitorClientImpl {
+class HeraclesClientImpl {
 
-    friend class MonitorClient;
+    friend class HeraclesClient;
 
 private:
 
@@ -119,9 +119,10 @@ private:
 
 private:
     // 确保 service和entity_idx已经是定义良好的了
-    MonitorClientImpl(std::string service, std::string entity_idx) :
+    HeraclesClientImpl(std::string service, std::string entity_idx) :
         service_(service), entity_idx_(entity_idx),
         client_agent_(),
+        thread_terminate_(false),
         thread_run_(),
         lock_(),
         msgid_(0), current_time_(0),
@@ -135,19 +136,25 @@ private:
         log_func_(NULL) {
     }
 
-    ~MonitorClientImpl() {}
+    ~HeraclesClientImpl() {
+        thread_terminate_ = true;
+        if(thread_run_ && thread_run_->joinable()) {
+            thread_run_->join();
+        }
+    }
 
     // 禁止拷贝
-    MonitorClientImpl(const MonitorClientImpl&) = delete;
-    MonitorClientImpl& operator=(const MonitorClientImpl&) = delete;
+    HeraclesClientImpl(const HeraclesClientImpl&) = delete;
+    HeraclesClientImpl& operator=(const HeraclesClientImpl&) = delete;
 
-    static MonitorClientImpl& instance();
+    static HeraclesClientImpl& instance();
 
 private:
 
     std::shared_ptr<MonitorRpcClientHelper> client_agent_;
 
     // 默认开启一个提交，当发现待提交队列过长的时候，自动开辟future任务
+    bool thread_terminate_;
     std::shared_ptr<std::thread> thread_run_;
     void run();
 
@@ -168,7 +175,7 @@ private:
     std::string monitor_addr_;
     uint16_t    monitor_port_;
 
-    MonitorClientConf conf_;
+    HeraclesClientConf conf_;
 
     std::string cfgFile_;
     CP_log_store_func_t log_func_;
@@ -177,12 +184,12 @@ private:
 
 // Impl member function
 
-MonitorClientImpl& MonitorClientImpl::instance() {
-    static MonitorClientImpl helper(program_invocation_short_name, "");
+HeraclesClientImpl& HeraclesClientImpl::instance() {
+    static HeraclesClientImpl helper(program_invocation_short_name, "");
     return helper;
 }
 
-bool MonitorClientImpl::init(const std::string& cfgFile, CP_log_store_func_t log_func) {
+bool HeraclesClientImpl::init(const std::string& cfgFile, CP_log_store_func_t log_func) {
 
     libconfig::Config cfg;
     try {
@@ -206,7 +213,7 @@ bool MonitorClientImpl::init(const std::string& cfgFile, CP_log_store_func_t log
     return false;
 }
 
-bool MonitorClientImpl::init() {
+bool HeraclesClientImpl::init() {
 
     if (cfgFile_.empty()) {
         log_err("cfgFile_ not initialized...");
@@ -217,7 +224,7 @@ bool MonitorClientImpl::init() {
 }
 
 
-bool MonitorClientImpl::init(const libconfig::Setting& setting, CP_log_store_func_t log_func) {
+bool HeraclesClientImpl::init(const libconfig::Setting& setting, CP_log_store_func_t log_func) {
 
     // init log first
     set_checkpoint_log_store_func(log_func);
@@ -265,14 +272,14 @@ bool MonitorClientImpl::init(const libconfig::Setting& setting, CP_log_store_fun
 }
 
 
-bool MonitorClientImpl::init(const std::string& service, const std::string& entity_idx,
+bool HeraclesClientImpl::init(const std::string& service, const std::string& entity_idx,
                              const std::string& addr, uint16_t port, CP_log_store_func_t log_func) {
 
 
     std::lock_guard<std::mutex> lock(lock_);
 
     if (already_initialized_) {
-        log_err("MonitorClientImpl already successfully initialized...");
+        log_err("HeraclesClientImpl already successfully initialized...");
         return true;
     }
 
@@ -310,20 +317,20 @@ bool MonitorClientImpl::init(const std::string& service, const std::string& enti
         return false;
     }
 
-    thread_run_.reset(new std::thread(std::bind(&MonitorClientImpl::run, this)));
+    thread_run_.reset(new std::thread(std::bind(&HeraclesClientImpl::run, this)));
     if (!thread_run_){
         log_err("create run work thread failed! ");
         return false;
     }
 
-    log_info("MonitorClientImpl init ok!");
+    log_info("HeraclesClientImpl init ok!");
     already_initialized_ = true;
 
     return true;
 }
 
 // rpc.monitor_client
-int MonitorClientImpl::module_runtime(const libconfig::Config& conf) {
+int HeraclesClientImpl::module_runtime(const libconfig::Config& conf) {
 
     try {
 
@@ -363,9 +370,9 @@ int MonitorClientImpl::module_runtime(const libconfig::Config& conf) {
     return -1;
 }
 
-int MonitorClientImpl::module_status(std::string& module, std::string& name, std::string& val) {
+int HeraclesClientImpl::module_status(std::string& module, std::string& name, std::string& val) {
 
-    module = "tzmonitor_client";
+    module = "heracles_client";
     // service + entity_idx
 
     name = service_;
@@ -390,7 +397,7 @@ int MonitorClientImpl::module_status(std::string& module, std::string& name, std
 }
 
 
-int MonitorClientImpl::ping() {
+int HeraclesClientImpl::ping() {
 
     if (!client_agent_) {
         log_err("MonitorRpcClientHelper not initialized, fatal!");
@@ -408,7 +415,7 @@ int MonitorClientImpl::ping() {
 }
 
 
-int MonitorClientImpl::report_event(const std::string& metric, int64_t value, const std::string& tag) {
+int HeraclesClientImpl::report_event(const std::string& metric, int64_t value, const std::string& tag) {
 
     if (!conf_.report_enabled_) {
         return 0;
@@ -462,7 +469,7 @@ int MonitorClientImpl::report_event(const std::string& metric, int64_t value, co
     return 0;
 }
 
-int MonitorClientImpl::select_stat(event_cond_t& cond, event_select_t& stat) {
+int HeraclesClientImpl::select_stat(event_cond_t& cond, event_select_t& stat) {
 
     if (!client_agent_) {
         log_err("MonitorRpcClientHelper not initialized, fatal!");
@@ -495,7 +502,7 @@ int MonitorClientImpl::select_stat(event_cond_t& cond, event_select_t& stat) {
 }
 
 
-int MonitorClientImpl::known_metrics(const std::string& version, const std::string& service,
+int HeraclesClientImpl::known_metrics(const std::string& version, const std::string& service,
                                      event_handler_conf_t& handler_conf, std::vector<std::string>& metrics) {
 
     if (!client_agent_) {
@@ -517,7 +524,7 @@ int MonitorClientImpl::known_metrics(const std::string& version, const std::stri
     return code;
 }
 
-int MonitorClientImpl::known_services(const std::string& version, std::vector<std::string>& services) {
+int HeraclesClientImpl::known_services(const std::string& version, std::vector<std::string>& services) {
 
     if (!client_agent_) {
         log_err("MonitorRpcClientHelper not initialized, fatal!");
@@ -536,11 +543,16 @@ int MonitorClientImpl::known_services(const std::string& version, std::vector<st
 
 
 
-void MonitorClientImpl::run() {
+void HeraclesClientImpl::run() {
 
-    log_debug("MonitorClient submit thread %#lx begin to run ...", (long)pthread_self());
+    log_debug("HeraclesClient submit thread %#lx begin to run ...", (long)pthread_self());
 
     while (true) {
+        
+        if( thread_terminate_ ) {
+            log_debug("HeraclesClient submit thread about to terminate ...", (long)pthread_self());
+            break;
+        }
 
         event_report_ptr_t report_ptr;
         time_t start = ::time(NULL);
@@ -564,76 +576,76 @@ void MonitorClientImpl::run() {
 
 
 // call forward
-MonitorClient::MonitorClient(std::string entity_idx) {
-    (void)MonitorClientImpl::instance();
+HeraclesClient::HeraclesClient(std::string entity_idx) {
+    (void)HeraclesClientImpl::instance();
 }
 
-MonitorClient::MonitorClient(std::string service, std::string entity_idx){
-    (void)MonitorClientImpl::instance();
+HeraclesClient::HeraclesClient(std::string service, std::string entity_idx){
+    (void)HeraclesClientImpl::instance();
 }
 
-MonitorClient::~MonitorClient(){}
+HeraclesClient::~HeraclesClient(){}
 
-bool MonitorClient::init() {
-    return MonitorClientImpl::instance().init();
+bool HeraclesClient::init() {
+    return HeraclesClientImpl::instance().init();
 }
 
-bool MonitorClient::init(const std::string& cfgFile, CP_log_store_func_t log_func) {
-    return MonitorClientImpl::instance().init(cfgFile, log_func);
+bool HeraclesClient::init(const std::string& cfgFile, CP_log_store_func_t log_func) {
+    return HeraclesClientImpl::instance().init(cfgFile, log_func);
 }
 
-bool MonitorClient::init(const libconfig::Setting& setting, CP_log_store_func_t log_func) {
-    return MonitorClientImpl::instance().init(setting, log_func);
+bool HeraclesClient::init(const libconfig::Setting& setting, CP_log_store_func_t log_func) {
+    return HeraclesClientImpl::instance().init(setting, log_func);
 }
 
-bool MonitorClient::init(const std::string& addr,  uint16_t port, CP_log_store_func_t log_func) {
-    return MonitorClientImpl::instance().init("", "", addr, port, log_func);
+bool HeraclesClient::init(const std::string& addr,  uint16_t port, CP_log_store_func_t log_func) {
+    return HeraclesClientImpl::instance().init("", "", addr, port, log_func);
 }
 
-bool MonitorClient::init(const std::string& service, const std::string& entity_idx,
+bool HeraclesClient::init(const std::string& service, const std::string& entity_idx,
                          const std::string& addr, uint16_t port,
                          CP_log_store_func_t log_func) {
-    return MonitorClientImpl::instance().init(service, entity_idx, addr, port, log_func);
+    return HeraclesClientImpl::instance().init(service, entity_idx, addr, port, log_func);
 }
 
 
 // 初始化检查提前做，将开销分担到各个调用线程中去。
 
-int MonitorClient::report_event(const std::string& name, int64_t value, std::string flag ) {
+int HeraclesClient::report_event(const std::string& name, int64_t value, std::string flag ) {
 
-    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
-        log_err("MonitorClientImpl not initialized...");
+    if (unlikely(!HeraclesClientImpl::instance().already_initialized_)) {
+        log_err("HeraclesClientImpl not initialized...");
         return -1;
     }
 
-    return MonitorClientImpl::instance().report_event(name, value, flag);
+    return HeraclesClientImpl::instance().report_event(name, value, flag);
 }
 
-int MonitorClient::ping() {
+int HeraclesClient::ping() {
 
-    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
-        log_err("MonitorClientImpl not initialized...");
+    if (unlikely(!HeraclesClientImpl::instance().already_initialized_)) {
+        log_err("HeraclesClientImpl not initialized...");
         return -1;
     }
 
-    return MonitorClientImpl::instance().ping();
+    return HeraclesClientImpl::instance().ping();
 }
 
-int MonitorClient::select_stat(event_cond_t& cond, event_select_t& stat) {
+int HeraclesClient::select_stat(event_cond_t& cond, event_select_t& stat) {
 
-    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
-        log_err("MonitorClientImpl not initialized...");
+    if (unlikely(!HeraclesClientImpl::instance().already_initialized_)) {
+        log_err("HeraclesClientImpl not initialized...");
         return -1;
     }
 
-    return MonitorClientImpl::instance().select_stat(cond, stat);
+    return HeraclesClientImpl::instance().select_stat(cond, stat);
 }
 
 
-int MonitorClient::select_stat(const std::string& metric, int64_t& count, int64_t& avg, time_t tm_intervel) {
+int HeraclesClient::select_stat(const std::string& metric, int64_t& count, int64_t& avg, time_t tm_intervel) {
 
-    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
-        log_err("MonitorClientImpl not initialized...");
+    if (unlikely(!HeraclesClientImpl::instance().already_initialized_)) {
+        log_err("HeraclesClientImpl not initialized...");
         return -1;
     }
 
@@ -645,7 +657,7 @@ int MonitorClient::select_stat(const std::string& metric, int64_t& count, int64_
     cond.groupby = GroupType::kGroupNone;
 
     event_select_t stat {};
-    if (MonitorClientImpl::instance().select_stat(cond, stat) != 0) {
+    if (HeraclesClientImpl::instance().select_stat(cond, stat) != 0) {
         return -1;
     }
 
@@ -655,11 +667,11 @@ int MonitorClient::select_stat(const std::string& metric, int64_t& count, int64_
     return 0;
 }
 
-int MonitorClient::select_stat(const std::string& metric, const std::string& tag,
+int HeraclesClient::select_stat(const std::string& metric, const std::string& tag,
                                int64_t& count, int64_t& avg, time_t tm_intervel) {
 
-    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
-        log_err("MonitorClientImpl not initialized...");
+    if (unlikely(!HeraclesClientImpl::instance().already_initialized_)) {
+        log_err("HeraclesClientImpl not initialized...");
         return -1;
     }
 
@@ -671,7 +683,7 @@ int MonitorClient::select_stat(const std::string& metric, const std::string& tag
     cond.groupby = GroupType::kGroupNone;
 
     event_select_t stat {};
-    if (MonitorClientImpl::instance().select_stat(cond, stat) != 0) {
+    if (HeraclesClientImpl::instance().select_stat(cond, stat) != 0) {
         return -1;
     }
 
@@ -681,11 +693,11 @@ int MonitorClient::select_stat(const std::string& metric, const std::string& tag
     return 0;
 }
 
-int MonitorClient::select_stat_groupby_tag(const std::string& metric,
+int HeraclesClient::select_stat_groupby_tag(const std::string& metric,
                                            event_select_t& stat, time_t tm_intervel) {
 
-    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
-        log_err("MonitorClientImpl not initialized...");
+    if (unlikely(!HeraclesClientImpl::instance().already_initialized_)) {
+        log_err("HeraclesClientImpl not initialized...");
         return -1;
     }
 
@@ -696,14 +708,14 @@ int MonitorClient::select_stat_groupby_tag(const std::string& metric,
     cond.tm_interval = tm_intervel;
     cond.groupby = GroupType::kGroupbyTag;
 
-    return MonitorClientImpl::instance().select_stat(cond, stat);
+    return HeraclesClientImpl::instance().select_stat(cond, stat);
 }
 
-int MonitorClient::select_stat_groupby_time(const std::string& metric,
+int HeraclesClient::select_stat_groupby_time(const std::string& metric,
                                             event_select_t& stat, time_t tm_intervel) {
 
-    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
-        log_err("MonitorClientImpl not initialized...");
+    if (unlikely(!HeraclesClientImpl::instance().already_initialized_)) {
+        log_err("HeraclesClientImpl not initialized...");
         return -1;
     }
 
@@ -714,15 +726,15 @@ int MonitorClient::select_stat_groupby_time(const std::string& metric,
     cond.tm_interval = tm_intervel;
     cond.groupby = GroupType::kGroupbyTimestamp;
 
-    return MonitorClientImpl::instance().select_stat(cond, stat);
+    return HeraclesClientImpl::instance().select_stat(cond, stat);
 }
 
 
-int MonitorClient::select_stat_groupby_time(const std::string& metric, const std::string& tag,
+int HeraclesClient::select_stat_groupby_time(const std::string& metric, const std::string& tag,
                                             event_select_t& stat, time_t tm_intervel) {
 
-    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
-        log_err("MonitorClientImpl not initialized...");
+    if (unlikely(!HeraclesClientImpl::instance().already_initialized_)) {
+        log_err("HeraclesClientImpl not initialized...");
         return -1;
     }
 
@@ -734,15 +746,15 @@ int MonitorClient::select_stat_groupby_time(const std::string& metric, const std
     cond.tm_interval = tm_intervel;
     cond.groupby = GroupType::kGroupbyTimestamp;
 
-    return MonitorClientImpl::instance().select_stat(cond, stat);
+    return HeraclesClientImpl::instance().select_stat(cond, stat);
 }
 
 
-int MonitorClient::select_stat_groupby_tag_ordered (const std::string& metric, const order_cond_t& order,
+int HeraclesClient::select_stat_groupby_tag_ordered (const std::string& metric, const order_cond_t& order,
                                                     event_select_t& stat, time_t tm_intervel) {
 
-    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
-        log_err("MonitorClientImpl not initialized...");
+    if (unlikely(!HeraclesClientImpl::instance().already_initialized_)) {
+        log_err("HeraclesClientImpl not initialized...");
         return -1;
     }
 
@@ -765,14 +777,14 @@ int MonitorClient::select_stat_groupby_tag_ordered (const std::string& metric, c
     cond.orders = order.orders_;
     cond.limit = order.limit_;
 
-    return MonitorClientImpl::instance().select_stat(cond, stat);
+    return HeraclesClientImpl::instance().select_stat(cond, stat);
 }
 
-int MonitorClient::select_stat_groupby_time_ordered(const std::string& metric, const order_cond_t& order,
+int HeraclesClient::select_stat_groupby_time_ordered(const std::string& metric, const order_cond_t& order,
                                                     event_select_t& stat, time_t tm_intervel) {
 
-    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
-        log_err("MonitorClientImpl not initialized...");
+    if (unlikely(!HeraclesClientImpl::instance().already_initialized_)) {
+        log_err("HeraclesClientImpl not initialized...");
         return -1;
     }
 
@@ -797,14 +809,14 @@ int MonitorClient::select_stat_groupby_time_ordered(const std::string& metric, c
     cond.orders = order.orders_;
     cond.limit = order.limit_;
 
-    return MonitorClientImpl::instance().select_stat(cond, stat);
+    return HeraclesClientImpl::instance().select_stat(cond, stat);
 }
 
-int MonitorClient::select_stat_groupby_time_ordered(const std::string& metric, const std::string& tag,
+int HeraclesClient::select_stat_groupby_time_ordered(const std::string& metric, const std::string& tag,
                                                     const order_cond_t& order, event_select_t& stat, time_t tm_intervel) {
 
-    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
-        log_err("MonitorClientImpl not initialized...");
+    if (unlikely(!HeraclesClientImpl::instance().already_initialized_)) {
+        log_err("HeraclesClientImpl not initialized...");
         return -1;
     }
 
@@ -830,50 +842,50 @@ int MonitorClient::select_stat_groupby_time_ordered(const std::string& metric, c
     cond.orders = order.orders_;
     cond.limit = order.limit_;
 
-    return MonitorClientImpl::instance().select_stat(cond, stat);
+    return HeraclesClientImpl::instance().select_stat(cond, stat);
 }
 
-int MonitorClient::known_metrics(event_handler_conf_t& handler_conf, std::vector<std::string>& metrics, std::string service) {
+int HeraclesClient::known_metrics(event_handler_conf_t& handler_conf, std::vector<std::string>& metrics, std::string service) {
 
-    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
-        log_err("MonitorClientImpl not initialized...");
+    if (unlikely(!HeraclesClientImpl::instance().already_initialized_)) {
+        log_err("HeraclesClientImpl not initialized...");
         return -1;
     }
 
     std::string version = "1.0.0";
-    return MonitorClientImpl::instance().known_metrics(version, service, handler_conf, metrics);
+    return HeraclesClientImpl::instance().known_metrics(version, service, handler_conf, metrics);
 }
 
-int MonitorClient::known_services(std::vector<std::string>& services) {
+int HeraclesClient::known_services(std::vector<std::string>& services) {
 
-    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
-        log_err("MonitorClientImpl not initialized...");
+    if (unlikely(!HeraclesClientImpl::instance().already_initialized_)) {
+        log_err("HeraclesClientImpl not initialized...");
         return -1;
     }
 
     std::string version = "1.0.0";
-    return MonitorClientImpl::instance().known_services(version, services);
+    return HeraclesClientImpl::instance().known_services(version, services);
 }
 
-int MonitorClient::module_runtime(const libconfig::Config& conf) {
+int HeraclesClient::module_runtime(const libconfig::Config& conf) {
 
-    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
-        log_err("MonitorClientImpl not initialized...");
+    if (unlikely(!HeraclesClientImpl::instance().already_initialized_)) {
+        log_err("HeraclesClientImpl not initialized...");
         return -1;
     }
 
-    return MonitorClientImpl::instance().module_runtime(conf);
+    return HeraclesClientImpl::instance().module_runtime(conf);
 }
 
-int MonitorClient::module_status(std::string& strModule, std::string& strKey, std::string& strValue) {
+int HeraclesClient::module_status(std::string& strModule, std::string& strKey, std::string& strValue) {
 
-    if (unlikely(!MonitorClientImpl::instance().already_initialized_)) {
-        log_err("MonitorClientImpl not initialized...");
+    if (unlikely(!HeraclesClientImpl::instance().already_initialized_)) {
+        log_err("HeraclesClientImpl not initialized...");
         return -1;
     }
 
-    return MonitorClientImpl::instance().module_status(strModule, strKey, strValue);
+    return HeraclesClientImpl::instance().module_status(strModule, strKey, strValue);
 }
 
-} // end namespace tzmonitor_client
+} // end namespace heracles_client
 

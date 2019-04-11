@@ -6,8 +6,6 @@
  */
 
 
-
-
 #include <Client/LogClient.h>
 
 #include <Client/ProtoBuf.h>
@@ -17,7 +15,7 @@
 #include <Client/MonitorTask.pb.h>
 #include <Client/MonitorRpcClientHelper.h>
 
-namespace tzmonitor_client {
+namespace heracles_client {
 
 
 int MonitorRpcClientHelper::rpc_ping() {
@@ -394,4 +392,4 @@ int MonitorRpcClientHelper::rpc_known_services(const std::string& version, std::
     return 0;
 }
 
-} // end namespace tzmonitor_client
+} // end namespace heracles_client

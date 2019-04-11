@@ -11,7 +11,7 @@
 
 #include <cstdint>
 
-namespace tzmonitor_client {
+namespace heracles_client {
 
 // 服务端的错误码应该包含客户端传递过来的错误码，同时
 // 还应该包含其他原因导致的服务错误的状态
@@ -52,6 +52,6 @@ enum class RpcClientStatus : uint8_t {
 
 
 
-} // end namespace tzmonitor_client
+} // end namespace heracles_client
 
 #endif // __RPC_CLIENT_STATUS_H__

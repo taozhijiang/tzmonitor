@@ -18,7 +18,7 @@
 #include <Utils/StrUtil.h>
 
 // leveldb 存储表设计思路
-// tzmonitor/tzmonitor__service__events_201902
+// heracles/heracles__service__events_201902
 //           key: timestamp#metric#tag#entity_idx
 //           val: step#count#sum#avg#min#max#p10#p50#p90
 

@@ -15,7 +15,7 @@
 #include <Client/RpcClient.h>
 #include <Client/TcpConnSync.h>
 
-namespace tzmonitor_client {
+namespace heracles_client {
 
 using tzrpc::Header;
 using tzrpc::kHeaderMagic;
@@ -236,4 +236,4 @@ bool TcpConnSync::handle_socket_ec(const boost::system::error_code& ec ) {
     return close_socket;
 }
 
-} // end namespace tzmonitor_client
+} // end namespace heracles_client

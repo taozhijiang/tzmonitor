@@ -24,7 +24,7 @@ using tzrpc::kRpcHeaderVersion;
 using tzrpc::kRpcHeaderMagic;
 
 
-namespace tzmonitor_client {
+namespace heracles_client {
 
 
 RpcClientImpl::~RpcClientImpl() {
@@ -165,4 +165,4 @@ RpcClientStatus RpcClientImpl::call_RPC(uint16_t service_id, uint16_t opcode,
 }
 
 
-} // end namespace tzmonitor_client
+} // end namespace heracles_client
