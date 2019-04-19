@@ -13,6 +13,7 @@
 #include <vector>
 #include <string>
 
+#include <sstream>
 //
 // 注意，这边的定义都是和thrift中对应的，因为考虑到效率和optional参数存取的问题，
 // 没有直接使用thrift产生的结构信息
@@ -106,6 +107,24 @@ struct event_cond_t {
         orders(OrderType::kOrderDesc),
         limit(0) {
     }
+
+    std::string str() {
+        
+        std::stringstream ss;
+        ss  << "version: " << version 
+            << " ,tm_interval: " << tm_interval 
+            << " ,service: " << service 
+            << " ,metric: " << metric 
+            << " ,tm_start: " << tm_start 
+            << " ,entity_idx: " << entity_idx 
+            << " ,tag: " << tag 
+            << " ,groupby: " << groupby 
+            << " ,orderby: " << orderby 
+            << " ,orders: " << orders 
+            << " ,limit: " << limit;
+            
+        return ss.str();
+    }
 };
 
 // 查询结果信息
@@ -124,6 +143,23 @@ struct event_info_t {
     int32_t     value_p10;
     int32_t     value_p50;
     int32_t     value_p90;
+    
+    std::string str() {
+        
+        std::stringstream ss;
+        ss  << "timestamp: " << timestamp 
+            << " ,tag: " << tag 
+            << " ,count: " << count 
+            << " ,value_sum: " << value_sum 
+            << " ,value_avg: " << value_avg 
+            << " ,value_min: " << value_min 
+            << " ,value_max: " << value_max 
+            << " ,value_p10: " << value_p10 
+            << " ,value_p50: " << value_p50 
+            << " ,value_p90: " << value_p90;
+            
+        return ss.str();
+    }
 };
 
 struct event_select_t {
@@ -142,6 +178,24 @@ struct event_select_t {
 
     event_info_t summary;
     std::vector<event_info_t> info;
+    
+    std::string str() {
+        
+        std::stringstream ss;
+        ss  << "version: " << version 
+            << " ,timestamp: " << timestamp 
+            << " ,tm_interval: " << tm_interval 
+            << " ,service: " << service 
+            << " ,metric: " << metric 
+            << " ,tag: " << tag 
+            << " ,summary: " << summary.str();
+            
+        for(size_t i=0; i<info.size(); ++i) {
+            ss << "detail-" << i << ": " << info[i].str() <<"; ";
+        }
+            
+        return ss.str();
+    }
 };
 
 struct event_handler_conf_t {
