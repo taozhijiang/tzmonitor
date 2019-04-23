@@ -118,9 +118,9 @@ struct event_cond_t {
             << " ,tm_start: " << tm_start 
             << " ,entity_idx: " << entity_idx 
             << " ,tag: " << tag 
-            << " ,groupby: " << groupby 
-            << " ,orderby: " << orderby 
-            << " ,orders: " << orders 
+            << " ,groupby: " << static_cast<uint8_t>(groupby)
+            << " ,orderby: " << static_cast<uint8_t>(orderby)
+            << " ,orders: " << static_cast<uint8_t>(orders) 
             << " ,limit: " << limit;
             
         return ss.str();

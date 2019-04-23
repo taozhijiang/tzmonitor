@@ -487,6 +487,8 @@ int HeraclesClientImpl::select_stat(event_cond_t& cond, event_select_t& stat) {
     }
 
     // 是否进行排序
+    // 如果cond.limit == 0，则服务端的记录会全部返回的，就不需要在服务
+    // 端进行排序，在客户端执行排序操作
     if (cond.orderby != OrderByType::kOrderByNone &&
         cond.limit == 0 &&
         !stat.info.empty() )

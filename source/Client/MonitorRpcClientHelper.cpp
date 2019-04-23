@@ -207,7 +207,7 @@ int MonitorRpcClientHelper::rpc_event_select(const event_cond_t& cond, event_sel
         return -1;
     }
 
-    // todo 校验提交返回参数
+    // TODO 校验提交返回参数
 
     resp_info.version = response.select().version();
     resp_info.service = response.select().service();
@@ -227,6 +227,7 @@ int MonitorRpcClientHelper::rpc_event_select(const event_cond_t& cond, event_sel
     resp_info.summary.value_p90 = response.select().summary().value_p90();
 
 
+    // 含有GroupBy条件，需要对结果的info字段进行整理赋值
     if (cond.groupby != GroupType::kGroupNone) {
 
         int size = response.select().info_size();

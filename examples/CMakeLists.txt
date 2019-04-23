@@ -25,6 +25,7 @@ add_subdirectory( ../deps/tzhttpd build )
 add_executable( startup startup.cpp)
 add_executable( fast_report fast_report.cpp)
 add_executable( http_face stat_handler.cpp http_face.cpp )
+add_executable( select_detail select_detail.cpp )
 
 set (EXTRA_LIBS HeraclesClient )
 
@@ -37,4 +38,4 @@ set (EXTRA_LIBS ${EXTRA_LIBS} protoc protobuf )
 target_link_libraries( startup -lrt -rdynamic -ldl ${EXTRA_LIBS} )
 target_link_libraries( fast_report -lrt -rdynamic -ldl ${EXTRA_LIBS} )
 target_link_libraries( http_face -lrt -rdynamic -ldl tzhttpd ${EXTRA_LIBS} cryptopp )
-
+target_link_libraries( select_detail -lrt -rdynamic -ldl ${EXTRA_LIBS} )

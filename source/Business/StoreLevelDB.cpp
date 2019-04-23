@@ -664,9 +664,15 @@ int StoreLevelDB::select_ev_stat(const event_cond_t& cond, event_select_t& stat,
         return select_ev_stat_by_none(cond, stat, linger_hint);
     }
 
-    if (cond.orderby == OrderByType::kOrderByNone || cond.limit != 0) {
-        log_debug("order by %d, orders %d, limit %d, we will not sort in server side",
+    // 是否对结果进行排序
+    if (cond.orderby == OrderByType::kOrderByNone || cond.limit == 0) {
+        log_debug("order by %d, orders %d, limit %d, will not sort in server side",
                   static_cast<int32_t>(cond.orderby), static_cast<int32_t>(cond.orders), cond.limit);
+        return ret;
+    }
+
+    if (stat.info.empty()) {
+        log_debug("detail info empty, do not need to sort.");
         return ret;
     }
 
