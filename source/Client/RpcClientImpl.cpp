@@ -24,7 +24,7 @@ using tzrpc::kRpcHeaderVersion;
 using tzrpc::kRpcHeaderMagic;
 
 
-namespace tzmonitor_client {
+namespace heracles_client {
 
 
 RpcClientImpl::~RpcClientImpl() {
@@ -83,6 +83,9 @@ void RpcClientImpl::rpc_call_timeout(const boost::system::error_code& ec) {
 RpcClientStatus RpcClientImpl::call_RPC(uint16_t service_id, uint16_t opcode,
                                         const std::string& payload, std::string& respload,
                                         uint32_t timeout_sec) {
+
+    std::lock_guard<std::mutex> lock(call_mutex_);
+
     if (!conn_) {
 
         boost::system::error_code ec;
@@ -165,4 +168,4 @@ RpcClientStatus RpcClientImpl::call_RPC(uint16_t service_id, uint16_t opcode,
 }
 
 
-} // end namespace tzmonitor_client
+} // end namespace heracles_client

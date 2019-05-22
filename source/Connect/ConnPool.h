@@ -48,8 +48,11 @@ struct ConnStat {
     }
 
     bool expire(uint32_t linger) {
+
         time_t elapse = ::time(NULL) - start_;
-        return static_cast<uint32_t>( ::time(NULL) & 0xFFFFFFFFL) > linger;
+        ignore_unused(elapse);
+
+        return static_cast<uint32_t>(::time(NULL) & 0xFFFFFFFFL) > linger;
     }
 
     ConnStat():
@@ -93,8 +96,8 @@ public:
         helper_(helper),
         conns_busy_(), conns_idle_(),
         conn_notify_(), conn_notify_mutex_(),
-        conn_trim_linger_(linger_sec),
-        stat_() {
+        stat_(),
+        conn_trim_linger_(linger_sec) {
 
         SAFE_ASSERT(capacity_);
         log_info( "ConnPool Maxium Capacity: %lu", capacity_ );

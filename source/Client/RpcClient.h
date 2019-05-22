@@ -19,7 +19,7 @@
 
 typedef void(* CP_log_store_func_t)(int priority, const char *format, ...);
 
-namespace tzmonitor_client {
+namespace heracles_client {
 
 extern CP_log_store_func_t checkpoint_log_store_func_impl_;
 void set_checkpoint_log_store_func(CP_log_store_func_t func);
@@ -55,6 +55,10 @@ public:
     RpcClient();
     ~RpcClient();
 
+    // 禁止拷贝
+    RpcClient(const RpcClient&) = delete;
+    RpcClient& operator=(const RpcClient&) = delete;
+
     RpcClient(const std::string& addr, uint16_t port, CP_log_store_func_t log_func = syslog);
     RpcClient(const std::string& cfgFile, CP_log_store_func_t log_func = syslog);
     RpcClient(const libconfig::Setting& setting, CP_log_store_func_t log_func = syslog);
@@ -79,7 +83,7 @@ private:
     std::shared_ptr<RpcClientImpl> impl_;
 };
 
-}  // end namespace tzmonitor_client
+}  // end namespace heracles_client
 
 
 #endif // __RPC_CLIENT_H__

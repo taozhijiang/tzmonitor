@@ -11,6 +11,12 @@
 
 #include <vector>
 
+#if __cplusplus >= 201103L
+#include <type_traits>
+#else
+#include <boost/type_traits.hpp>
+#endif
+
 #include <cppconn/driver.h>
 #include <cppconn/connection.h>
 #include <cppconn/exception.h>
@@ -58,34 +64,43 @@ static std::string va_format(const char * fmt, ...) {
     return std::string(buff, n);
 }
 
-template <typename T>
+template<typename T>
 bool cast_raw_value(shared_result_ptr result, const uint32_t idx, T& val) {
 
     try {
 
-        if (typeid(T) == typeid(float) ||
-            typeid(T) == typeid(double) )
+#if __cplusplus >= 201103L
+
+        if (std::is_floating_point<T>::value)
         {
             val = static_cast<T>(result->getDouble(idx));
         }
-        else if (typeid(T) == typeid(int) ||
-                 typeid(T) == typeid(int8_t) ||
-                 typeid(T) == typeid(int16_t) ||
-                 typeid(T) == typeid(int32_t) ||
-                 typeid(T) == typeid(int64_t) )
+        else if (std::is_integral<T>::value)
         {
-            val = static_cast<T>(result->getInt64(idx));
+            if (std::is_signed<T>::value) {
+                val = static_cast<T>(result->getInt64(idx));
+            } else {
+                val = static_cast<T>(result->getUInt64(idx));
+            }
         }
-        else if (typeid(T) == typeid(unsigned int) ||
-                 typeid(T) == typeid(uint8_t) ||
-                 typeid(T) == typeid(uint16_t) ||
-                 typeid(T) == typeid(uint32_t) ||
-                 typeid(T) == typeid(uint64_t) )
+
+#else
+
+        if (boost::is_floating_point<T>::value)
         {
-            val = static_cast<T>(result->getUInt64(idx));
+            val = static_cast<T>(result->getDouble(idx));
         }
-        else
+        else if (boost::is_integral<T>::value)
         {
+            if (boost::is_signed<T>::value) {
+                val = static_cast<T>(result->getInt64(idx));
+            } else {
+                val = static_cast<T>(result->getUInt64(idx));
+            }
+        }
+
+#endif
+        else {
             log_err("Tell unsupported type: %s", typeid(T).name());
             return false;
         }

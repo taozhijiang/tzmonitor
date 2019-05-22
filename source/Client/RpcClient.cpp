@@ -9,7 +9,7 @@
 #include <Client/RpcClientImpl.h>
 #include <Client/RpcClient.h>
 
-namespace tzmonitor_client {
+namespace heracles_client {
 
 RpcClient::RpcClient():
     initialized_(false),
@@ -144,4 +144,4 @@ RpcClientStatus RpcClient::call_RPC(uint16_t service_id, uint16_t opcode,
     return impl_->call_RPC(service_id, opcode, payload, respload, timeout_sec);
 }
 
-} // end namespace tzmonitor_client
+} // end namespace heracles_client

@@ -1,0 +1,26 @@
+#include <cstdio>
+#include <Client/include/HeraclesClient.h>
+
+static std::shared_ptr<heracles_client::HeraclesClient> monitor_ptr_ {};
+
+extern
+int monitor_report(const std::string& name, int32_t value, const std::string& tag) {
+    
+    if (monitor_ptr_)
+        return monitor_ptr_->report_event(name, value, tag);
+
+    ::printf("report metric:%s, value:%d, tag:%s",
+             name.c_str(), static_cast<int32_t>(value), tag.c_str());
+    return -1;
+}
+
+extern
+int monitor_select_by_tag(const std::string& metric, event_select_t& stat, 
+                          time_t tm_intervel = 60) {
+    
+    if (monitor_ptr_)
+        return monitor_ptr_->select_stat_groupby_tag(metric, stat, tm_intervel);
+
+    return -1;
+}
+

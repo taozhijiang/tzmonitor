@@ -12,9 +12,9 @@
 #include <syslog.h>
 
 
-#include <Client/include/MonitorClient.h>
+#include <Client/include/HeraclesClient.h>
 
-using namespace tzmonitor_client;
+using namespace heracles_client;
 
 volatile bool start = false;
 volatile bool stop  = false;
@@ -42,15 +42,15 @@ void* perf_run(void* x_void_ptr) {
     std::string addr_ip = "127.0.0.1";
     uint16_t    addr_port = 8435;
     
-    auto reporter = std::make_shared<MonitorClient>();
+    auto reporter = std::make_shared<HeraclesClient>();
     if (!reporter || !reporter ->init(addr_ip, addr_port, ::syslog)) {
         std::cout << "init client failed." << std::endl;
         return NULL;
     }
 #else
-    std::string cfgFile = "tzmonitor.conf";
+    std::string cfgFile = "../heracles_example.conf";
 
-    auto reporter = std::make_shared<MonitorClient>();
+    auto reporter = std::make_shared<HeraclesClient>();
     if (!reporter || !reporter ->init(cfgFile, ::syslog)) {
         std::cout << "init client failed." << std::endl;
         return NULL;
@@ -80,6 +80,8 @@ void* perf_run(void* x_void_ptr) {
         // increment success case
         count += 12;
     }
+
+    return NULL;
 }
 
 int main(int argc, char* argv[]) {

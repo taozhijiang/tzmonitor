@@ -13,7 +13,7 @@
 #include <tzhttpd/Log.h>
 #include <tzhttpd/HttpServer.h>
 
-#include <Client/include/MonitorClient.h>
+#include <Client/include/HeraclesClient.h>
 
 #include "stat_handler.h"
 
@@ -22,7 +22,7 @@ static void usage() {
     std::stringstream ss;
 
     ss << program_invocation_short_name << ":" << std::endl;
-    ss << "\t -c cfgFile  specify config file, default tzmonitor.conf. " << std::endl;
+    ss << "\t -c cfgFile  specify config file, default heracles.conf. " << std::endl;
     ss << "\t -d          daemonize service." << std::endl;
     ss << "\t -v          print version info." << std::endl;
     ss << std::endl;
@@ -30,7 +30,7 @@ static void usage() {
     std::cout << ss.str();
 }
 
-char cfgFile[PATH_MAX] = "tzmonitor.conf";
+char cfgFile[PATH_MAX] = "heracles.conf";
 bool daemonize = false;
 
 
@@ -127,7 +127,7 @@ int main(int argc, char* argv[]) {
     // 信号处理
     init_signal_handle();
 
-    http_server_ptr.reset(new tzhttpd::HttpServer(cfgFile, "tzmonitor"));
+    http_server_ptr.reset(new tzhttpd::HttpServer(cfgFile, "Heracles"));
     if (!http_server_ptr ) {
         tzhttpd::tzhttpd_log_err("create HttpServer failed!");
         ::exit(EXIT_FAILURE);
@@ -139,7 +139,7 @@ int main(int argc, char* argv[]) {
     }
 
     // test monitor first stage
-    auto reporter = std::make_shared<tzmonitor_client::MonitorClient>();
+    auto reporter = std::make_shared<heracles_client::HeraclesClient>();
     if (!reporter || !reporter ->init(cfgFile, ::syslog)) {
         tzhttpd::tzhttpd_log_err("init client failed.");
         return false;
@@ -155,12 +155,12 @@ int main(int argc, char* argv[]) {
 
     http_server_ptr->register_http_runtime_callback(
             "http_face",
-            std::bind(&tzmonitor_client::MonitorClient::module_runtime, reporter,
+            std::bind(&heracles_client::HeraclesClient::module_runtime, reporter,
                       std::placeholders::_1));
 
     http_server_ptr->register_http_status_callback(
             "http_face",
-            std::bind(&tzmonitor_client::MonitorClient::module_status, reporter,
+            std::bind(&heracles_client::HeraclesClient::module_status, reporter,
                       std::placeholders::_1, std::placeholders::_2,
                       std::placeholders::_3));
 

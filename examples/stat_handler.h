@@ -12,7 +12,7 @@
 #include <sstream>
 #include <tzhttpd/HttpParser.h>
 
-#include <Client/include/MonitorClient.h>
+#include <Client/include/HeraclesClient.h>
 
 namespace tzhttpd {
 

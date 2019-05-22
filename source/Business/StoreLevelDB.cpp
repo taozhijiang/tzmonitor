@@ -85,7 +85,7 @@ std::shared_ptr<leveldb::DB> StoreLevelDB::get_leveldb_handler(const std::string
         log_err("service %s not created.", service.c_str());
     }
 
-do_create:
+// do_create:
 
     std::lock_guard<std::mutex> lock(lock_);
 
@@ -664,9 +664,15 @@ int StoreLevelDB::select_ev_stat(const event_cond_t& cond, event_select_t& stat,
         return select_ev_stat_by_none(cond, stat, linger_hint);
     }
 
-    if (cond.orderby == OrderByType::kOrderByNone || cond.limit != 0) {
-        log_debug("order by %d, orders %d, limit %d, we will not sort in server side",
+    // 是否对结果进行排序
+    if (cond.orderby == OrderByType::kOrderByNone || cond.limit == 0) {
+        log_debug("order by %d, orders %d, limit %d, will not sort in server side",
                   static_cast<int32_t>(cond.orderby), static_cast<int32_t>(cond.orders), cond.limit);
+        return ret;
+    }
+
+    if (stat.info.empty()) {
+        log_debug("detail info empty, do not need to sort.");
         return ret;
     }
 
@@ -697,7 +703,9 @@ int StoreLevelDB::select_metrics(const std::string& service, std::vector<std::st
     std::set<std::string> unique_metrics;
     std::vector<std::string> vec{};
     std::string cached_metric;
-    for (it->SeekToFirst(); it->Valid(); it->Next()) {
+    
+    // 优化，跳过相同的metric打头项，增加快速定位所有metric
+    for (it->SeekToFirst(); it->Valid(); /* NOP */) {
 
         std::string str_key = it->key().ToString();
 
@@ -706,6 +714,7 @@ int StoreLevelDB::select_metrics(const std::string& service, std::vector<std::st
         if (vec.size() != 4 ||
             vec[0].empty() || vec[1].empty() || vec[2].empty() ) {
             log_err("problem item for service %s: %s", service.c_str(), str_key.c_str());
+            it->Next();
             continue;
         }
 
@@ -713,6 +722,10 @@ int StoreLevelDB::select_metrics(const std::string& service, std::vector<std::st
             cached_metric = vec[0];
             unique_metrics.insert(vec[0]);
         }
+        
+        // 跳过所有相同的key prefix
+        // Advance to the first entry with a key >= target
+        it->Seek(cached_metric + "$");
     }
 
 

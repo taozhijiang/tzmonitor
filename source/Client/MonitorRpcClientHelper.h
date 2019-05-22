@@ -15,7 +15,7 @@
 
 #include <Client/include/EventTypes.h>
 
-namespace tzmonitor_client {
+namespace heracles_client {
 
 class MonitorRpcClientHelper {
 public:
@@ -49,6 +49,6 @@ private:
     std::unique_ptr<RpcClient> rpc_client_;
 };
 
-} // end namespace tzmonitor_client
+} // end namespace heracles_client
 
 #endif // __MONITOR_RPC_CLIENT_HELPER_H__

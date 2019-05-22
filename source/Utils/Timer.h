@@ -117,6 +117,10 @@ private:
     ~Timer() {
         io_service_.stop();
         work_guard_.reset();
+        
+        if(io_service_thread_.joinable()) {
+            io_service_thread_.join();
+        }
     }
 
     // 禁止拷贝

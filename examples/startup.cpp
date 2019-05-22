@@ -12,9 +12,9 @@
 #include <syslog.h>
 
 
-#include <Client/include/MonitorClient.h>
+#include <Client/include/HeraclesClient.h>
 
-using namespace tzmonitor_client;
+using namespace heracles_client;
 
 int main(int argc, char* argv[]) {
 
@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
     uint16_t    addr_port = 8435;
 
 
-    auto reporter = std::make_shared<MonitorClient>();
+    auto reporter = std::make_shared<HeraclesClient>();
     if (!reporter || !reporter ->init(addr_ip, addr_port, ::syslog)) {
         std::cout << "init client failed." << std::endl;
         return -1;

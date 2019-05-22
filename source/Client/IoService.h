@@ -19,7 +19,7 @@
 // 提供定时回调接口服务
 
 
-namespace tzmonitor_client {
+namespace heracles_client {
 
 class IoService {
 
@@ -72,6 +72,9 @@ private:
     ~IoService() {
         io_service_.stop();
         work_guard_.reset();
+        
+        if (io_service_thread_.joinable())
+            io_service_thread_.join();
     }
 
     // 禁止拷贝
@@ -106,7 +109,7 @@ private:
 
 };
 
-} // end namespace tzmonitor_client
+} // end namespace heracles_client
 
 
 #endif // __IO_SERVICE_H__

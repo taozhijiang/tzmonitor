@@ -12,7 +12,7 @@
 
 #include <Network/NetConn.h>
 
-namespace tzmonitor_client {
+namespace heracles_client {
 
 using tzrpc::Message;
 using tzrpc::NetConn;
@@ -88,7 +88,7 @@ private:
 };
 
 
-} // end namespace tzmonitor_client
+} // end namespace heracles_client
 
 
 #endif // __NETWORK_TCP_CONN_SYNC_H__

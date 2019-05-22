@@ -30,10 +30,18 @@ public:
 
     explicit TinyTask(uint8_t max_spawn_task):
         max_spawn_task_(max_spawn_task),
-        thread_mng_(max_spawn_task) {
+        thread_run_(),
+        thread_terminate_(false),
+        thread_mng_(max_spawn_task),
+        tasks_() {
     }
 
-    ~TinyTask() {}
+    ~TinyTask() {
+        thread_terminate_ = true;
+        if(thread_run_ && thread_run_->joinable()) {
+            thread_run_->join();
+        }
+    }
 
     // 禁止拷贝
     TinyTask(const TinyTask&) = delete;
@@ -59,6 +67,7 @@ public:
     }
 
     void modify_spawn_size(uint32_t nsize) {
+        
         if (nsize == 0) {
             printf("invalid new max_spawn_task size: %u", nsize);
             return;
@@ -80,6 +89,11 @@ private:
         printf("TinyTask thread %#lx begin to run ...", (long)pthread_self());
 
         while (true) {
+            
+            if( thread_terminate_ ) {
+                log_debug("TinyTask thread %#lx about to terminate ...", (long)pthread_self());
+                break;
+            }
 
             std::vector<TaskRunnable> tasks {};
             size_t count = tasks_.POP(tasks, max_spawn_task_, 1000);
@@ -101,6 +115,7 @@ private:
 
     uint32_t max_spawn_task_;
     std::shared_ptr<boost::thread> thread_run_;
+    bool thread_terminate_;
 
     // 封装线程管理细节
     ThreadMng thread_mng_;
