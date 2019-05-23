@@ -6,9 +6,9 @@
  */
 
 
-#include <Utils/Log.h>
+#include <other/Log.h>
 
-#include <Core/ProtoBuf.h>
+#include <message/ProtoBuf.h>
 
 #include <Business/EventTypes.h>
 #include <Business/EventRepos.h>
@@ -21,57 +21,58 @@
 
 #include "MonitorTaskService.h"
 
+#include <Captain.h>
+
 namespace tzrpc {
 
 bool MonitorTaskService::init() {
 
-    auto conf_ptr = ConfHelper::instance().get_conf();
-    if(!conf_ptr) {
-        log_err("ConfHelper not initialized? return conf_ptr empty!!!");
+    auto setting_ptr = Captain::instance().setting_ptr_->get_setting();
+    if (!setting_ptr) {
+        roo::log_err("Setting not initialized? return setting_ptr empty!!!");
         return false;
     }
 
     bool init_success = false;
 
-    try
-    {
-        const libconfig::Setting& rpc_services = conf_ptr->lookup("rpc.services");
+    try {
+        const libconfig::Setting& rpc_services = setting_ptr->lookup("rpc.services");
 
-        for(int i = 0; i < rpc_services.getLength(); ++i) {
+        for (int i = 0; i < rpc_services.getLength(); ++i) {
 
             const libconfig::Setting& service = rpc_services[i];
             std::string instance_name;
             service.lookupValue("instance_name", instance_name);
             if (instance_name.empty()) {
-                log_err("check service conf, required instance_name not found, skip this one.");
+                roo::log_err("check service conf, required instance_name not found, skip this one.");
                 continue;
             }
 
-            log_debug("detected instance_name: %s", instance_name.c_str());
+            roo::log_info("detected instance_name: %s", instance_name.c_str());
 
             // 发现是匹配的，则找到对应虚拟主机的配置文件了
             if (instance_name == instance_name_) {
                 if (!handle_rpc_service_conf(service)) {
-                    log_err("handle detail conf for %s failed.", instance_name.c_str());
+                    roo::log_err("handle detail conf for %s failed.", instance_name.c_str());
                     return false;
                 }
 
-                log_debug("handle detail conf for host %s success!", instance_name.c_str());
+                roo::log_info("handle detail conf for host %s success!", instance_name.c_str());
                 // OK
                 init_success = true;
                 break;
             }
         }
 
-    } catch (const libconfig::SettingNotFoundException &nfex) {
-        log_err("rpc.services not found!");
+    } catch (const libconfig::SettingNotFoundException& nfex) {
+        roo::log_err("rpc.services not found!");
     } catch (std::exception& e) {
-        log_err("execptions catched for %s",  e.what());
+        roo::log_err("execptions catched for %s",  e.what());
     }
 
 
-    if(!init_success) {
-        log_err("host %s init failed, may not configure for it?", instance_name_.c_str());
+    if (!init_success) {
+        roo::log_err("host %s init failed, may not configure for it?", instance_name_.c_str());
     }
     return init_success;
 }
@@ -84,14 +85,14 @@ bool MonitorTaskService::handle_rpc_service_conf(const libconfig::Setting& setti
     if (!conf_ptr_) {
         conf_ptr_.reset(new DetailExecutorConf());
         if (!conf_ptr_) {
-            log_err("create DetailExecutorConf instance failed.");
+            roo::log_err("create DetailExecutorConf instance failed.");
             return false;
         }
     }
 
     ExecutorConf conf;
     if (RpcServiceBase::handle_rpc_service_conf(setting, conf) != 0) {
-        log_err("Handler ExecutorConf failed.");
+        roo::log_err("Handler ExecutorConf failed.");
         return -1;
     }
 
@@ -112,29 +113,28 @@ ExecutorConf MonitorTaskService::get_executor_conf() {
 
 int MonitorTaskService::module_runtime(const libconfig::Config& conf) {
 
-    try
-    {
+    try {
         const libconfig::Setting& rpc_services = conf.lookup("rpc.services");
-        for(int i = 0; i < rpc_services.getLength(); ++i) {
+        for (int i = 0; i < rpc_services.getLength(); ++i) {
 
             const libconfig::Setting& service = rpc_services[i];
             std::string instance_name;
-            service.lookupValue( "instance_name", instance_name);
+            service.lookupValue("instance_name", instance_name);
 
             // 发现是匹配的，则找到对应虚拟主机的配置文件了
             if (instance_name == instance_name_) {
-                log_notice("about to handle_rpc_service_runtime_conf update for %s", instance_name_.c_str());
+                roo::log_warning("about to handle_rpc_service_runtime_conf update for %s", instance_name_.c_str());
                 return handle_rpc_service_runtime_conf(service);
             }
         }
 
-    } catch (const libconfig::SettingNotFoundException &nfex) {
-        log_err("rpc.services not found!");
+    } catch (const libconfig::SettingNotFoundException& nfex) {
+        roo::log_err("rpc.services not found!");
     } catch (std::exception& e) {
-        log_err("execptions catched for %s",  e.what());
+        roo::log_err("execptions catched for %s",  e.what());
     }
 
-    log_err("conf for %s not found!!!!", instance_name_.c_str());
+    roo::log_err("conf for %s not found!!!!", instance_name_.c_str());
     return -1;
 }
 
@@ -143,7 +143,7 @@ bool MonitorTaskService::handle_rpc_service_runtime_conf(const libconfig::Settin
 
     ExecutorConf conf;
     if (RpcServiceBase::handle_rpc_service_conf(setting, conf) != 0) {
-        log_err("Handler ExecutorConf failed.");
+        roo::log_err("Handler ExecutorConf failed.");
         return -1;
     }
 
@@ -178,9 +178,9 @@ void MonitorTaskService::handle_RPC(std::shared_ptr<RpcInstance> rpc_instance) {
             break;
 
         default:
-            log_err("Received RPC request with unknown opcode %u: "
-                    "rejecting it as invalid request",
-                    rpc_instance->get_opcode());
+            roo::log_err("Received RPC request with unknown opcode %u: "
+                         "rejecting it as invalid request",
+                         rpc_instance->get_opcode());
             rpc_instance->reject(RpcResponseStatus::INVALID_REQUEST);
     }
 }
@@ -191,7 +191,7 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
     // 再做一次opcode校验
     RpcRequestMessage& rpc_request_message = rpc_instance->get_rpc_request_message();
     if (rpc_request_message.header_.opcode != MonitorTask::OpCode::CMD_READ_EVENT) {
-        log_err("invalid opcode %u in service MonitorTask.", rpc_request_message.header_.opcode);
+        roo::log_err("invalid opcode %u in service MonitorTask.", rpc_request_message.header_.opcode);
         rpc_instance->reject(RpcResponseStatus::INVALID_REQUEST);
         return;
     }
@@ -204,23 +204,23 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
 
         // 消息体的unmarshal
         MonitorTask::MonitorReadOps::Request request;
-        if (!ProtoBuf::unmarshalling_from_string(rpc_request_message.payload_, &request)) {
-            log_err("unmarshal request failed.");
+        if (!roo::ProtoBuf::unmarshalling_from_string(rpc_request_message.payload_, &request)) {
+            roo::log_err("unmarshal request failed.");
             response.set_code(-1);
             response.set_desc("unmarshalling failed.");
             break;
         }
 
-        log_debug("ReadRequest: %s", ProtoBuf::dump(request).c_str());
+        roo::log_info("ReadRequest: %s", roo::ProtoBuf::dump(request).c_str());
 
         // 相同类目下的子RPC调用分发
         if (request.has_ping()) {
-            log_debug("MonitorTask::MonitorReadOps::ping -> %s", request.ping().msg().c_str());
+            roo::log_info("MonitorTask::MonitorReadOps::ping -> %s", request.ping().msg().c_str());
             response.mutable_ping()->set_msg("[[[pong]]]");
             break;
         } else if (request.has_select()) {
 
-            event_cond_t cond {};
+            event_cond_t cond{};
 
             cond.version = request.select().version();
             cond.tm_interval = request.select().tm_interval();
@@ -232,7 +232,7 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
 
             if (request.select().groupby() < 0 ||
                 request.select().groupby() >= static_cast<int32_t>(GroupType::kGroupbyBoundary)) {
-                log_err("invalid groupby param: %d", request.select().groupby());
+                roo::log_err("invalid groupby param: %d", request.select().groupby());
                 response.set_code(-1);
                 response.set_desc("invalid groupby param.");
                 break;
@@ -241,7 +241,7 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
 
             if (request.select().orderby() < 0 ||
                 request.select().orderby() >= static_cast<int32_t>(OrderByType::kOrderByBoundary)) {
-                log_err("invalid orderby param: %d", request.select().orderby());
+                roo::log_err("invalid orderby param: %d", request.select().orderby());
                 response.set_code(-1);
                 response.set_desc("invalid orderby param.");
                 break;
@@ -250,7 +250,7 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
 
             if (request.select().orders() < 0 ||
                 request.select().orders() >= static_cast<int32_t>(OrderType::kOrderBoundary)) {
-                log_err("invalid orders param: %d", request.select().orders());
+                roo::log_err("invalid orders param: %d", request.select().orders());
                 response.set_code(-1);
                 response.set_desc("invalid orders param.");
                 break;
@@ -259,10 +259,10 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
             cond.limit = request.select().limit();
 
 
-            event_select_t stat {};
+            event_select_t stat{};
             int ret = EventRepos::instance().get_event(cond, stat);
             if (ret != 0) {
-                log_err("call select return: %d",  ret);
+                roo::log_err("call select return: %d",  ret);
                 response.set_code(ret);
                 response.set_desc("get_event error");
                 return;
@@ -320,7 +320,7 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
 
             int ret = EventRepos::instance().get_metrics(version, service, metric_stat);
             if (ret != 0) {
-                log_err("call metrics return: %d",  ret);
+                roo::log_err("call metrics return: %d",  ret);
                 response.set_code(ret);
                 response.set_desc("get_metrics failed.");
                 response.mutable_metrics()->set_version(version);
@@ -341,7 +341,7 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
                 response.mutable_metrics()->set_store_type(handler_conf.store_type_);
             }
 
-            for (auto iter = metric_stat.begin(); iter != metric_stat.end(); ++ iter) {
+            for (auto iter = metric_stat.begin(); iter != metric_stat.end(); ++iter) {
                 response.mutable_metrics()->add_metric(*iter);
             }
 
@@ -354,7 +354,7 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
 
             int ret = EventRepos::instance().get_services(version, service_stat);
             if (ret != 0) {
-                log_err("call metrics return: %d",  ret);
+                roo::log_err("call metrics return: %d",  ret);
                 response.set_code(ret);
                 response.set_desc("get_services failed.");
                 response.mutable_services()->set_version(version);
@@ -372,26 +372,26 @@ void MonitorTaskService::read_ops_impl(std::shared_ptr<RpcInstance> rpc_instance
             break;
 
         } else {
-            log_err("undetected specified service call.");
+            roo::log_err("undetected specified service call.");
             rpc_instance->reject(RpcResponseStatus::INVALID_REQUEST);
             return;
         }
 
     } while (0);
 
-    log_debug("ReadRequest: return\n%s", ProtoBuf::dump(response).c_str());
+    roo::log_info("ReadRequest: return\n%s", roo::ProtoBuf::dump(response).c_str());
 
     std::string response_str;
-    ProtoBuf::marshalling_to_string(response, &response_str);
+    roo::ProtoBuf::marshalling_to_string(response, &response_str);
     rpc_instance->reply_rpc_message(response_str);
 }
 
 void MonitorTaskService::write_ops_impl(std::shared_ptr<RpcInstance> rpc_instance) {
 
-       // 再做一次opcode校验
+    // 再做一次opcode校验
     RpcRequestMessage& rpc_request_message = rpc_instance->get_rpc_request_message();
     if (rpc_request_message.header_.opcode != MonitorTask::OpCode::CMD_WRIT_EVENT) {
-        log_err("invalid opcode %u in service MonitorTask.", rpc_request_message.header_.opcode);
+        roo::log_err("invalid opcode %u in service MonitorTask.", rpc_request_message.header_.opcode);
         rpc_instance->reject(RpcResponseStatus::INVALID_REQUEST);
         return;
     }
@@ -404,14 +404,14 @@ void MonitorTaskService::write_ops_impl(std::shared_ptr<RpcInstance> rpc_instanc
 
         // 消息体的unmarshal
         MonitorTask::MonitorWriteOps::Request request;
-        if (!ProtoBuf::unmarshalling_from_string(rpc_request_message.payload_, &request)) {
-            log_err("unmarshal request failed.");
+        if (!roo::ProtoBuf::unmarshalling_from_string(rpc_request_message.payload_, &request)) {
+            roo::log_err("unmarshal request failed.");
             response.set_code(-1);
             response.set_desc("unmarshalling failed");
             break;
         }
 
-        log_debug("WriteRequest: %s", ProtoBuf::dump(request).c_str());
+        roo::log_info("WriteRequest: %s", roo::ProtoBuf::dump(request).c_str());
 
         // 相同类目下的子RPC调用分发
         if (request.has_report()) {
@@ -423,8 +423,8 @@ void MonitorTaskService::write_ops_impl(std::shared_ptr<RpcInstance> rpc_instanc
             report.entity_idx = request.report().entity_idx();
 
             int size = request.report().data_size();
-            for (int i=0; i<size; ++i) {
-                event_data_t item {};
+            for (int i = 0; i < size; ++i) {
+                event_data_t item{};
 
                 auto p_data = request.report().data(i);
                 item.msgid = p_data.msgid();
@@ -437,7 +437,7 @@ void MonitorTaskService::write_ops_impl(std::shared_ptr<RpcInstance> rpc_instanc
 
             auto ret = EventRepos::instance().add_event(report);
             if (ret != 0) {
-                log_err("add event failed with return: %d", ret);
+                roo::log_err("add event failed with return: %d", ret);
                 response.set_code(ret);
                 response.set_desc("add_event failed.");
             }
@@ -445,17 +445,17 @@ void MonitorTaskService::write_ops_impl(std::shared_ptr<RpcInstance> rpc_instanc
             break;
 
         } else {
-            log_err("undetected specified service call.");
+            roo::log_err("undetected specified service call.");
             rpc_instance->reject(RpcResponseStatus::INVALID_REQUEST);
             return;
         }
 
     } while (0);
 
-    log_debug("WriteRequest: return\n%s", ProtoBuf::dump(response).c_str());
+    roo::log_info("WriteRequest: return\n%s", roo::ProtoBuf::dump(response).c_str());
 
     std::string response_str;
-    ProtoBuf::marshalling_to_string(response, &response_str);
+    roo::ProtoBuf::marshalling_to_string(response, &response_str);
     rpc_instance->reply_rpc_message(response_str);
 }
 

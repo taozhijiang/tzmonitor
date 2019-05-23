@@ -9,7 +9,6 @@
 #include <string>
 #include <sstream>
 #include <iostream>
-#include <syslog.h>
 
 
 #include <Client/include/HeraclesClient.h>
@@ -43,7 +42,7 @@ void* perf_run(void* x_void_ptr) {
     uint16_t    addr_port = 8435;
     
     auto reporter = std::make_shared<HeraclesClient>();
-    if (!reporter || !reporter ->init(addr_ip, addr_port, ::syslog)) {
+    if (!reporter || !reporter ->init(addr_ip, addr_port)) {
         std::cout << "init client failed." << std::endl;
         return NULL;
     }
@@ -51,7 +50,7 @@ void* perf_run(void* x_void_ptr) {
     std::string cfgFile = "../heracles_example.conf";
 
     auto reporter = std::make_shared<HeraclesClient>();
-    if (!reporter || !reporter ->init(cfgFile, ::syslog)) {
+    if (!reporter || !reporter ->init(cfgFile)) {
         std::cout << "init client failed." << std::endl;
         return NULL;
     }

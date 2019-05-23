@@ -5,25 +5,33 @@
  *
  */
 
-#ifndef __NETWORK_TCP_CONN_SYNC_H__
-#define __NETWORK_TCP_CONN_SYNC_H__
+#ifndef __CLIENT_TCP_CONN_SYNC_H__
+#define __CLIENT_TCP_CONN_SYNC_H__
+
+
+#include <xtra_rhel.h>
+
 
 // 同步的TCP连接，主要用于客户端使用
 
+#include <other/Log.h>
 #include <Network/NetConn.h>
 
-namespace heracles_client {
+namespace tzrpc_client {
 
 using tzrpc::Message;
 using tzrpc::NetConn;
 using tzrpc::IOBound;
 using tzrpc::ConnStat;
+
 class RpcClientSetting;
 
 class TcpConnSync : public NetConn,
     public std::enable_shared_from_this<TcpConnSync> {
 
     friend class RpcClientImpl;
+    
+    __noncopyable__(TcpConnSync)
 
 public:
 
@@ -32,10 +40,7 @@ public:
                          boost::asio::io_service& io_service,
                          RpcClientSetting& client_setting);
     virtual ~TcpConnSync();
-
-    // 禁止拷贝
-    TcpConnSync(const TcpConnSync&) = delete;
-    TcpConnSync& operator=(const TcpConnSync&) = delete;
+    
 
     bool recv_net_message(Message& msg) {
         return do_read(msg);
@@ -44,8 +49,8 @@ public:
     bool send_net_message(const Message& msg) {
         if (client_setting_.send_max_msg_size_ != 0 &&
             msg.header_.length > client_setting_.send_max_msg_size_) {
-            log_err("send_max_msg_size %d, but we recv %d",
-                    static_cast<int>(client_setting_.send_max_msg_size_), static_cast<int>(msg.header_.length));
+            roo::log_err("Limit send_max_msg_size length to %d, but need to send content length %d.",
+                         static_cast<int>(client_setting_.send_max_msg_size_), static_cast<int>(msg.header_.length));
             return false;
         }
         send_bound_.buffer_.append(msg);
@@ -88,7 +93,7 @@ private:
 };
 
 
-} // end namespace heracles_client
+} // end namespace tzrpc_client
 
 
-#endif // __NETWORK_TCP_CONN_SYNC_H__
+#endif // __CLIENT_TCP_CONN_SYNC_H__

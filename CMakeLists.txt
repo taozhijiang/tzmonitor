@@ -45,7 +45,6 @@ exec_program(${PROTOBUF_GEN_CMD})
 # 拷贝重要文件供创建客户端库使用
 set (CLIENT_BUILD_CMDS
     "cp ${PROJECT_SOURCE_DIR}/source/Protocol/Common.h     ${PROJECT_SOURCE_DIR}/source/Client/"
-    "cp ${PROJECT_SOURCE_DIR}/source/Core/ProtoBuf.h       ${PROJECT_SOURCE_DIR}/source/Client/"
     "cp ${PROJECT_SOURCE_DIR}/source/Protocol/gen-cpp/*.h  ${PROJECT_SOURCE_DIR}/source/Client/"
     "cp ${PROJECT_SOURCE_DIR}/source/Protocol/gen-cpp/*.cc ${PROJECT_SOURCE_DIR}/source/Client/"
     )
@@ -63,19 +62,20 @@ set (INCLUDE_DIRS
     ${PROJECT_SOURCE_DIR}/source/
     ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/include/
     ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/include/google/
+    ${PROJECT_SOURCE_DIR}/deps/roo
 )
 include_directories( ${INCLUDE_DIRS} )
 
 add_subdirectory( source/RPC )
-add_subdirectory( source/Utils )
-add_subdirectory( source/Scaffold )
 add_subdirectory( source/Protocol )
 add_subdirectory( source/Network )
 add_subdirectory( source/Business )
-add_subdirectory( source/Connect )
 
 # Client
 add_subdirectory( source/Client)
+
+# Roo
+add_subdirectory( ${PROJECT_SOURCE_DIR}/deps/roo )
 
 link_directories(
     /usr/lib64/mysql/
@@ -92,24 +92,25 @@ exec_program( "export BUILD_VAR=`git log -1 --pretty=%cd` && echo 'const char *b
 exec_program( "export BUILD_VAR=`git log -1 --pretty=\"%an %ae\"` && echo 'const char *build_commit_author = \"VCS: Author:' $BUILD_VAR '\";' >> build_version.cpp ")
 exec_program( "export BUILD_VAR=`date +%F` && echo 'const char *build_time = \"Build At:' $BUILD_VAR '\";' >> build_version.cpp ")
 
-add_executable( heracles main.cpp setup.cpp build_version.cpp )
+add_executable( heracles main.cpp setup.cpp build_version.cpp source/Captain.cpp )
 
 # ld iconv ?
 
-set (WHOLE_LIBS Business Scaffold Protocol RPC Network Connect Utils )
+set (EXTRA_LIBS Protocol RPC Network Business)
+set (EXTRA_LIBS ${EXTRA_LIBS} Roo )
 
 set (EXTRA_LIBS ${EXTRA_LIBS} ssl crypto config++)
 set (EXTRA_LIBS ${EXTRA_LIBS} pthread)
 set (EXTRA_LIBS ${EXTRA_LIBS} boost_system boost_thread boost_chrono boost_regex)
 set (EXTRA_LIBS ${EXTRA_LIBS} protoc protobuf )
+set (EXTRA_LIBS ${EXTRA_LIBS} glog_syslog )
 set (EXTRA_LIBS ${EXTRA_LIBS} mysqlcppconn hiredis leveldb snappy)
 
 
 
 # 某些库需要静态全连接，否则主服务没使用但是so使用，会报符号没有找到
-target_link_libraries( heracles -lrt -rdynamic -ldl
-    -Wl,--whole-archive ${WHOLE_LIBS} -Wl,--no-whole-archive
-    ${EXTRA_LIBS}
+target_link_libraries( heracles 
+    ${EXTRA_LIBS} -lrt 
 )
 
 if(BUILD_DEBUG)

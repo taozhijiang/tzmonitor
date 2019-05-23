@@ -52,7 +52,7 @@ typedef std::shared_ptr<events_by_metric_t>              events_by_metric_ptr_t;
 
 struct events_by_time_t {
 public:
-    events_by_time_t(time_t tm, time_t step):
+    events_by_time_t(time_t tm, time_t step) :
         timestamp_(tm),
         step_(step) {
     }

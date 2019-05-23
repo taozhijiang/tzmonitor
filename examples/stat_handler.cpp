@@ -43,7 +43,7 @@ static std::string str_format(const char * fmt, ...) {
 
 
 int index_http_get_handler(const HttpParser& http_parser,
-                           std::string& response, string& status_line, std::vector<std::string>& add_header) {
+                           std::string& response, std::string& status_line, std::vector<std::string>& add_header) {
     std::unique_ptr<IndexStatHandler> handler(new IndexStatHandler(http_parser));
     if (handler->fetch_stat(response) == 0) {
         status_line = http_proto::generate_response_status_line(http_parser.get_version(),
@@ -62,7 +62,7 @@ int index_http_get_handler(const HttpParser& http_parser,
 }
 
 int stats_http_get_handler(const HttpParser& http_parser,
-                           std::string& response, string& status_line, std::vector<std::string>& add_header) {
+                           std::string& response, std::string& status_line, std::vector<std::string>& add_header) {
 
     std::unique_ptr<EventStatHandler> handler(new EventStatHandler(http_parser));
     if (handler->fetch_stat(response) == 0) {

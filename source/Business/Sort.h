@@ -149,7 +149,7 @@ private:
 
     // desc
 
-    static bool sort_by_timestamp_desc( const event_info_t& lhs, const event_info_t& rhs)  {
+    static bool sort_by_timestamp_desc(const event_info_t& lhs, const event_info_t& rhs)  {
         return !(sort_by_timestamp(lhs, rhs));
     }
 

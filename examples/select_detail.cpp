@@ -8,7 +8,6 @@
 #include <unistd.h>
 #include <string>
 #include <iostream>
-#include <syslog.h>
 
 
 #include <ctime>
@@ -254,7 +253,7 @@ int main(int argc, char* argv[]) {
 
 
     selecter_ = std::make_shared<heracles_client::HeraclesClient>();
-    if (!selecter_ || !selecter_ ->init(addr_ip, addr_port, ::syslog)) {
+    if (!selecter_ || !selecter_ ->init(addr_ip, addr_port)) {
         std::cout << "init client failed." << std::endl;
         return -1;
     }

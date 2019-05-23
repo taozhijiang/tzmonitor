@@ -13,7 +13,8 @@
 
 #include <RPC/Service.h>
 
-#include <Scaffold/ConfHelper.h>
+#include <scaffold/Setting.h>
+#include <scaffold/Status.h>
 
 #include "RpcServiceBase.h"
 
@@ -23,10 +24,10 @@ namespace tzrpc {
 class RpcInstance;
 
 class MonitorTaskService : public Service,
-                           public RpcServiceBase {
+    public RpcServiceBase {
 
 public:
-    explicit MonitorTaskService(const std::string& instance_name):
+    explicit MonitorTaskService(const std::string& instance_name) :
         RpcServiceBase(instance_name),
         instance_name_(instance_name) {
     }

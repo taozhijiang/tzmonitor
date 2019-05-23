@@ -9,34 +9,34 @@
 #ifndef __BUSINESS_STORE_SQL_H__
 #define __BUSINESS_STORE_SQL_H__
 
-#include <Connect/SqlConn.h>
+#include <connect/SqlConn.h>
 
 #include <Business/StoreIf.h>
 
-class StoreSql: public StoreIf {
+class StoreSql : public StoreIf {
 public:
 
-    bool init(const libconfig::Config& conf) override;
-    int insert_ev_stat(const event_insert_t& stat) override;
-    int select_ev_stat(const event_cond_t& cond, event_select_t& stat, time_t linger_hint) override;
+    bool init(const libconfig::Config& conf)override;
+    int insert_ev_stat(const event_insert_t& stat)override;
+    int select_ev_stat(const event_cond_t& cond, event_select_t& stat, time_t linger_hint)override;
 
-    int select_metrics(const std::string& service, std::vector<std::string>& metrics) override;
-    int select_services(std::vector<std::string>& services) override;
+    int select_metrics(const std::string& service, std::vector<std::string>& metrics)override;
+    int select_services(std::vector<std::string>& services)override;
 
 private:
-    int insert_ev_stat(tzrpc::sql_conn_ptr &conn, const event_insert_t& stat);
-    int select_ev_stat(tzrpc::sql_conn_ptr& conn, const event_cond_t& cond, event_select_t& stat,
+    int insert_ev_stat(roo::sql_conn_ptr& conn, const event_insert_t& stat);
+    int select_ev_stat(roo::sql_conn_ptr& conn, const event_cond_t& cond, event_select_t& stat,
                        time_t linger_hint);
 
     std::string get_table_suffix(time_t time_sec);
     // 自动创建分表
-    int create_table(tzrpc::sql_conn_ptr& conn,
+    int create_table(roo::sql_conn_ptr& conn,
                      const std::string& database, const std::string& prefix,
                      const std::string& service, const std::string& suffix);
     std::string build_sql(const event_cond_t& cond, time_t linger_hint, time_t& start_time);
 
     // 数据库连接
-    std::shared_ptr<tzrpc::ConnPool<tzrpc::SqlConn, tzrpc::SqlConnPoolHelper>> sql_pool_ptr_;
+    std::shared_ptr<roo::ConnPool<roo::SqlConn, roo::SqlConnPoolHelper>> sql_pool_ptr_;
 
     std::string database_;
     std::string table_prefix_;

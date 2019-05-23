@@ -16,12 +16,10 @@
 
 #include <leveldb/comparator.h>
 
-#include <Utils/Log.h>
+#include <other/Log.h>
 
 #include <Business/Sort.h>
 #include <Business/StoreLevelDB.h>
-
-using namespace tzrpc;
 
 static std::shared_ptr<leveldb::DB> NULLPTR_HANDLER;
 
@@ -29,27 +27,26 @@ bool StoreLevelDB::init(const libconfig::Config& conf) {
 
     if (!conf.lookupValue("rpc.business.leveldb.filepath", filepath_) ||
         !conf.lookupValue("rpc.business.leveldb.table_prefix", table_prefix_) ||
-        filepath_.empty() || table_prefix_.empty() )
-    {
-        log_err("Error, get level configure value error");
+        filepath_.empty() || table_prefix_.empty()) {
+        roo::log_err("Error, get level configure value error");
         return false;
     }
 
-        // check dest exist?
+    // check dest exist?
     if (::access(filepath_.c_str(), W_OK) != 0) {
-        log_err("access filepath_ %s failed.", filepath_.c_str());
+        roo::log_err("access filepath_ %s failed.", filepath_.c_str());
         return false;
     }
 
     levelDBs_.reset(new leveldb_handlers_t());
     if (!levelDBs_) {
-        log_err("create empty levelDBs_ failed.");
+        roo::log_err("create empty levelDBs_ failed.");
         return false;
     }
 
     NULLPTR_HANDLER.reset();
-    log_notice("leveldb storage initialized with filepath: %s, table_prefix: %s",
-               filepath_.c_str(), table_prefix_.c_str());
+    roo::log_warning("leveldb storage initialized with filepath: %s, table_prefix: %s",
+                     filepath_.c_str(), table_prefix_.c_str());
 
     return true;
 }
@@ -59,7 +56,7 @@ std::shared_ptr<leveldb::DB> StoreLevelDB::get_leveldb_handler(const std::string
 
 
     if (service.empty()) {
-        log_err("service can not be empty!");
+        roo::log_err("service can not be empty!");
         return NULLPTR_HANDLER;
     }
 
@@ -78,11 +75,11 @@ std::shared_ptr<leveldb::DB> StoreLevelDB::get_leveldb_handler(const std::string
             handler->second->handler_) {
             return handler->second->handler_;
         } else {
-            log_err("suffix and handler check failed, hold %s, now %s",
-                    handler->second->current_suffix_.c_str(), now_suffix.c_str());
+            roo::log_err("suffix and handler check failed, hold %s, now %s",
+                         handler->second->current_suffix_.c_str(), now_suffix.c_str());
         }
     } else {
-        log_err("service %s not created.", service.c_str());
+        roo::log_err("service %s not created.", service.c_str());
     }
 
 // do_create:
@@ -94,15 +91,15 @@ std::shared_ptr<leveldb::DB> StoreLevelDB::get_leveldb_handler(const std::string
     if (handler != levelDBs_->end()) {
         if (now_suffix == handler->second->current_suffix_ &&
             handler->second->handler_) {
-            log_notice("good, hit for service %s with suffix %s",
-                       service.c_str(), handler->second->current_suffix_.c_str());
+            roo::log_warning("good, hit for service %s with suffix %s",
+                             service.c_str(), handler->second->current_suffix_.c_str());
             return handler->second->handler_;
         }
     }
 
     // do create
 
-    char fullpath[PATH_MAX] {};
+    char fullpath[PATH_MAX]{};
     snprintf(fullpath, PATH_MAX, "%s/%s__%s__events_%s",
              filepath_.c_str(), table_prefix_.c_str(), service.c_str(), now_suffix.c_str());
 
@@ -113,13 +110,13 @@ std::shared_ptr<leveldb::DB> StoreLevelDB::get_leveldb_handler(const std::string
     leveldb::Status status = leveldb::DB::Open(options, fullpath, &db);
 
     if (!status.ok()) {
-        log_err("Open levelDB %s failed.", fullpath);
+        roo::log_err("Open levelDB %s failed.", fullpath);
         return NULLPTR_HANDLER;
     }
 
     std::shared_ptr<leveldb_handler_t> new_handler = std::make_shared<leveldb_handler_t>();
     if (!new_handler) {
-        log_err("create new handler for %s failed.", fullpath);
+        roo::log_err("create new handler for %s failed.", fullpath);
         return NULLPTR_HANDLER;
     }
 
@@ -129,8 +126,8 @@ std::shared_ptr<leveldb::DB> StoreLevelDB::get_leveldb_handler(const std::string
     // do add
     (*levelDBs_)[service] = new_handler;
 
-    log_notice("success add for service %s with suffix %s, fullpath: %s",
-               service.c_str(), now_suffix.c_str(), fullpath);
+    roo::log_warning("success add for service %s with suffix %s, fullpath: %s",
+                     service.c_str(), now_suffix.c_str(), fullpath);
     return new_handler->handler_;
 }
 
@@ -138,7 +135,7 @@ std::shared_ptr<leveldb::DB> StoreLevelDB::get_leveldb_handler(const std::string
 int StoreLevelDB::insert_ev_stat(const event_insert_t& stat) {
 
     if (stat.service.empty() || stat.metric.empty() || stat.timestamp == 0) {
-        log_err("error check error!");
+        roo::log_err("error check error!");
         return -1;
     }
 
@@ -149,18 +146,18 @@ int StoreLevelDB::insert_ev_stat(const event_insert_t& stat) {
 
     auto handler = get_leveldb_handler(stat.service);
     if (!handler) {
-        log_err("get leveldb handler for %s failed.", stat.service.c_str());
+        roo::log_err("get leveldb handler for %s failed.", stat.service.c_str());
         return -1;
     }
 
     // key: metric#timestamp#tag#entity_idx
     // val: step#count#sum#avg#std#min#max#p10#p50#p90
-    char cstr_key[4096] {};
+    char cstr_key[4096]{};
     snprintf(cstr_key, sizeof(cstr_key), "%s#%lu#%s#%s",
              stat.metric.c_str(), timestamp_exchange(stat.timestamp),
              tag.c_str(), stat.entity_idx.c_str());
 
-    leveldb_internal_layout_t data {};
+    leveldb_internal_layout_t data{};
     data.d = 'D';
     data.step = stat.step;
     data.count = stat.count;
@@ -178,12 +175,12 @@ int StoreLevelDB::insert_ev_stat(const event_insert_t& stat) {
     leveldb::WriteOptions options;
     leveldb::Status status = handler->Put(options, std::string(cstr_key), str_val);
     if (!status.ok()) {
-        log_err("leveldb write failed: %s - %s", cstr_key, data.dump().c_str());
+        roo::log_err("leveldb write failed: %s - %s", cstr_key, data.dump().c_str());
         return -1;
     }
 
-    log_debug("leveldb service %s store %s:%s success.",
-              stat.service.c_str(), cstr_key, data.dump().c_str());
+    roo::log_info("leveldb service %s store %s:%s success.",
+                  stat.service.c_str(), cstr_key, data.dump().c_str());
     return 0;
 }
 
@@ -191,7 +188,7 @@ int StoreLevelDB::select_ev_stat_by_timestamp(const event_cond_t& cond, event_se
 
     auto handler = get_leveldb_handler(cond.service);
     if (!handler) {
-        log_err("get leveldb handler for %s failed.", cond.service.c_str());
+        roo::log_err("get leveldb handler for %s failed.", cond.service.c_str());
         return -1;
     }
 
@@ -204,14 +201,14 @@ int StoreLevelDB::select_ev_stat_by_timestamp(const event_cond_t& cond, event_se
         t_lower = metric_upper + timestamp_exchange_str(stat.timestamp - cond.tm_interval);
     }
 
-    std::vector<std::string> vec {};
+    std::vector<std::string> vec{};
     leveldb::Options options;
     std::unique_ptr<leveldb::Iterator> it(handler->NewIterator(leveldb::ReadOptions()));
 
     // 聚合信息
-    std::map<time_t, std::vector<event_info_t>> infos_by_timestamp {};
+    std::map<time_t, std::vector<event_info_t>> infos_by_timestamp{};
 
-    stat.summary = {}; // default to well initialized.
+    stat.summary = { }; // default to well initialized.
     stat.summary.value_min = std::numeric_limits<int32_t>::max();
     stat.summary.value_max = std::numeric_limits<int32_t>::min();
 
@@ -221,16 +218,16 @@ int StoreLevelDB::select_ev_stat_by_timestamp(const event_cond_t& cond, event_se
         leveldb::Slice key = it->key();
         std::string str_key = key.ToString();
 
-        if ( options.comparator->Compare(key, t_lower) > 0) {
-            log_debug("break for: %s", str_key.c_str());
+        if (options.comparator->Compare(key, t_lower) > 0) {
+            roo::log_info("break for: %s", str_key.c_str());
             break;
         }
 
         // metric#timestamp#tag#entity_idx
         boost::split(vec, str_key, boost::is_any_of("#"));
         if (vec.size() != 4 ||
-            vec[0].empty() || vec[1].empty() || vec[2].empty() ) {
-            log_err("problem item for service %s: %s", cond.service.c_str(), str_key.c_str());
+            vec[0].empty() || vec[1].empty() || vec[2].empty()) {
+            roo::log_err("problem item for service %s: %s", cond.service.c_str(), str_key.c_str());
             continue;
         }
 
@@ -245,17 +242,17 @@ int StoreLevelDB::select_ev_stat_by_timestamp(const event_cond_t& cond, event_se
         // step#count#sum#avg#std#min#max#p10#p50#p90
         std::string str_val = it->value().ToString();
         if (str_val.size() != sizeof(leveldb_internal_layout_t) || str_val[0] != 'D') {
-            log_err("raw check leveldb data failed: %s %lu", str_key.c_str(), str_val.size());
+            roo::log_err("raw check leveldb data failed: %s %lu", str_key.c_str(), str_val.size());
             continue;
         }
 
-        leveldb_internal_layout_t data {};
+        leveldb_internal_layout_t data{};
         ::memcpy(reinterpret_cast<char*>(&data), str_val.c_str(), sizeof(leveldb_internal_layout_t));
         data.from_net_endian();
 
         SAFE_ASSERT(data.d = 'D');
 
-        event_info_t item {};
+        event_info_t item{};
         item.count = data.count;
         item.value_sum = data.sum;
         item.value_avg = data.avg;
@@ -291,20 +288,20 @@ int StoreLevelDB::select_ev_stat_by_timestamp(const event_cond_t& cond, event_se
             stat.summary.value_max = item.value_max;
         }
 
-        ++ iterat_count;
-        
+        ++iterat_count;
+
     }  // end for
 
     int ck_iterat_count = 0;
     for (auto iter = infos_by_timestamp.begin(); iter != infos_by_timestamp.end(); ++iter) {
 
-        event_info_t collect {};
+        event_info_t collect{};
         collect.timestamp = iter->first;
 
         collect.value_min = std::numeric_limits<int32_t>::max();
         collect.value_max = std::numeric_limits<int32_t>::min();
 
-        for (size_t i=0; i<iter->second.size(); ++i) {
+        for (size_t i = 0; i < iter->second.size(); ++i) {
             collect.count     += iter->second[i].count;
             collect.value_sum += iter->second[i].value_sum;
             collect.value_p10 += iter->second[i].value_p10;
@@ -336,11 +333,11 @@ int StoreLevelDB::select_ev_stat_by_timestamp(const event_cond_t& cond, event_se
     }
 
     SAFE_ASSERT(iterat_count == ck_iterat_count);
-    if(iterat_count != ck_iterat_count) {
-        log_err("iterat_cnt check failed: %d - %d, total detail item %d", iterat_count, ck_iterat_count, stat.summary.count);
+    if (iterat_count != ck_iterat_count) {
+        roo::log_err("iterat_cnt check failed: %d - %d, total detail item %d", iterat_count, ck_iterat_count, stat.summary.count);
     }
 
-    if (stat.summary.count != 0 && iterat_count ) {
+    if (stat.summary.count != 0 && iterat_count) {
         stat.summary.value_avg = stat.summary.value_sum / stat.summary.count;
         stat.summary.value_p10 = stat.summary.value_p10 / iterat_count;
         stat.summary.value_p50 = stat.summary.value_p50 / iterat_count;
@@ -358,7 +355,7 @@ int StoreLevelDB::select_ev_stat_by_tag(const event_cond_t& cond, event_select_t
 
     auto handler = get_leveldb_handler(cond.service);
     if (!handler) {
-        log_err("get leveldb handler for %s failed.", cond.service.c_str());
+        roo::log_err("get leveldb handler for %s failed.", cond.service.c_str());
         return -1;
     }
 
@@ -371,14 +368,14 @@ int StoreLevelDB::select_ev_stat_by_tag(const event_cond_t& cond, event_select_t
         t_lower = metric_upper + timestamp_exchange_str(stat.timestamp - cond.tm_interval);
     }
 
-    std::vector<std::string> vec {};
+    std::vector<std::string> vec{};
     leveldb::Options options;
     std::unique_ptr<leveldb::Iterator> it(handler->NewIterator(leveldb::ReadOptions()));
 
     // 聚合信息
-    std::map<std::string, std::vector<event_info_t>> infos_by_tag {};
+    std::map<std::string, std::vector<event_info_t>> infos_by_tag{};
 
-    stat.summary = {}; // default to well initialized.
+    stat.summary = { }; // default to well initialized.
     stat.summary.value_min = std::numeric_limits<int32_t>::max();
     stat.summary.value_max = std::numeric_limits<int32_t>::min();
 
@@ -388,16 +385,16 @@ int StoreLevelDB::select_ev_stat_by_tag(const event_cond_t& cond, event_select_t
         leveldb::Slice key = it->key();
         std::string str_key = key.ToString();
 
-        if ( options.comparator->Compare(key, t_lower) > 0) {
-            log_debug("break for: %s", str_key.c_str());
+        if (options.comparator->Compare(key, t_lower) > 0) {
+            roo::log_info("break for: %s", str_key.c_str());
             break;
         }
 
         // metric#timestamp#tag#entity_idx
         boost::split(vec, str_key, boost::is_any_of("#"));
         if (vec.size() != 4 ||
-            vec[0].empty() || vec[1].empty() || vec[2].empty() ) {
-            log_err("problem item for service %s: %s", cond.service.c_str(), str_key.c_str());
+            vec[0].empty() || vec[1].empty() || vec[2].empty()) {
+            roo::log_err("problem item for service %s: %s", cond.service.c_str(), str_key.c_str());
             continue;
         }
 
@@ -412,17 +409,17 @@ int StoreLevelDB::select_ev_stat_by_tag(const event_cond_t& cond, event_select_t
         // step#count#sum#avg#std#min#max#p10#p50#p90
         std::string str_val = it->value().ToString();
         if (str_val.size() != sizeof(leveldb_internal_layout_t) || str_val[0] != 'D') {
-            log_err("raw check leveldb data failed: %s %lu", str_key.c_str(), str_val.size());
+            roo::log_err("raw check leveldb data failed: %s %lu", str_key.c_str(), str_val.size());
             continue;
         }
 
-        leveldb_internal_layout_t data {};
+        leveldb_internal_layout_t data{};
         ::memcpy(reinterpret_cast<char*>(&data), str_val.c_str(), sizeof(leveldb_internal_layout_t));
         data.from_net_endian();
 
         SAFE_ASSERT(data.d = 'D');
 
-        event_info_t item {};
+        event_info_t item{};
         item.count = data.count;
         item.value_sum = data.sum;
         item.value_avg = data.avg;
@@ -456,22 +453,22 @@ int StoreLevelDB::select_ev_stat_by_tag(const event_cond_t& cond, event_select_t
         if (item.value_max > stat.summary.value_max) {
             stat.summary.value_max = item.value_max;
         }
-        
-        ++ iterat_count;
-        
+
+        ++iterat_count;
+
     } // end for
 
 
     int ck_iterat_count = 0;
     for (auto iter = infos_by_tag.begin(); iter != infos_by_tag.end(); ++iter) {
 
-        event_info_t collect {};
+        event_info_t collect{};
         collect.tag = iter->first;
 
         collect.value_min = std::numeric_limits<int32_t>::max();
         collect.value_max = std::numeric_limits<int32_t>::min();
 
-        for (size_t i=0; i<iter->second.size(); ++i) {
+        for (size_t i = 0; i < iter->second.size(); ++i) {
             collect.count     += iter->second[i].count;
             collect.value_sum += iter->second[i].value_sum;
             collect.value_p10 += iter->second[i].value_p10;
@@ -499,13 +496,13 @@ int StoreLevelDB::select_ev_stat_by_tag(const event_cond_t& cond, event_select_t
         }
 
         stat.info.emplace_back(collect);
-        
+
         ck_iterat_count += iter->second.size();
     }
-    
+
     SAFE_ASSERT(iterat_count == ck_iterat_count);
-    if(iterat_count != ck_iterat_count) {
-        log_err("iterat_cnt check failed: %d - %d, total detail item %d", iterat_count, ck_iterat_count, stat.summary.count);
+    if (iterat_count != ck_iterat_count) {
+        roo::log_err("iterat_cnt check failed: %d - %d, total detail item %d", iterat_count, ck_iterat_count, stat.summary.count);
     }
 
     if (stat.summary.count != 0 && iterat_count != 0) {
@@ -526,7 +523,7 @@ int StoreLevelDB::select_ev_stat_by_none(const event_cond_t& cond, event_select_
 
     auto handler = get_leveldb_handler(cond.service);
     if (!handler) {
-        log_err("get leveldb handler for %s failed.", cond.service.c_str());
+        roo::log_err("get leveldb handler for %s failed.", cond.service.c_str());
         return -1;
     }
 
@@ -539,31 +536,31 @@ int StoreLevelDB::select_ev_stat_by_none(const event_cond_t& cond, event_select_
         t_lower = metric_upper + timestamp_exchange_str(stat.timestamp - cond.tm_interval);
     }
 
-    std::vector<std::string> vec {};
+    std::vector<std::string> vec{};
     leveldb::Options options;
     std::unique_ptr<leveldb::Iterator> it(handler->NewIterator(leveldb::ReadOptions()));
 
-    stat.summary = {}; // default to well initialized.
+    stat.summary = { }; // default to well initialized.
     stat.summary.value_min = std::numeric_limits<int32_t>::max();
     stat.summary.value_max = std::numeric_limits<int32_t>::min();
 
     int iterat_count = 0;
-    
+
     for (it->Seek(t_upper); it->Valid(); it->Next()) {
 
         leveldb::Slice key = it->key();
         std::string str_key = key.ToString();
 
-        if ( options.comparator->Compare(key, t_lower) > 0) {
-            log_debug("break for: %s", str_key.c_str());
+        if (options.comparator->Compare(key, t_lower) > 0) {
+            roo::log_info("break for: %s", str_key.c_str());
             break;
         }
 
         // metric#timestamp#tag#entity_idx
         boost::split(vec, str_key, boost::is_any_of("#"));
         if (vec.size() != 4 ||
-            vec[0].empty() || vec[1].empty() || vec[2].empty() ) {
-            log_err("problem item for service %s: %s", cond.service.c_str(), str_key.c_str());
+            vec[0].empty() || vec[1].empty() || vec[2].empty()) {
+            roo::log_err("problem item for service %s: %s", cond.service.c_str(), str_key.c_str());
             continue;
         }
 
@@ -578,17 +575,17 @@ int StoreLevelDB::select_ev_stat_by_none(const event_cond_t& cond, event_select_
         // step#count#sum#avg#std#min#max#p10#p50#p90
         std::string str_val = it->value().ToString();
         if (str_val.size() != sizeof(leveldb_internal_layout_t) || str_val[0] != 'D') {
-            log_err("raw check leveldb data failed: %s %lu", str_key.c_str(), str_val.size());
+            roo::log_err("raw check leveldb data failed: %s %lu", str_key.c_str(), str_val.size());
             continue;
         }
 
-        leveldb_internal_layout_t data {};
+        leveldb_internal_layout_t data{};
         ::memcpy(reinterpret_cast<char*>(&data), str_val.c_str(), sizeof(leveldb_internal_layout_t));
         data.from_net_endian();
 
         SAFE_ASSERT(data.d = 'D');
 
-        event_info_t item {};
+        event_info_t item{};
         item.count = data.count;
         item.value_sum = data.sum;
         item.value_avg = data.avg;
@@ -603,7 +600,7 @@ int StoreLevelDB::select_ev_stat_by_none(const event_cond_t& cond, event_select_
         stat.summary.value_p10 += item.value_p10;
         stat.summary.value_p50 += item.value_p50;
         stat.summary.value_p90 += item.value_p90;
-        
+
         if (item.value_min < stat.summary.value_min) {
             stat.summary.value_min = item.value_min;
         }
@@ -612,7 +609,7 @@ int StoreLevelDB::select_ev_stat_by_none(const event_cond_t& cond, event_select_
             stat.summary.value_max = item.value_max;
         }
 
-        ++ iterat_count;
+        ++iterat_count;
     }
 
     if (stat.summary.count != 0 && iterat_count != 0) {
@@ -635,7 +632,7 @@ int StoreLevelDB::select_ev_stat_by_none(const event_cond_t& cond, event_select_
 int StoreLevelDB::select_ev_stat(const event_cond_t& cond, event_select_t& stat, time_t linger_hint) {
 
     if (cond.service.empty()) {
-        log_err("error check error!");
+        roo::log_err("error check error!");
         return -1;
     }
 
@@ -656,23 +653,21 @@ int StoreLevelDB::select_ev_stat(const event_cond_t& cond, event_select_t& stat,
     int ret = 0;
     if (cond.groupby == GroupType::kGroupbyTimestamp) {
         ret = select_ev_stat_by_timestamp(cond, stat, linger_hint);
-    }
-    else if (cond.groupby == GroupType::kGroupbyTag) {
+    } else if (cond.groupby == GroupType::kGroupbyTag) {
         ret = select_ev_stat_by_tag(cond, stat, linger_hint);
-    }
-    else {
+    } else {
         return select_ev_stat_by_none(cond, stat, linger_hint);
     }
 
     // 是否对结果进行排序
     if (cond.orderby == OrderByType::kOrderByNone || cond.limit == 0) {
-        log_debug("order by %d, orders %d, limit %d, will not sort in server side",
-                  static_cast<int32_t>(cond.orderby), static_cast<int32_t>(cond.orders), cond.limit);
+        roo::log_info("order by %d, orders %d, limit %d, will not sort in server side",
+                      static_cast<int32_t>(cond.orderby), static_cast<int32_t>(cond.orders), cond.limit);
         return ret;
     }
 
     if (stat.info.empty()) {
-        log_debug("detail info empty, do not need to sort.");
+        roo::log_info("detail info empty, do not need to sort.");
         return ret;
     }
 
@@ -688,13 +683,13 @@ int StoreLevelDB::select_ev_stat(const event_cond_t& cond, event_select_t& stat,
 int StoreLevelDB::select_metrics(const std::string& service, std::vector<std::string>& metrics) {
 
     if (service.empty()) {
-        log_err("select_metrics, service can not be empty!");
+        roo::log_err("select_metrics, service can not be empty!");
         return -1;
     }
 
     auto handler = get_leveldb_handler(service);
     if (!handler) {
-        log_err("get leveldb handler for %s failed.", service.c_str());
+        roo::log_err("get leveldb handler for %s failed.", service.c_str());
         return -1;
     }
 
@@ -703,7 +698,7 @@ int StoreLevelDB::select_metrics(const std::string& service, std::vector<std::st
     std::set<std::string> unique_metrics;
     std::vector<std::string> vec{};
     std::string cached_metric;
-    
+
     // 优化，跳过相同的metric打头项，增加快速定位所有metric
     for (it->SeekToFirst(); it->Valid(); /* NOP */) {
 
@@ -712,8 +707,8 @@ int StoreLevelDB::select_metrics(const std::string& service, std::vector<std::st
         // metric#timestamp#tag#entity_idx
         boost::split(vec, str_key, boost::is_any_of("#"));
         if (vec.size() != 4 ||
-            vec[0].empty() || vec[1].empty() || vec[2].empty() ) {
-            log_err("problem item for service %s: %s", service.c_str(), str_key.c_str());
+            vec[0].empty() || vec[1].empty() || vec[2].empty()) {
+            roo::log_err("problem item for service %s: %s", service.c_str(), str_key.c_str());
             it->Next();
             continue;
         }
@@ -722,7 +717,7 @@ int StoreLevelDB::select_metrics(const std::string& service, std::vector<std::st
             cached_metric = vec[0];
             unique_metrics.insert(vec[0]);
         }
-        
+
         // 跳过所有相同的key prefix
         // Advance to the first entry with a key >= target
         it->Seek(cached_metric + "$");
@@ -741,21 +736,21 @@ int StoreLevelDB::select_services(std::vector<std::string>& services) {
 
     // 遍历目录，获取所有服务
 
-    DIR *d = NULL;
+    DIR* d = NULL;
     struct dirent* d_item = NULL;
     struct stat sb;
 
     if (!(d = opendir(filepath_.c_str()))) {
-        log_err("opendir for %s failed.",  filepath_.c_str());
+        roo::log_err("opendir for %s failed.",  filepath_.c_str());
         return -1;
     }
 
 
-    log_debug("we will travel dir %s for service detect.", filepath_.c_str());
+    roo::log_info("we will travel dir %s for service detect.", filepath_.c_str());
 
-    std::vector<std::string> leveldb_files {};
+    std::vector<std::string> leveldb_files{};
 
-    while ( (d_item = readdir(d)) != NULL ) {
+    while ((d_item = readdir(d)) != NULL) {
 
         // 跳过隐藏目录
         if (::strncmp(d_item->d_name, ".", 1) == 0) {
@@ -772,7 +767,7 @@ int StoreLevelDB::select_services(std::vector<std::string>& services) {
     }
 
     services.clear();
-    for (size_t i=0; i<leveldb_files.size(); ++i) {
+    for (size_t i = 0; i < leveldb_files.size(); ++i) {
 
         std::string t_name = leveldb_files[i];
 
@@ -781,7 +776,7 @@ int StoreLevelDB::select_services(std::vector<std::string>& services) {
             t_name = t_name.substr(0, t_name.size() - 15 /*"__events_xxxxxx"*/);
             services.emplace_back(t_name);
         } else {
-            log_err("invalid table_name: %s", t_name.c_str());
+            roo::log_err("invalid table_name: %s", t_name.c_str());
         }
     }
 

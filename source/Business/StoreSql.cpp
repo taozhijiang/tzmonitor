@@ -7,12 +7,11 @@
 
 #include <sstream>
 
-#include <Utils/Log.h>
+#include <other/Log.h>
+#include <string/StrUtil.h>
 
 #include <Business/Sort.h>
 #include <Business/StoreSql.h>
-
-using namespace tzrpc;
 
 bool StoreSql::init(const libconfig::Config& conf) {
 
@@ -27,9 +26,8 @@ bool StoreSql::init(const libconfig::Config& conf) {
         !conf.lookupValue("rpc.business.mysql.username", mysql_username) ||
         !conf.lookupValue("rpc.business.mysql.passwd", mysql_passwd) ||
         !conf.lookupValue("rpc.business.mysql.database", mysql_database) ||
-        !conf.lookupValue("rpc.business.mysql.table_prefix", table_prefix_) )
-    {
-        log_err("Error, get mysql config value error");
+        !conf.lookupValue("rpc.business.mysql.table_prefix", table_prefix_)) {
+        roo::log_err("Error, get mysql config value error");
         return false;
     }
 
@@ -38,15 +36,15 @@ bool StoreSql::init(const libconfig::Config& conf) {
     int conn_pool_size = 0;
     if (!conf.lookupValue("rpc.business.mysql.conn_pool_size", conn_pool_size)) {
         conn_pool_size = 20;
-        log_info("Using default conn_pool size: 20");
+        roo::log_info("Using default conn_pool size: 20");
     }
 
 //    mysql_passwd = Security::DecryptSelfParam(mysql_passwd.c_str());
-    SqlConnPoolHelper helper(mysql_hostname, mysql_port,
-                             mysql_username, mysql_passwd, mysql_database);
-    sql_pool_ptr_.reset(new ConnPool<SqlConn, SqlConnPoolHelper>("MySQLPool", conn_pool_size, helper));
+    roo::SqlConnPoolHelper helper(mysql_hostname, mysql_port,
+                                  mysql_username, mysql_passwd, mysql_database);
+    sql_pool_ptr_.reset(new roo::ConnPool<roo::SqlConn, roo::SqlConnPoolHelper>("MySQLPool", conn_pool_size, helper));
     if (!sql_pool_ptr_ || !sql_pool_ptr_->init()) {
-        log_err("Init SqlConnPool failed!");
+        roo::log_err("Init SqlConnPool failed!");
         return false;
     }
 
@@ -58,29 +56,29 @@ std::string StoreSql::get_table_suffix(time_t time_sec) {
     struct tm now_time;
     localtime_r(&time_sec, &now_time);
 
-    char buff[20] = {0, };
+    char buff[20] = { 0, };
     sprintf(buff, "%04d%02d", now_time.tm_year + 1900, now_time.tm_mon + 1);
 
     return buff;
 }
 
 // 自动创建分表
-int StoreSql::create_table(sql_conn_ptr& conn,
+int StoreSql::create_table(roo::sql_conn_ptr& conn,
                            const std::string& database, const std::string& prefix,
                            const std::string& service, const std::string& suffix) {
 
     if (!conn) {
-        log_err("conn invalid.");
+        roo::log_err("conn invalid.");
         return -1;
     }
 
     if (service.empty() || database.empty() || prefix.empty() || suffix.empty()) {
-        log_err("invalid param: service %s, database %s, prefix %s, suffix %s",
-                service.c_str(), database.c_str(), prefix.c_str(),  suffix.c_str());
+        roo::log_err("invalid param: service %s, database %s, prefix %s, suffix %s",
+                     service.c_str(), database.c_str(), prefix.c_str(),  suffix.c_str());
         return -1;
     }
 
-    std::string sql = va_format(
+    std::string sql = roo::va_format(
         "CREATE TABLE IF NOT EXISTS %s.%s__%s__events_%s ( "
         "  `F_increment_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT, "
         "  `F_timestamp` bigint(20) NOT NULL COMMENT '事件上报时间， FROM_UNIXTIME可视化', "
@@ -109,10 +107,10 @@ int StoreSql::create_table(sql_conn_ptr& conn,
 
 int StoreSql::insert_ev_stat(const event_insert_t& stat) {
 
-    sql_conn_ptr conn;
+    roo::sql_conn_ptr conn;
     sql_pool_ptr_->request_scoped_conn(conn);
     if (!conn) {
-        log_err("request sql conn failed!");
+        roo::log_err("request sql conn failed!");
         return -1;
     }
 
@@ -120,15 +118,15 @@ int StoreSql::insert_ev_stat(const event_insert_t& stat) {
 }
 
 
-int StoreSql::insert_ev_stat(sql_conn_ptr& conn, const event_insert_t& stat) {
+int StoreSql::insert_ev_stat(roo::sql_conn_ptr& conn, const event_insert_t& stat) {
 
     if (!conn) {
-        log_err("request sql conn failed!");
+        roo::log_err("request sql conn failed!");
         return -1;
     }
 
     if (stat.service.empty() || stat.metric.empty() || stat.timestamp == 0) {
-        log_err("error check error!");
+        roo::log_err("error check error!");
         return -1;
     }
 
@@ -138,24 +136,24 @@ int StoreSql::insert_ev_stat(sql_conn_ptr& conn, const event_insert_t& stat) {
     }
 
     std::string table_suffix = get_table_suffix(stat.timestamp);
-    std::string sql = va_format(
-                   " INSERT INTO %s.%s__%s__events_%s "
-                   " SET F_entity_idx = '%s', F_timestamp = %ld, "
-                   " F_metric = '%s', F_tag = '%s', F_step = %d, "
-                   " F_count = %d, F_value_sum = %ld, F_value_avg = %d, "
-                   " F_value_min = %d, F_value_max = %d, F_value_p10 = %d, F_value_p50 = %d, F_value_p90 = %d; ",
-                   database_.c_str(), table_prefix_.c_str(), stat.service.c_str(), table_suffix.c_str(),
-                   stat.entity_idx.c_str(), stat.timestamp,
-                   stat.metric.c_str(), tag.c_str(), stat.step,
-                   stat.count, stat.value_sum, stat.value_avg,
-                   stat.value_min, stat.value_max, stat.value_p10, stat.value_p50, stat.value_p90);
+    std::string sql = roo::va_format(
+        " INSERT INTO %s.%s__%s__events_%s "
+        " SET F_entity_idx = '%s', F_timestamp = %ld, "
+        " F_metric = '%s', F_tag = '%s', F_step = %d, "
+        " F_count = %d, F_value_sum = %ld, F_value_avg = %d, "
+        " F_value_min = %d, F_value_max = %d, F_value_p10 = %d, F_value_p50 = %d, F_value_p90 = %d; ",
+        database_.c_str(), table_prefix_.c_str(), stat.service.c_str(), table_suffix.c_str(),
+        stat.entity_idx.c_str(), stat.timestamp,
+        stat.metric.c_str(), tag.c_str(), stat.step,
+        stat.count, stat.value_sum, stat.value_avg,
+        stat.value_min, stat.value_max, stat.value_p10, stat.value_p50, stat.value_p90);
 
     int nAffected = conn->sqlconn_execute_update(sql);
     if (nAffected == 1) {
         return 0;
     }
 
-    log_notice("try create table and try again!");
+    roo::log_warning("try create table and try again!");
     create_table(conn, database_, table_prefix_, stat.service, table_suffix.c_str());
 
     nAffected = conn->sqlconn_execute_update(sql);
@@ -175,20 +173,20 @@ std::string StoreSql::build_sql(const event_cond_t& cond, time_t linger_hint, ti
 
     if (cond.groupby == GroupType::kGroupbyTimestamp) {
         ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), "
-                    " IFNULL(MIN(F_value_min), 0), IFNULL(MAX(F_value_max), 0), IFNULL(AVG(F_value_p10), 0), IFNULL(AVG(F_value_p50), 0), IFNULL(AVG(F_value_p90), 0), "
-                    " F_timestamp FROM ";
+            " IFNULL(MIN(F_value_min), 0), IFNULL(MAX(F_value_max), 0), IFNULL(AVG(F_value_p10), 0), IFNULL(AVG(F_value_p50), 0), IFNULL(AVG(F_value_p90), 0), "
+            " F_timestamp FROM ";
     } else if (cond.groupby == GroupType::kGroupbyTag) {
         ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), "
-                    " IFNULL(MIN(F_value_min), 0), IFNULL(MAX(F_value_max), 0), IFNULL(AVG(F_value_p10), 0), IFNULL(AVG(F_value_p50), 0), IFNULL(AVG(F_value_p90), 0), "
-                    " F_tag FROM ";
+            " IFNULL(MIN(F_value_min), 0), IFNULL(MAX(F_value_max), 0), IFNULL(AVG(F_value_p10), 0), IFNULL(AVG(F_value_p50), 0), IFNULL(AVG(F_value_p90), 0), "
+            " F_tag FROM ";
     } else {
         ss << "SELECT IFNULL(SUM(F_count), 0), IFNULL(SUM(F_value_sum), 0), "
-                    " IFNULL(MIN(F_value_min), 0), IFNULL(MAX(F_value_max), 0), IFNULL(AVG(F_value_p10), 0), IFNULL(AVG(F_value_p50), 0), IFNULL(AVG(F_value_p90), 0), "
-                    " FROM ";
+            " IFNULL(MIN(F_value_min), 0), IFNULL(MAX(F_value_max), 0), IFNULL(AVG(F_value_p10), 0), IFNULL(AVG(F_value_p50), 0), IFNULL(AVG(F_value_p90), 0), "
+            " FROM ";
     }
 
-    ss << database_ << "." << table_prefix_ << "__" << cond.service << "__events_" << get_table_suffix(real_start_time) ;
-    ss << " WHERE F_timestamp <= " << real_start_time <<" AND F_timestamp > " << real_start_time - cond.tm_interval;
+    ss << database_ << "." << table_prefix_ << "__" << cond.service << "__events_" << get_table_suffix(real_start_time);
+    ss << " WHERE F_timestamp <= " << real_start_time << " AND F_timestamp > " << real_start_time - cond.tm_interval;
     ss << " AND F_metric = '" << cond.metric << "'";
 
     if (!cond.entity_idx.empty()) {
@@ -206,7 +204,7 @@ std::string StoreSql::build_sql(const event_cond_t& cond, time_t linger_hint, ti
     }
 
     std::string sql = ss.str();
-    log_debug("built query str: %s", sql.c_str());
+    roo::log_info("built query str: %s", sql.c_str());
 
     return sql;
 }
@@ -214,20 +212,20 @@ std::string StoreSql::build_sql(const event_cond_t& cond, time_t linger_hint, ti
 
 // group summary
 int StoreSql::select_ev_stat(const event_cond_t& cond, event_select_t& stat, time_t linger_hint) {
-    sql_conn_ptr conn;
+    roo::sql_conn_ptr conn;
     sql_pool_ptr_->request_scoped_conn(conn);
     if (!conn) {
-        log_err("request sql conn failed!");
+        roo::log_err("request sql conn failed!");
         return -1;
     }
 
     return select_ev_stat(conn, cond, stat, linger_hint);
 }
 
-int StoreSql::select_ev_stat(sql_conn_ptr& conn, const event_cond_t& cond, event_select_t& stat, time_t linger_hint) {
+int StoreSql::select_ev_stat(roo::sql_conn_ptr& conn, const event_cond_t& cond, event_select_t& stat, time_t linger_hint) {
 
     if (!conn) {
-        log_err("request sql conn failed!");
+        roo::log_err("request sql conn failed!");
         return -1;
     }
 
@@ -235,15 +233,15 @@ int StoreSql::select_ev_stat(sql_conn_ptr& conn, const event_cond_t& cond, event
     std::string sql = build_sql(cond, linger_hint, real_start_time);
     stat.timestamp = real_start_time;
 
-    shared_result_ptr result;
+    roo::shared_result_ptr result;
     result.reset(conn->sqlconn_execute_query(sql));
     if (!result) {
-        log_err("Failed to query info: %s", sql.c_str());
+        roo::log_err("Failed to query info: %s", sql.c_str());
         return -1;
     }
 
     if (result->rowsCount() == 0) {
-        log_info("Empty record found!");
+        roo::log_info("Empty record found!");
         return 0;
     }
 
@@ -254,32 +252,32 @@ int StoreSql::select_ev_stat(sql_conn_ptr& conn, const event_cond_t& cond, event
     stat.entity_idx = cond.entity_idx;
     stat.tag = cond.tag;
 
-      // 可能会有某个时刻没有数据的情况，这留给客户端去填充
-      // 服务端不进行填充，减少网络数据的传输
+    // 可能会有某个时刻没有数据的情况，这留给客户端去填充
+    // 服务端不进行填充，减少网络数据的传输
 
     stat.summary.value_min = std::numeric_limits<int32_t>::max();
     stat.summary.value_max = std::numeric_limits<int32_t>::min();
 
     while (result->next()) {
 
-        event_info_t item {};
+        event_info_t item{};
 
         bool success = false;
         if (cond.groupby == GroupType::kGroupbyTimestamp) {
-            success = cast_raw_value(result, 1, item.count, item.value_sum,
-                                     item.value_min, item.value_max, item.value_p10, item.value_p50, item.value_p90,
-                                     item.timestamp);
+            success = roo::cast_raw_value(result, 1, item.count, item.value_sum,
+                                          item.value_min, item.value_max, item.value_p10, item.value_p50, item.value_p90,
+                                          item.timestamp);
         } else if (cond.groupby == GroupType::kGroupbyTag) {
-            success = cast_raw_value(result, 1, item.count, item.value_sum,
-                                     item.value_min, item.value_max, item.value_p10, item.value_p50, item.value_p90,
-                                     item.tag);
+            success = roo::cast_raw_value(result, 1, item.count, item.value_sum,
+                                          item.value_min, item.value_max, item.value_p10, item.value_p50, item.value_p90,
+                                          item.tag);
         } else {
-            success = cast_raw_value(result, 1, item.count, item.value_sum,
-                                     item.value_min, item.value_max, item.value_p10, item.value_p50, item.value_p90);
+            success = roo::cast_raw_value(result, 1, item.count, item.value_sum,
+                                          item.value_min, item.value_max, item.value_p10, item.value_p50, item.value_p90);
         }
 
         if (!success) {
-            log_err("failed to cast event_info, skip this ..." );
+            roo::log_err("failed to cast event_info, skip this ...");
             continue;
         }
 
@@ -324,8 +322,8 @@ int StoreSql::select_ev_stat(sql_conn_ptr& conn, const event_cond_t& cond, event
     }
 
     if (cond.orderby == OrderByType::kOrderByNone || cond.limit != 0) {
-        log_debug("order by %d, orders %d, limit %d, we will not sort in server side",
-                  static_cast<int32_t>(cond.orderby), static_cast<int32_t>(cond.orders), cond.limit);
+        roo::log_info("order by %d, orders %d, limit %d, we will not sort in server side",
+                      static_cast<int32_t>(cond.orderby), static_cast<int32_t>(cond.orders), cond.limit);
         return 0;
     }
 
@@ -341,39 +339,39 @@ int StoreSql::select_ev_stat(sql_conn_ptr& conn, const event_cond_t& cond, event
 int StoreSql::select_metrics(const std::string& service, std::vector<std::string>& metrics) {
 
     if (service.empty()) {
-        log_err("select_metrics, service can not be empty!");
+        roo::log_err("select_metrics, service can not be empty!");
         return -1;
     }
 
-    sql_conn_ptr conn;
+    roo::sql_conn_ptr conn;
     sql_pool_ptr_->request_scoped_conn(conn);
     if (!conn) {
-        log_err("request sql conn failed!");
+        roo::log_err("request sql conn failed!");
         return -1;
     }
 
     std::string table_suffix = get_table_suffix(::time(NULL));
-    std::string sql = va_format(
-               " SELECT distinct(F_metric) FROM %s.%s__%s__events_%s; ",
-               database_.c_str(), table_prefix_.c_str(), service.c_str(), table_suffix.c_str());
+    std::string sql = roo::va_format(
+        " SELECT distinct(F_metric) FROM %s.%s__%s__events_%s; ",
+        database_.c_str(), table_prefix_.c_str(), service.c_str(), table_suffix.c_str());
 
-    shared_result_ptr result;
+    roo::shared_result_ptr result;
     result.reset(conn->sqlconn_execute_query(sql));
     if (!result) {
-        log_err("Failed to query info: %s", sql.c_str());
+        roo::log_err("Failed to query info: %s", sql.c_str());
         return -1;
     }
 
     if (result->rowsCount() == 0) {
-        log_info("Empty record found!");
+        roo::log_info("Empty record found!");
         return 0;
     }
 
     while (result->next()) {
 
         std::string t_metric;
-        if(!cast_raw_value(result, 1, t_metric)) {
-            log_err("raw cast failed...");
+        if (!roo::cast_raw_value(result, 1, t_metric)) {
+            roo::log_err("raw cast failed...");
             continue;
         }
 
@@ -389,28 +387,28 @@ int StoreSql::select_metrics(const std::string& service, std::vector<std::string
 
 int StoreSql::select_services(std::vector<std::string>& services) {
 
-    sql_conn_ptr conn;
+    roo::sql_conn_ptr conn;
     sql_pool_ptr_->request_scoped_conn(conn);
     if (!conn) {
-        log_err("request sql conn failed!");
+        roo::log_err("request sql conn failed!");
         return -1;
     }
 
-    std::string sql = va_format(
-               " SELECT table_name FROM information_schema.tables WHERE "
-               " table_schema='%s' AND table_type = 'base table' AND table_name LIKE '%s%%'; ",
-               database_.c_str(), table_prefix_.c_str());
+    std::string sql = roo::va_format(
+        " SELECT table_name FROM information_schema.tables WHERE "
+        " table_schema='%s' AND table_type = 'base table' AND table_name LIKE '%s%%'; ",
+        database_.c_str(), table_prefix_.c_str());
 
 
-    shared_result_ptr result;
+    roo::shared_result_ptr result;
     result.reset(conn->sqlconn_execute_query(sql));
     if (!result) {
-        log_err("Failed to query info: %s", sql.c_str());
+        roo::log_err("Failed to query info: %s", sql.c_str());
         return -1;
     }
 
     if (result->rowsCount() == 0) {
-        log_info("Empty record found!");
+        roo::log_info("Empty record found!");
         return 0;
     }
 
@@ -418,8 +416,8 @@ int StoreSql::select_services(std::vector<std::string>& services) {
     while (result->next()) {
 
         std::string t_name;
-        if(!cast_raw_value(result, 1, t_name)) {
-            log_err("raw cast failed...");
+        if (!roo::cast_raw_value(result, 1, t_name)) {
+            roo::log_err("raw cast failed...");
             continue;
         }
 
@@ -428,7 +426,7 @@ int StoreSql::select_services(std::vector<std::string>& services) {
             t_name = t_name.substr(0, t_name.size() - 15 /*"__events_xxxxxx"*/);
             services.emplace_back(t_name);
         } else {
-            log_err("invalid table_name: %s", t_name.c_str());
+            roo::log_err("invalid table_name: %s", t_name.c_str());
         }
     }
 

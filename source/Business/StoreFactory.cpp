@@ -8,25 +8,25 @@
 
 #include <libconfig.h++>
 
-#include <Utils/Log.h>
+#include <other/Log.h>
 
-#include <Scaffold/ConfHelper.h>
+#include <scaffold/Setting.h>
 
 #include <Business/StoreIf.h>
 #include <Business/StoreSql.h>
 #include <Business/StoreLevelDB.h>
 
-using namespace tzrpc;
+#include <Captain.h>
 
 std::mutex init_lock_;
 
 std::shared_ptr<StoreIf> StoreFactory(const std::string& storeType) {
 
-    static std::shared_ptr<StoreIf> mysql_ {};
-    static std::shared_ptr<StoreIf> redis_ {};
-    static std::shared_ptr<StoreIf> leveldb_ {};
+    static std::shared_ptr<StoreIf> mysql_{};
+    static std::shared_ptr<StoreIf> redis_{};
+    static std::shared_ptr<StoreIf> leveldb_{};
 
-    static std::shared_ptr<StoreIf> NULLPTR {};
+    static std::shared_ptr<StoreIf> NULLPTR{};
 
     if (storeType == "mysql") {
         if (mysql_) {
@@ -39,14 +39,15 @@ std::shared_ptr<StoreIf> StoreFactory(const std::string& storeType) {
         }
 
         // 初始化
-        auto conf_ptr = ConfHelper::instance().get_conf();
-        if (!conf_ptr) {
-            log_err("ConfHelper not initialized, please check your initialize order.");
+        auto setting_ptr = Captain::instance().setting_ptr_->get_setting();
+        if (!setting_ptr) {
+            roo::log_err("Setting not initialized? return setting_ptr empty!!!");
             return NULLPTR;
         }
+
         std::shared_ptr<StoreIf> mysql = std::make_shared<StoreSql>();
-        if (mysql && mysql->init(*conf_ptr)) {
-            log_debug("create and initialized StoreSql OK!");
+        if (mysql && mysql->init(*setting_ptr)) {
+            roo::log_info("create and initialized StoreSql OK!");
             mysql_.swap(mysql);
             return mysql_;
         }
@@ -55,7 +56,7 @@ std::shared_ptr<StoreIf> StoreFactory(const std::string& storeType) {
 
     } else if (storeType == "redis") {
 
-        log_err("redis store not implemented yet!");
+        roo::log_err("redis store not implemented yet!");
         return NULLPTR;
 
     } else if (storeType == "leveldb") {
@@ -70,14 +71,15 @@ std::shared_ptr<StoreIf> StoreFactory(const std::string& storeType) {
         }
 
         // 初始化
-        auto conf_ptr = ConfHelper::instance().get_conf();
-        if (!conf_ptr) {
-            log_err("ConfHelper not initialized, please check your initialize order.");
+        auto setting_ptr = Captain::instance().setting_ptr_->get_setting();
+        if (!setting_ptr) {
+            roo::log_err("Setting not initialized? return setting_ptr empty!!!");
             return NULLPTR;
         }
+
         std::shared_ptr<StoreIf> leveldb = std::make_shared<StoreLevelDB>();
-        if (leveldb && leveldb->init(*conf_ptr)) {
-            log_debug("create and initialized StoreLevelDB OK!");
+        if (leveldb && leveldb->init(*setting_ptr)) {
+            roo::log_info("create and initialized StoreLevelDB OK!");
             leveldb_.swap(leveldb);
             return leveldb_;
         }
@@ -85,7 +87,7 @@ std::shared_ptr<StoreIf> StoreFactory(const std::string& storeType) {
         return NULLPTR;
 
     } else {
-        log_err("Invalid storeType: %s", storeType.c_str());
+        roo::log_err("Invalid storeType: %s", storeType.c_str());
         return NULLPTR;
     }
 }

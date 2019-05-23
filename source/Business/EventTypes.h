@@ -109,20 +109,20 @@ struct event_cond_t {
     }
 
     std::string str() {
-        
+
         std::stringstream ss;
-        ss  << "version: " << version 
-            << " ,tm_interval: " << tm_interval 
-            << " ,service: " << service 
-            << " ,metric: " << metric 
-            << " ,tm_start: " << tm_start 
-            << " ,entity_idx: " << entity_idx 
-            << " ,tag: " << tag 
+        ss  << "version: " << version
+            << " ,tm_interval: " << tm_interval
+            << " ,service: " << service
+            << " ,metric: " << metric
+            << " ,tm_start: " << tm_start
+            << " ,entity_idx: " << entity_idx
+            << " ,tag: " << tag
             << " ,groupby: " << static_cast<uint8_t>(groupby)
             << " ,orderby: " << static_cast<uint8_t>(orderby)
-            << " ,orders: " << static_cast<uint8_t>(orders) 
+            << " ,orders: " << static_cast<uint8_t>(orders)
             << " ,limit: " << limit;
-            
+
         return ss.str();
     }
 };
@@ -143,21 +143,21 @@ struct event_info_t {
     int32_t     value_p10;
     int32_t     value_p50;
     int32_t     value_p90;
-    
+
     std::string str() {
-        
+
         std::stringstream ss;
-        ss  << "timestamp: " << timestamp 
-            << " ,tag: " << tag 
-            << " ,count: " << count 
-            << " ,value_sum: " << value_sum 
-            << " ,value_avg: " << value_avg 
-            << " ,value_min: " << value_min 
-            << " ,value_max: " << value_max 
-            << " ,value_p10: " << value_p10 
-            << " ,value_p50: " << value_p50 
+        ss  << "timestamp: " << timestamp
+            << " ,tag: " << tag
+            << " ,count: " << count
+            << " ,value_sum: " << value_sum
+            << " ,value_avg: " << value_avg
+            << " ,value_min: " << value_min
+            << " ,value_max: " << value_max
+            << " ,value_p10: " << value_p10
+            << " ,value_p50: " << value_p50
             << " ,value_p90: " << value_p90;
-            
+
         return ss.str();
     }
 };
@@ -178,22 +178,22 @@ struct event_select_t {
 
     event_info_t summary;
     std::vector<event_info_t> info;
-    
+
     std::string str() {
-        
+
         std::stringstream ss;
-        ss  << "version: " << version 
-            << " ,timestamp: " << timestamp 
-            << " ,tm_interval: " << tm_interval 
-            << " ,service: " << service 
-            << " ,metric: " << metric 
-            << " ,tag: " << tag 
+        ss  << "version: " << version
+            << " ,timestamp: " << timestamp
+            << " ,tm_interval: " << tm_interval
+            << " ,service: " << service
+            << " ,metric: " << metric
+            << " ,tag: " << tag
             << " ,summary: " << summary.str();
-            
-        for(size_t i=0; i<info.size(); ++i) {
-            ss << "detail-" << i << ": " << info[i].str() <<"; ";
+
+        for (size_t i = 0; i < info.size(); ++i) {
+            ss << "detail-" << i << ": " << info[i].str() << "; ";
         }
-            
+
         return ss.str();
     }
 };

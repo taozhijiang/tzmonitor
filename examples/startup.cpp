@@ -9,7 +9,6 @@
 
 #include <string>
 #include <iostream>
-#include <syslog.h>
 
 
 #include <Client/include/HeraclesClient.h>
@@ -23,7 +22,7 @@ int main(int argc, char* argv[]) {
 
 
     auto reporter = std::make_shared<HeraclesClient>();
-    if (!reporter || !reporter ->init(addr_ip, addr_port, ::syslog)) {
+    if (!reporter || !reporter ->init(addr_ip, addr_port)) {
         std::cout << "init client failed." << std::endl;
         return -1;
     }

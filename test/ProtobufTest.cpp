@@ -4,7 +4,8 @@
 #include <gmock/gmock.h>
 using namespace ::testing;
 
-#include <Core/ProtoBuf.h>
+#include <other/Log.h>
+#include <message/ProtoBuf.h>
 #include <Protocol/gen-cpp/MonitorTask.pb.h>
 
 using namespace tzrpc;
@@ -43,11 +44,11 @@ TEST(ProtobufTest, MarshalandUnmarshalTest) {
 
     request.mutable_ping()->set_msg("ping_msg");
 
-    log_debug("full protobuf dump message:\n%s", ProtoBuf::dump(request).c_str());
-    std::cout << "full protobuf dump message:\n" << ProtoBuf::dump(request) << std::endl;
+    roo::log_info("full protobuf dump message:\n%s", roo::ProtoBuf::dump(request).c_str());
+    std::cout << "full protobuf dump message:\n" << roo::ProtoBuf::dump(request) << std::endl;
 
     // copy
-    auto copyMsg = ProtoBuf::copy(request);
+    auto copyMsg = roo::ProtoBuf::copy(request);
     ASSERT_THAT(*copyMsg, Eq(request));
 
     ASSERT_THAT(*copyMsg, Eq(request));
@@ -55,14 +56,14 @@ TEST(ProtobufTest, MarshalandUnmarshalTest) {
     // marshal & unmarshal
 
     std::string mar_str;
-    ASSERT_TRUE(ProtoBuf::marshalling_to_string(request, &mar_str));
+    ASSERT_TRUE(roo::ProtoBuf::marshalling_to_string(request, &mar_str));
     std::cout << "marshal size: " << mar_str.size() << std::endl;
 
     decltype(request) new_msg;
-    ASSERT_TRUE(ProtoBuf::unmarshalling_from_string(mar_str, &new_msg));
+    ASSERT_TRUE(roo::ProtoBuf::unmarshalling_from_string(mar_str, &new_msg));
 
     ASSERT_THAT(request == new_msg, Eq(true));
 
-    log_debug("full new_msg dump message:\n%s", ProtoBuf::dump(new_msg).c_str());
-    std::cout << "full new_msg dump message:\n" << ProtoBuf::dump(new_msg) << std::endl;
+    roo::log_info("full new_msg dump message:\n%s", roo::ProtoBuf::dump(new_msg).c_str());
+    std::cout << "full new_msg dump message:\n" << roo::ProtoBuf::dump(new_msg) << std::endl;
 }

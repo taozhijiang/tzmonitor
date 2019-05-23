@@ -16,8 +16,8 @@
 
 #include <boost/thread.hpp>
 
-#include <Utils/EQueue.h>
-#include <Utils/Log.h>
+#include <container/EQueue.h>
+#include <other/Log.h>
 
 #include <Business/StoreIf.h>
 #include <Business/EventItem.h>
@@ -39,7 +39,7 @@ struct EventHandlerConf {
 
     std::string store_type_;
 
-    EventHandlerConf():
+    EventHandlerConf() :
         event_linger_(0),
         event_step_(0),
         additional_process_step_size_(0),
@@ -48,15 +48,15 @@ struct EventHandlerConf {
 
     // 按照event_step_的形式进行时间规约
     time_t nice_step(time_t t) {
-        return t + ( event_step_  -  t % event_step_);
+        return t + (event_step_  -  t % event_step_);
     }
-} __attribute__ ((aligned (4)));
+} __attribute__((aligned(4)));
 
 
 
-class EventHandler: public std::enable_shared_from_this<EventHandler> {
+class EventHandler : public std::enable_shared_from_this<EventHandler> {
 public:
-    EventHandler(const std::string& service, const std::string& entity_idx):
+    EventHandler(const std::string& service, const std::string& entity_idx) :
         service_(service),
         entity_idx_(entity_idx),
         identity_(construct_identity(service, entity_idx)),
@@ -70,9 +70,9 @@ public:
     }
 
     ~EventHandler() {
-        
+
         thread_terminate_ = true;
-        if(thread_ptr_ && thread_ptr_->joinable()) {
+        if (thread_ptr_ && thread_ptr_->joinable()) {
             thread_ptr_->join();
         }
     }
@@ -116,7 +116,7 @@ private:
     const std::string identity_;
 
     // 超过linger时间后的事件就会丢到这里被处理
-    tzrpc::EQueue<events_by_time_ptr_t> process_queue_;
+    roo::EQueue<events_by_time_ptr_t> process_queue_;
     std::shared_ptr<boost::thread> thread_ptr_;
     bool thread_terminate_;
 

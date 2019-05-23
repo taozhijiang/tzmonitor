@@ -9,18 +9,23 @@
 #ifndef __MONITOR_RPC_CLIENT_HELPER_H__
 #define __MONITOR_RPC_CLIENT_HELPER_H__
 
+#include <xtra_rhel.h>
+
 #include <string>
 #include <vector>
 #include <memory>
 
 #include <Client/include/EventTypes.h>
 
-namespace heracles_client {
+namespace tzrpc_client {
 
 class MonitorRpcClientHelper {
+
+    __noncopyable__(MonitorRpcClientHelper)
+
 public:
 
-    MonitorRpcClientHelper(const std::string& ip, uint16_t port):
+    MonitorRpcClientHelper(const std::string& ip, uint16_t port) :
         ip_(ip),
         port_(port),
         rpc_client_() {
@@ -28,10 +33,6 @@ public:
 
     ~MonitorRpcClientHelper() {
     }
-
-    // 禁止拷贝
-    MonitorRpcClientHelper(const MonitorRpcClientHelper&) = delete;
-    MonitorRpcClientHelper& operator=(const MonitorRpcClientHelper&) = delete;
 
     int rpc_ping();
 
@@ -49,6 +50,6 @@ private:
     std::unique_ptr<RpcClient> rpc_client_;
 };
 
-} // end namespace heracles_client
+} // end namespace tzrpc_client
 
 #endif // __MONITOR_RPC_CLIENT_HELPER_H__

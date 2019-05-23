@@ -15,7 +15,7 @@
 #include <memory>
 #include <leveldb/db.h>
 
-#include <Utils/StrUtil.h>
+#include <string/StrUtil.h>
 
 // leveldb 存储表设计思路
 // heracles/heracles__service__events_201902
@@ -40,7 +40,7 @@ struct leveldb_internal_layout_t {
     int32_t p90;
 
     std::string dump() const {
-        char msg[128] {};
+        char msg[128]{};
         snprintf(msg, sizeof(msg), "leveldb: %c,step:%d,count:%d,sum:%ld,avg:%d.min:%d,max:%d,p10:%d,p50%d,p90%d",
                  d, step, count, sum, avg, min, max, p10, p50, p90);
         return msg;
@@ -68,13 +68,13 @@ struct leveldb_internal_layout_t {
         p90 = htobe32(p90);
     }
 
-} __attribute__ ((packed)) ;
+} __attribute__((packed));
 
 
-class StoreLevelDB: public StoreIf {
+class StoreLevelDB : public StoreIf {
 
 public:
-    StoreLevelDB():
+    StoreLevelDB() :
         lock_(),
         levelDBs_(),
         filepath_(),
@@ -83,13 +83,13 @@ public:
 
 public:
 
-    bool init(const libconfig::Config& conf) override;
+    bool init(const libconfig::Config& conf)override;
 
-    int insert_ev_stat(const event_insert_t& stat) override;
-    int select_ev_stat(const event_cond_t& cond, event_select_t& stat, time_t linger_hint) override;
+    int insert_ev_stat(const event_insert_t& stat)override;
+    int select_ev_stat(const event_cond_t& cond, event_select_t& stat, time_t linger_hint)override;
 
-    int select_metrics(const std::string& service, std::vector<std::string>& metrics) override;
-    int select_services(std::vector<std::string>& services) override;
+    int select_metrics(const std::string& service, std::vector<std::string>& metrics)override;
+    int select_services(std::vector<std::string>& services)override;
 
 private:
 
@@ -103,7 +103,7 @@ private:
 
     std::string timestamp_exchange_str(time_t t) {
         time_t n = 9999999999 - t;
-        return tzrpc::StrUtil::convert_to_string(n);
+        return roo::StrUtil::to_string(n);
     }
 
     std::string get_table_suffix(time_t time_sec) {
@@ -111,7 +111,7 @@ private:
         struct tm now_time;
         localtime_r(&time_sec, &now_time);
 
-        char buff[20] = {0, };
+        char buff[20] = { 0, };
         sprintf(buff, "%04d%02d", now_time.tm_year + 1900, now_time.tm_mon + 1);
 
         return buff;

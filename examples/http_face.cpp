@@ -140,7 +140,7 @@ int main(int argc, char* argv[]) {
 
     // test monitor first stage
     auto reporter = std::make_shared<heracles_client::HeraclesClient>();
-    if (!reporter || !reporter ->init(cfgFile, ::syslog)) {
+    if (!reporter || !reporter ->init(cfgFile)) {
         tzhttpd::tzhttpd_log_err("init client failed.");
         return false;
     }

@@ -14,11 +14,14 @@
 #include <deque>
 #include <mutex>
 
-#include <Utils/EQueue.h>
-#include <Utils/TinyTask.h>
-#include <Utils/Log.h>
+#include <container/EQueue.h>
+#include <concurrency/TinyTask.h>
 
-#include <Scaffold/ConfHelper.h>
+#include <other/Log.h>
+
+#include <scaffold/Setting.h>
+#include <scaffold/Status.h>
+
 #include <Business/EventItem.h>
 #include <Business/StoreIf.h>
 
@@ -53,7 +56,7 @@ public:
     int get_services(const std::string& version, std::vector<std::string>& service_stat);
     int get_service_conf(const std::string& service, EventHandlerConf& handler_conf);
 
-    void add_additional_task(const tzrpc::TaskRunnable& func) {
+    void add_additional_task(const roo::TaskRunnable& func) {
         support_task_helper_->add_additional_task(func);
     }
 
@@ -74,14 +77,14 @@ private:
 
     // 额外处理线程组，用于辅助增强处理能力
     int support_process_task_size_;  // 目前不支持动态
-    std::shared_ptr<tzrpc::TinyTask> support_task_helper_;
+    std::shared_ptr<roo::TinyTask> support_task_helper_;
 
     EventHandlerConf get_default_handler_conf();
     std::shared_ptr<EventHandlerConf> default_handler_conf_;
 
 
 private:
-    EventRepos():
+    EventRepos() :
         lock_(),
         handlers_(),
         support_process_task_size_(1),
@@ -89,7 +92,7 @@ private:
         default_handler_conf_() {
     }
 
-    ~EventRepos(){
+    ~EventRepos() {
     }
 
     // 禁止拷贝

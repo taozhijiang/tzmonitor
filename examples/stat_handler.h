@@ -24,9 +24,9 @@ static std::string null_string = "";
 
 
 int index_http_get_handler(const HttpParser& http_parser,
-                           std::string& response, string& status_line, std::vector<std::string>& add_header );
+                           std::string& response, std::string& status_line, std::vector<std::string>& add_header );
 int stats_http_get_handler(const HttpParser& http_parser,
-                           std::string& response, string& status_line, std::vector<std::string>& add_header);
+                           std::string& response, std::string& status_line, std::vector<std::string>& add_header);
 
 class StatHandler {
 

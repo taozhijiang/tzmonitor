@@ -12,6 +12,8 @@
 #include <string>
 #include <libconfig.h++>
 
+#include <other/Log.h>
+
 namespace tzrpc {
 
 // 继承一些实现函数，避免多个服务实例中重复执行
@@ -45,14 +47,14 @@ protected:
             conf.exec_thread_number_hard_ > 100 ||
             conf.exec_thread_number_hard_ < conf.exec_thread_number_ )
         {
-            log_err("invalid exec_thread setting: %d, %d",
+            roo::log_err("invalid exec_thread setting: %d, %d",
                     conf.exec_thread_number_, conf.exec_thread_number_hard_);
             return -1;
         }
 
         // 可以为0，表示不进行动态更新
         if (conf.exec_thread_step_size_ < 0) {
-            log_err("invalid exec_thread_step_size setting: %d", conf.exec_thread_step_size_);
+            roo::log_err("invalid exec_thread_step_size setting: %d", conf.exec_thread_step_size_);
             return -1;
         }
 

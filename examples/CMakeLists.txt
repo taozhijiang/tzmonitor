@@ -10,6 +10,7 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/deps/
     ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/include/
     ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/include/google/
+    ${PROJECT_SOURCE_DIR}/deps/roo
 )
 
 link_directories( /usr/lib64/mysql/
@@ -29,6 +30,7 @@ add_executable( select_detail select_detail.cpp )
 
 set (EXTRA_LIBS HeraclesClient )
 
+set (EXTRA_LIBS ${EXTRA_LIBS} Roo glog_syslog )
 set (EXTRA_LIBS ${EXTRA_LIBS} ssl crypto config++)
 set (EXTRA_LIBS ${EXTRA_LIBS} pthread)
 set (EXTRA_LIBS ${EXTRA_LIBS} boost_system boost_thread boost_chrono boost_regex)

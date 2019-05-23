@@ -16,8 +16,6 @@
 
 #include "EventTypes.h"
 
-typedef void (* CP_log_store_func_t)(int priority, const char* format, ...);
-
 // 可以创建多个HeraclesClient的客户端，但是后台实现只会使用
 // 一个单例来实现，否则产生的msgid会重复，导致消息被丢弃
 
@@ -49,12 +47,11 @@ public:
 
     // 用存量的cfg进行更新，必须确保cfgFile_已经初始化了
     bool init();
-    bool init(const std::string& cfgFile, CP_log_store_func_t log_func);
-    bool init(const libconfig::Setting& setting, CP_log_store_func_t log_func);
-    bool init(const std::string& addr, uint16_t port, CP_log_store_func_t log_func);  // 简易，使用默认参数
+    bool init(const std::string& cfgFile);
+    bool init(const libconfig::Setting& setting);
+    bool init(const std::string& addr, uint16_t port);  // 简易，使用默认参数
     bool init(const std::string& service, const std::string& entity_idx,
-              const std::string& addr, uint16_t port,
-              CP_log_store_func_t log_func);
+              const std::string& addr, uint16_t port);
 
     int ping();
 

@@ -12,6 +12,7 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/deps/
     ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/include/
     ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/include/google/ 
+    ${PROJECT_SOURCE_DIR}/deps/roo
 )
 
 link_directories( /usr/lib64/mysql/
@@ -24,7 +25,7 @@ link_directories( /usr/lib64/mysql/
 
 
 
-set (TEST_HOST_LIB Scaffold Protocol RPC Network Utils HeraclesClient )
+set (TEST_HOST_LIB Protocol RPC Network HeraclesClient Roo )
 
 set (EXTRA_LIBS ${EXTRA_LIBS} ssl config++)
 set (EXTRA_LIBS ${EXTRA_LIBS} pthread)

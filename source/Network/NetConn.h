@@ -14,6 +14,8 @@
 
 #include <boost/asio.hpp>
 
+#include <mutex>
+
 namespace tzrpc {
 
 enum class ConnStat : uint8_t {
@@ -37,11 +39,12 @@ public:
     explicit NetConn(std::shared_ptr<boost::asio::ip::tcp::socket> sock) :
         conn_stat_(ConnStat::kPending),
         socket_(sock) {
-        // 默认是阻塞类型的socket，异步调用的时候自行设置
+
+        // 默认将其设置为阻塞类型的socket，异步调用的时候自行设置
         set_tcp_nonblocking(false);
     }
 
-    virtual ~NetConn() { }
+    virtual ~NetConn() = default;
 
 public:
 
@@ -130,7 +133,7 @@ public:
         conn_stat_ = ConnStat::kClosed;
     }
 
-    enum ConnStat get_conn_stat() { return conn_stat_; }
+    enum ConnStat get_conn_stat() const { return conn_stat_; }
     void set_conn_stat(enum ConnStat stat) { conn_stat_ = stat; }
 
 private:
@@ -155,6 +158,18 @@ struct IOBound {
     char io_block_[kFixedIoBufferSize];    // 读写操作的固定缓存
     Header header_;                 // 如果 > sizeof(Header), head转换成host order
     Buffer buffer_;                 // 已经传输字节
+};
+
+
+enum class SendStatus :  uint8_t {
+    kSend       = 1,
+    kDone       = 2,
+};
+
+enum class RecvStatus : uint8_t {
+    kRecvHead   = 1,
+    kRecvBody   = 2,
+    kDone       = 3,
 };
 
 

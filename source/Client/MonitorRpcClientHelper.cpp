@@ -5,17 +5,16 @@
  *
  */
 
+#include <message/ProtoBuf.h>
 
-#include <Client/LogClient.h>
 
-#include <Client/ProtoBuf.h>
 #include <Client/Common.h>
 #include <Client/RpcClient.h>
 
 #include <Client/MonitorTask.pb.h>
 #include <Client/MonitorRpcClientHelper.h>
 
-namespace heracles_client {
+namespace tzrpc_client {
 
 
 int MonitorRpcClientHelper::rpc_ping() {
@@ -24,15 +23,15 @@ int MonitorRpcClientHelper::rpc_ping() {
     request.mutable_ping()->set_msg("ping");
 
     std::string mar_str;
-    if(!tzrpc::ProtoBuf::marshalling_to_string(request, &mar_str)) {
-        log_err("marshalling message failed.");
+    if (!roo::ProtoBuf::marshalling_to_string(request, &mar_str)) {
+        roo::log_err("marshalling message failed.");
         return -1;
     }
 
     if (!rpc_client_) {
         rpc_client_.reset(new RpcClient(ip_, port_));
         if (!rpc_client_) {
-            log_err("create rpc client failed.");
+            roo::log_err("create rpc client failed.");
             return -1;
         }
     }
@@ -43,20 +42,20 @@ int MonitorRpcClientHelper::rpc_ping() {
                                         mar_str, response_str);
 
     if (status != RpcClientStatus::OK) {
-        log_err("rpc call return code %d", static_cast<uint8_t>(status) );
+        roo::log_err("rpc call return code %d", static_cast<uint8_t>(status));
         return -1;
     }
 
     tzrpc::MonitorTask::MonitorReadOps::Response response;
-    if(!tzrpc::ProtoBuf::unmarshalling_from_string(response_str, &response)) {
-        log_err("unmarshalling message failed.");
+    if (!roo::ProtoBuf::unmarshalling_from_string(response_str, &response)) {
+        roo::log_err("unmarshalling message failed.");
         return -1;
     }
 
     if (!response.has_code() || response.code() != 0) {
-        log_err("response return failed.");
+        roo::log_err("response return failed.");
         if (response.has_code() && response.has_desc()) {
-            log_err("error info: %d %s", response.code(), response.desc().c_str());
+            roo::log_err("error info: %d %s", response.code(), response.desc().c_str());
         }
 
         return -1;
@@ -65,7 +64,7 @@ int MonitorRpcClientHelper::rpc_ping() {
     // todo 校验提交返回参数
 
     std::string rsp_str = response.ping().msg();
-    log_debug("ping test return: %s",  rsp_str.c_str());
+    roo::log_info("ping test return: %s",  rsp_str.c_str());
 
     if (rsp_str == "[[[pong]]]") {
         return 0;
@@ -78,8 +77,8 @@ int MonitorRpcClientHelper::rpc_event_submit(const event_report_t& report) {
 
 
     if (report.version.empty() || report.service.empty() ||
-        report.timestamp <= 0 ){
-        log_err("submit param check error!");
+        report.timestamp <= 0) {
+        roo::log_err("submit param check error!");
         return -1;
     }
 
@@ -99,17 +98,17 @@ int MonitorRpcClientHelper::rpc_event_submit(const event_report_t& report) {
     }
 
     std::string mar_str;
-    if(!tzrpc::ProtoBuf::marshalling_to_string(request, &mar_str)) {
-        log_err("marshalling message failed.");
+    if (!roo::ProtoBuf::marshalling_to_string(request, &mar_str)) {
+        roo::log_err("marshalling message failed.");
         return -1;
     }
 
-    log_notice("report count %lu with marshal size: %lu", report.data.size(), mar_str.size());
+    roo::log_warning("report count %lu with marshal size: %lu", report.data.size(), mar_str.size());
 
     if (!rpc_client_) {
         rpc_client_.reset(new RpcClient(ip_, port_));
         if (!rpc_client_) {
-            log_err("create rpc client failed.");
+            roo::log_err("create rpc client failed.");
             return -1;
         }
     }
@@ -120,20 +119,20 @@ int MonitorRpcClientHelper::rpc_event_submit(const event_report_t& report) {
                                         mar_str, response_str);
 
     if (status != RpcClientStatus::OK) {
-        log_err("rpc call return code %d", static_cast<uint8_t>(status) );
+        roo::log_err("rpc call return code %d", static_cast<uint8_t>(status));
         return -1;
     }
 
     tzrpc::MonitorTask::MonitorWriteOps::Response response;
-    if(!tzrpc::ProtoBuf::unmarshalling_from_string(response_str, &response)) {
-        log_err("unmarshalling message failed.");
+    if (!roo::ProtoBuf::unmarshalling_from_string(response_str, &response)) {
+        roo::log_err("unmarshalling message failed.");
         return -1;
     }
 
     if (!response.has_code() || response.code() != 0) {
-        log_err("response return failed.");
+        roo::log_err("response return failed.");
         if (response.has_code() && response.has_desc()) {
-            log_err("error info: %d %s", response.code(), response.desc().c_str());
+            roo::log_err("error info: %d %s", response.code(), response.desc().c_str());
         }
 
         return -1;
@@ -147,8 +146,8 @@ int MonitorRpcClientHelper::rpc_event_submit(const event_report_t& report) {
 int MonitorRpcClientHelper::rpc_event_select(const event_cond_t& cond, event_select_t& resp_info) {
 
     if (cond.version.empty() || cond.service.empty() ||
-        cond.metric.empty()  || cond.tm_interval < 0) {
-        log_err("select param check error!");
+        cond.metric.empty() || cond.tm_interval < 0) {
+        roo::log_err("select param check error!");
         return -1;
     }
 
@@ -169,15 +168,15 @@ int MonitorRpcClientHelper::rpc_event_select(const event_cond_t& cond, event_sel
 
 
     std::string mar_str;
-    if(!tzrpc::ProtoBuf::marshalling_to_string(request, &mar_str)) {
-        log_err("marshalling message failed.");
+    if (!roo::ProtoBuf::marshalling_to_string(request, &mar_str)) {
+        roo::log_err("marshalling message failed.");
         return -1;
     }
 
     if (!rpc_client_) {
         rpc_client_.reset(new RpcClient(ip_, port_));
         if (!rpc_client_) {
-            log_err("create rpc client failed.");
+            roo::log_err("create rpc client failed.");
             return -1;
         }
     }
@@ -188,20 +187,20 @@ int MonitorRpcClientHelper::rpc_event_select(const event_cond_t& cond, event_sel
                                         mar_str, response_str);
 
     if (status != RpcClientStatus::OK) {
-        log_err("rpc call return code %d", static_cast<uint8_t>(status) );
+        roo::log_err("rpc call return code %d", static_cast<uint8_t>(status));
         return -1;
     }
 
     tzrpc::MonitorTask::MonitorReadOps::Response response;
-    if(!tzrpc::ProtoBuf::unmarshalling_from_string(response_str, &response)) {
-        log_err("unmarshalling message failed.");
+    if (!roo::ProtoBuf::unmarshalling_from_string(response_str, &response)) {
+        roo::log_err("unmarshalling message failed.");
         return -1;
     }
 
     if (!response.has_code() || response.code() != 0) {
-        log_err("response return failed.");
+        roo::log_err("response return failed.");
         if (response.has_code() && response.has_desc()) {
-            log_err("error info: %d %s", response.code(), response.desc().c_str());
+            roo::log_err("error info: %d %s", response.code(), response.desc().c_str());
         }
 
         return -1;
@@ -233,9 +232,9 @@ int MonitorRpcClientHelper::rpc_event_select(const event_cond_t& cond, event_sel
         int size = response.select().info_size();
         std::vector<event_info_t> info;
 
-        for (int i=0; i<size; ++i) {
+        for (int i = 0; i < size; ++i) {
 
-            event_info_t item {};
+            event_info_t item{};
             auto p_info = response.select().info(i);
             if (cond.groupby == GroupType::kGroupbyTimestamp) {
                 item.timestamp = p_info.timestamp();
@@ -269,7 +268,7 @@ int MonitorRpcClientHelper::rpc_known_metrics(const std::string& version, const 
                                               event_handler_conf_t& handler_conf, std::vector<std::string>& metrics) {
 
     if (service.empty()) {
-        log_err("select metrics param check error!");
+        roo::log_err("select metrics param check error!");
         return -1;
     }
 
@@ -278,15 +277,15 @@ int MonitorRpcClientHelper::rpc_known_metrics(const std::string& version, const 
     request.mutable_metrics()->set_service(service);
 
     std::string mar_str;
-    if(!tzrpc::ProtoBuf::marshalling_to_string(request, &mar_str)) {
-        log_err("marshalling message failed.");
+    if (!roo::ProtoBuf::marshalling_to_string(request, &mar_str)) {
+        roo::log_err("marshalling message failed.");
         return -1;
     }
 
     if (!rpc_client_) {
         rpc_client_.reset(new RpcClient(ip_, port_));
         if (!rpc_client_) {
-            log_err("create rpc client failed.");
+            roo::log_err("create rpc client failed.");
             return -1;
         }
     }
@@ -297,20 +296,20 @@ int MonitorRpcClientHelper::rpc_known_metrics(const std::string& version, const 
                                         mar_str, response_str);
 
     if (status != RpcClientStatus::OK) {
-        log_err("rpc call return code %d", static_cast<uint8_t>(status) );
+        roo::log_err("rpc call return code %d", static_cast<uint8_t>(status));
         return -1;
     }
 
     tzrpc::MonitorTask::MonitorReadOps::Response response;
-    if(!tzrpc::ProtoBuf::unmarshalling_from_string(response_str, &response)) {
-        log_err("unmarshalling message failed.");
+    if (!roo::ProtoBuf::unmarshalling_from_string(response_str, &response)) {
+        roo::log_err("unmarshalling message failed.");
         return -1;
     }
 
     if (!response.has_code() || response.code() != 0) {
-        log_err("response return failed.");
+        roo::log_err("response return failed.");
         if (response.has_code() && response.has_desc()) {
-            log_err("error info: %d %s", response.code(), response.desc().c_str());
+            roo::log_err("error info: %d %s", response.code(), response.desc().c_str());
         }
 
         return -1;
@@ -319,13 +318,13 @@ int MonitorRpcClientHelper::rpc_known_metrics(const std::string& version, const 
     // todo 校验提交返回参数
     std::string r_service = response.metrics().service();
     if (r_service != service) {
-        log_err("return param check error: service %s - %s",
-                r_service.c_str(), service.c_str());
+        roo::log_err("return param check error: service %s - %s",
+                     r_service.c_str(), service.c_str());
         return -1;
     }
 
     int size = response.metrics().metric_size();
-    for (int i=0; i<size; ++i) {
+    for (int i = 0; i < size; ++i) {
         auto p_metric = response.metrics().metric(i);
         metrics.push_back(p_metric);
     }
@@ -346,15 +345,15 @@ int MonitorRpcClientHelper::rpc_known_services(const std::string& version, std::
     request.mutable_services()->set_version(version);
 
     std::string mar_str;
-    if(!tzrpc::ProtoBuf::marshalling_to_string(request, &mar_str)) {
-        log_err("marshalling message failed.");
+    if (!roo::ProtoBuf::marshalling_to_string(request, &mar_str)) {
+        roo::log_err("marshalling message failed.");
         return -1;
     }
 
     if (!rpc_client_) {
         rpc_client_.reset(new RpcClient(ip_, port_));
         if (!rpc_client_) {
-            log_err("create rpc client failed.");
+            roo::log_err("create rpc client failed.");
             return -1;
         }
     }
@@ -365,27 +364,27 @@ int MonitorRpcClientHelper::rpc_known_services(const std::string& version, std::
                                         mar_str, response_str);
 
     if (status != RpcClientStatus::OK) {
-        log_err("rpc call return code %d", static_cast<uint8_t>(status) );
+        roo::log_err("rpc call return code %d", static_cast<uint8_t>(status));
         return -1;
     }
 
     tzrpc::MonitorTask::MonitorReadOps::Response response;
-    if(!tzrpc::ProtoBuf::unmarshalling_from_string(response_str, &response)) {
-        log_err("unmarshalling message failed.");
+    if (!roo::ProtoBuf::unmarshalling_from_string(response_str, &response)) {
+        roo::log_err("unmarshalling message failed.");
         return -1;
     }
 
     if (!response.has_code() || response.code() != 0) {
-        log_err("response return failed.");
+        roo::log_err("response return failed.");
         if (response.has_code() && response.has_desc()) {
-            log_err("error info: %d %s", response.code(), response.desc().c_str());
+            roo::log_err("error info: %d %s", response.code(), response.desc().c_str());
         }
 
         return -1;
     }
 
     int size = response.services().service_size();
-    for (int i=0; i<size; ++i) {
+    for (int i = 0; i < size; ++i) {
         auto p_service = response.services().service(i);
         services.push_back(p_service);
     }
@@ -393,4 +392,4 @@ int MonitorRpcClientHelper::rpc_known_services(const std::string& version, std::
     return 0;
 }
 
-} // end namespace heracles_client
+} // end namespace tzrpc_client
