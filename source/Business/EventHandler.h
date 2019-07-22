@@ -9,8 +9,6 @@
 #ifndef _BUSINESS_EVENT_HANDLER_H__
 #define _BUSINESS_EVENT_HANDLER_H__
 
-#include <libconfig.h++>
-
 #include <deque>
 #include <mutex>
 
@@ -101,7 +99,7 @@ private:
     void run();
 
     // boost 增加线程突发的时候使用
-    void run_once_task(std::vector<events_by_time_ptr_t> events);
+    int run_once_task(std::vector<events_by_time_ptr_t> events);
 
     // should be called with lock already hold
     int do_add_event(time_t ev_time, const std::vector<event_data_t>& data);

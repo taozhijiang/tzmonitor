@@ -10,7 +10,7 @@
 #define __MONITOR_CLIENT_H__
 
 #include <errno.h>
-#include <libconfig.h++>
+#include <libconfig/libconfig.h++>
 
 #include <memory>
 

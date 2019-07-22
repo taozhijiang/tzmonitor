@@ -6,8 +6,6 @@
  */
 
 
-#include <libconfig.h++>
-
 #include <other/Log.h>
 
 #include <scaffold/Setting.h>

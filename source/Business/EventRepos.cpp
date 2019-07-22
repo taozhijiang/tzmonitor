@@ -40,8 +40,8 @@ bool EventRepos::init() {
         return false;
     }
 
-    support_task_helper_ = std::make_shared<roo::TinyTask>(support_process_task_size_);
-    if (!support_task_helper_ || !support_task_helper_->init()) {
+    support_task_helper_ = std::make_shared<roo::ThreadMng>(support_process_task_size_);
+    if (!support_task_helper_) {
         roo::log_err("create task_helper work thread failed! ");
         return false;
     }

@@ -17,7 +17,7 @@ bool StoreSql::init(const libconfig::Config& conf) {
 
 
     std::string mysql_hostname;
-    int mysql_port;
+    uint16_t mysql_port;
     std::string mysql_username;
     std::string mysql_passwd;
     std::string mysql_database;
@@ -101,7 +101,7 @@ int StoreSql::create_table(roo::sql_conn_ptr& conn,
         database.c_str(), prefix.c_str(), service.c_str(), suffix.c_str()
         );
 
-    conn->sqlconn_execute_update(sql);
+    conn->execute(sql);
     return 0;
 }
 
@@ -148,7 +148,7 @@ int StoreSql::insert_ev_stat(roo::sql_conn_ptr& conn, const event_insert_t& stat
         stat.count, stat.value_sum, stat.value_avg,
         stat.value_min, stat.value_max, stat.value_p10, stat.value_p50, stat.value_p90);
 
-    int nAffected = conn->sqlconn_execute_update(sql);
+    int nAffected = conn->execute_update(sql);
     if (nAffected == 1) {
         return 0;
     }
@@ -156,7 +156,7 @@ int StoreSql::insert_ev_stat(roo::sql_conn_ptr& conn, const event_insert_t& stat
     roo::log_warning("try create table and try again!");
     create_table(conn, database_, table_prefix_, stat.service, table_suffix.c_str());
 
-    nAffected = conn->sqlconn_execute_update(sql);
+    nAffected = conn->execute_update(sql);
     return nAffected == 1 ? 0 : -1;
 }
 
@@ -234,7 +234,7 @@ int StoreSql::select_ev_stat(roo::sql_conn_ptr& conn, const event_cond_t& cond, 
     stat.timestamp = real_start_time;
 
     roo::shared_result_ptr result;
-    result.reset(conn->sqlconn_execute_query(sql));
+    result.reset(conn->execute_select(sql));
     if (!result) {
         roo::log_err("Failed to query info: %s", sql.c_str());
         return -1;
@@ -264,15 +264,15 @@ int StoreSql::select_ev_stat(roo::sql_conn_ptr& conn, const event_cond_t& cond, 
 
         bool success = false;
         if (cond.groupby == GroupType::kGroupbyTimestamp) {
-            success = roo::cast_raw_value(result, 1, item.count, item.value_sum,
+            success = roo::cast_value(result, 1, item.count, item.value_sum,
                                           item.value_min, item.value_max, item.value_p10, item.value_p50, item.value_p90,
                                           item.timestamp);
         } else if (cond.groupby == GroupType::kGroupbyTag) {
-            success = roo::cast_raw_value(result, 1, item.count, item.value_sum,
+            success = roo::cast_value(result, 1, item.count, item.value_sum,
                                           item.value_min, item.value_max, item.value_p10, item.value_p50, item.value_p90,
                                           item.tag);
         } else {
-            success = roo::cast_raw_value(result, 1, item.count, item.value_sum,
+            success = roo::cast_value(result, 1, item.count, item.value_sum,
                                           item.value_min, item.value_max, item.value_p10, item.value_p50, item.value_p90);
         }
 
@@ -356,7 +356,7 @@ int StoreSql::select_metrics(const std::string& service, std::vector<std::string
         database_.c_str(), table_prefix_.c_str(), service.c_str(), table_suffix.c_str());
 
     roo::shared_result_ptr result;
-    result.reset(conn->sqlconn_execute_query(sql));
+    result.reset(conn->execute_select(sql));
     if (!result) {
         roo::log_err("Failed to query info: %s", sql.c_str());
         return -1;
@@ -370,7 +370,7 @@ int StoreSql::select_metrics(const std::string& service, std::vector<std::string
     while (result->next()) {
 
         std::string t_metric;
-        if (!roo::cast_raw_value(result, 1, t_metric)) {
+        if (!roo::cast_value(result, 1, t_metric)) {
             roo::log_err("raw cast failed...");
             continue;
         }
@@ -401,7 +401,7 @@ int StoreSql::select_services(std::vector<std::string>& services) {
 
 
     roo::shared_result_ptr result;
-    result.reset(conn->sqlconn_execute_query(sql));
+    result.reset(conn->execute_select(sql));
     if (!result) {
         roo::log_err("Failed to query info: %s", sql.c_str());
         return -1;
@@ -416,7 +416,7 @@ int StoreSql::select_services(std::vector<std::string>& services) {
     while (result->next()) {
 
         std::string t_name;
-        if (!roo::cast_raw_value(result, 1, t_name)) {
+        if (!roo::cast_value(result, 1, t_name)) {
             roo::log_err("raw cast failed...");
             continue;
         }

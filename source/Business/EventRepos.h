@@ -9,13 +9,11 @@
 #ifndef _BUSINESS_EVENT_REPOS_H__
 #define _BUSINESS_EVENT_REPOS_H__
 
-#include <libconfig.h++>
-
 #include <deque>
 #include <mutex>
 
 #include <container/EQueue.h>
-#include <concurrency/TinyTask.h>
+#include <concurrency/ThreadMng.h>
 
 #include <other/Log.h>
 
@@ -57,7 +55,7 @@ public:
     int get_service_conf(const std::string& service, EventHandlerConf& handler_conf);
 
     void add_additional_task(const roo::TaskRunnable& func) {
-        support_task_helper_->add_additional_task(func);
+        support_task_helper_->add_task(func);
     }
 
 private:
@@ -77,7 +75,7 @@ private:
 
     // 额外处理线程组，用于辅助增强处理能力
     int support_process_task_size_;  // 目前不支持动态
-    std::shared_ptr<roo::TinyTask> support_task_helper_;
+    std::shared_ptr<roo::ThreadMng> support_task_helper_;
 
     EventHandlerConf get_default_handler_conf();
     std::shared_ptr<EventHandlerConf> default_handler_conf_;

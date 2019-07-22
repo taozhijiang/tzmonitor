@@ -265,7 +265,7 @@ int EventHandler::get_event(const event_cond_t& cond, event_select_t& stat) {
     return store_->select_ev_stat(cond, stat, conf_.event_linger_);
 }
 
-void EventHandler::run_once_task(std::vector<events_by_time_ptr_t> events) {
+int EventHandler::run_once_task(std::vector<events_by_time_ptr_t> events) {
 
     roo::log_info("MonitorEventHandler run_once_task thread %#lx begin to run ...", (long)pthread_self());
 
@@ -279,6 +279,8 @@ void EventHandler::run_once_task(std::vector<events_by_time_ptr_t> events) {
 
         do_process_event(*iter, stat);
     }
+    
+    return 0;
 }
 
 // process thread
@@ -314,7 +316,7 @@ void EventHandler::run() {
                 break;
             }
 
-            std::function<void()> func = std::bind(&EventHandler::run_once_task, shared_from_this(), ev_inserts);
+            auto func = std::bind(&EventHandler::run_once_task, shared_from_this(), ev_inserts);
             EventRepos::instance().add_additional_task(func);
         }
 

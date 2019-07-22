@@ -13,7 +13,7 @@
 #include <memory>
 #include <string>
 
-#include <libconfig.h++>
+#include <libconfig/libconfig.h++>
 
 #include "RpcClientStatus.h"
 

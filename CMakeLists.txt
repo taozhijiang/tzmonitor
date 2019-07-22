@@ -110,7 +110,7 @@ set (EXTRA_LIBS ${EXTRA_LIBS} mysqlcppconn hiredis leveldb snappy)
 
 # 某些库需要静态全连接，否则主服务没使用但是so使用，会报符号没有找到
 target_link_libraries( heracles 
-    ${EXTRA_LIBS} -lrt 
+    ${EXTRA_LIBS} -lrt -ldl
 )
 
 if(BUILD_DEBUG)
