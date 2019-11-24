@@ -17,7 +17,7 @@ bool StoreSql::init(const libconfig::Config& conf) {
 
 
     std::string mysql_hostname;
-    uint16_t mysql_port;
+    int mysql_port;
     std::string mysql_username;
     std::string mysql_passwd;
     std::string mysql_database;

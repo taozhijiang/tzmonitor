@@ -12,27 +12,14 @@
 #include <xtra_rhel.h>
 #include <memory>
 #include <string>
+#include <boost/asio.hpp>
 
 #include <libconfig/libconfig.h++>
 
 #include "RpcClientStatus.h"
 
 
-
-// 注意：传递进来的io_service要确保是有线程进行run了的，因为客户端使用
-//       他进行了定时等异步操作，如果是同步的io_service传递进来，可能会
-//       发生意想不到的情况
-//       推荐使用roo::IoService返回得到的io_service
-
-namespace boost {
-namespace asio {
-class io_service;
-}
-}
-
 namespace tzrpc_client {
-
-
 
 // RPC异步调用的回调函数，status是请求处理状态，rsp是服务端返回的数据
 // 如果发生了异常，那么status会给予提示

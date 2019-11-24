@@ -61,9 +61,7 @@ public:
     bool set_tcp_nonblocking(bool set_value) {
 
         boost::system::error_code ignore_ec;
-
-        boost::asio::socket_base::non_blocking_io command(set_value);
-        socket_->io_control(command, ignore_ec);
+        socket_->non_blocking(set_value, ignore_ec);
 
         return true;
     }

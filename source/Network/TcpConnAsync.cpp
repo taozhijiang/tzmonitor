@@ -445,7 +445,7 @@ void TcpConnAsync::revoke_ops_cancel_timeout() {
 
 void TcpConnAsync::ops_cancel_timeout_call(const boost::system::error_code& ec) {
 
-    if (ec == 0) {
+    if (!ec) {
         roo::log_warning("ops_cancel_timeout_call called with timeout: %d", server_.ops_cancel_time_out());
         ops_cancel();
         sock_shutdown_and_close(ShutdownType::kBoth);

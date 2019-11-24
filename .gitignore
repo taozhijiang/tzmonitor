@@ -1,4 +1,6 @@
 _gsdata_/
+deps/
+build/
 *.vpj
 *.vpw
 *.vpwhist
@@ -6,3 +8,12 @@ _gsdata_/
 *.vtg
 .DS_Store
 include/config.h
+include/version.h
+bin/protoc
+
+# auto copy
+source/Client/Common.h
+source/Client/MonitorTask.pb.cc
+source/Client/MonitorTask.pb.h
+source/Client/include/EventTypes.h
+source/Protocol/gen-cpp/

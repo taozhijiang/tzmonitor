@@ -95,7 +95,7 @@ void RpcClientImpl::set_rpc_call_timeout(uint32_t sec, bool sync) {
 
 void RpcClientImpl::rpc_call_timeout(const boost::system::error_code& ec, bool sync) {
 
-    if (ec == 0) {
+    if (!ec) {
         roo::log_warning("rpc_call_timeout called, call activity started at %lu.", time_start_);
         was_timeout_ = true;
         if (sync) {
